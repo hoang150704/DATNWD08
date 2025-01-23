@@ -7,6 +7,7 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class CategoryController extends Controller
@@ -53,9 +54,10 @@ class CategoryController extends Controller
 
     public function getParentCategories()
     {
-        $categories = Category::select('id', 'name')->get();
-        return response()->json($categories,200);
+        $categories = Category::whereNull('parent_id')->select('id', 'name')->get();
+        return response()->json($categories, 200);
     }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -64,7 +66,10 @@ class CategoryController extends Controller
         try {
             $data = $request->validate([
                 'name' => 'required',
-                'parent_id' => 'nullable',
+                'parent_id' => [
+                    'nullable',
+                    Rule::exists('categories', 'id')->whereNull('parent_id'),
+                ],
             ]);
 
             // Chuẩn hóa slug
@@ -94,18 +99,27 @@ class CategoryController extends Controller
     public function show(string $id)
     {
         try {
-            $category = Category::select('id', 'name', 'slug', 'parent_id', 'created_at', 'updated_at')->findOrFail($id);
-            $listIdsExclude = $this->getAllsIdsNeedExclude($category);
-            $parentCategories = Category::select('id', 'name')
-                ->whereNotIn('id', $listIdsExclude)
-                ->get();
-            $categoryConvert = [
+            $category = Category::findOrFail($id);
+
+            // Kiểm tra xem danh mục hiện tại có phải là danh mục cha của danh mục nào không
+            $isParentCategory = Category::where('parent_id', $category->id)->exists();
+
+            if ($isParentCategory) {
+                // Nếu là danh mục cha, trả về mảng rỗng
+                $parentCategories = [];
+            } else {
+                // Nếu không phải danh mục cha, lấy tất cả danh mục cấp 1 trừ danh mục hiện tại
+                $parentCategories = Category::select('id','name')->whereNull('parent_id')->where('id', '!=', $category->id)->get();
+            }
+            // Convert data
+            $categoryData = [
                 "id" => $category->id,
                 "name" => $category->name,
                 "slug" => $category->slug,
-                "parent_id" => $category->parent_id
+                "parent_id" => $category->parent_id,
             ];
-            return response()->json(compact('categoryConvert', 'parentCategories'), 200);
+
+            return response()->json(compact('categoryData', 'parentCategories'), 200);
         } catch (\Exception $e) {
             Log::error($e->getMessage());
             return response()->json(['message' => 'Có lỗi xảy ra.'], 500);
@@ -113,14 +127,14 @@ class CategoryController extends Controller
     }
 
     // Convert fduwx liệu
-    private function getAllsIdsNeedExclude($category)
-    {
-        $ids = [$category->id];
-        foreach ($category->children as $child) {
-            $ids = array_merge($ids, $this->getAllsIdsNeedExclude($child));
-        }
-        return $ids;
-    }
+    // private function getAllsIdsNeedExclude($category)
+    // {
+    //     $ids = [$category->id];
+    //     foreach ($category->children as $child) {
+    //         $ids = array_merge($ids, $this->getAllsIdsNeedExclude($child));
+    //     }
+    //     return $ids;
+    // }
 
 
     /**
