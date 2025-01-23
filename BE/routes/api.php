@@ -20,9 +20,14 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 Route::prefix('categories')->group(function () {
     Route::get('/', [CategoryController::class, 'index']); // Lấy tất cả danh mục
-    Route::get('/get-all-categories', [CategoryController::class, 'getAllCategories']);
+    Route::get('/get-all-categories', [CategoryController::class, 'getParentCategories']);
     Route::get('/update/{id}', [CategoryController::class, 'show']);
     Route::post('/create', [CategoryController::class, 'store']);
     Route::put('/update/{id}', [CategoryController::class, 'update']);
     Route::delete('/delete/{id}', [CategoryController::class, 'destroy']);
+    Route::delete('/hard-delete/{id}', [CategoryController::class, 'hardDelete']);
+    Route::put('/restore/{id}', [CategoryController::class, 'restore']);
+    Route::get('/trash', [CategoryController::class, 'trash']); 
+
+    
 });

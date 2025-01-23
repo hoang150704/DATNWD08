@@ -26,7 +26,7 @@ class CategoryController extends Controller
             return response()->json(["message" => "Lỗi", 500]);
         }
     }
-
+    
     private function convertChildren($categories)
     {
         foreach ($categories as $category) {
@@ -35,11 +35,26 @@ class CategoryController extends Controller
             }
         }
     }
+
+    // Thùng rác
+    public function trash(Request $request)
+    {
+        try {
+            //code...
+            $listSoftDeleteCategories = Category::onlyTrashed()->paginate(15);
+            return response()->json($listSoftDeleteCategories, 200); // trả về respone
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json(["message" => "Lỗi", 500]);
+        }
+    }
+
     // Lấy danh mục cha để thêm
 
-    public function getParentCategories($slug)
+    public function getParentCategories()
     {
         $categories = Category::select('id', 'name')->get();
+        return response()->json($categories,200);
     }
     /**
      * Store a newly created resource in storage.
@@ -151,28 +166,59 @@ class CategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        //
-        $category = Category::withTrashed()->find($id);
-
-        if (!$category) {
+        try {
+            $category = Category::findOrFail($id);
+    
+            if ($category->trashed()) {
+                return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
+            }
+    
+            // Cập nhật parent_id của các danh mục con thành null
+            Category::where('parent_id', $id)->update(['parent_id' => null]); 
+    
+            $category->delete();
+    
+            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'], 200);
+    
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Danh mục không tồn tại'], 404);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json(['message' => 'Có lỗi xảy ra'], 500);
         }
-
-        if ($category->trashed()) {
-            return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
-        }
-        $childCategories = Category::where('parent_id', $id)->get();
-
-        //Cập nhật parent_id của các danh mục con thành null
-        foreach ($childCategories as $childCategory) {
-            $childCategory->parent_id = null;
-            $childCategory->save();
-        }
-        $category->delete();
-
-        $category->delete();
-
-
-        return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'], 200);
     }
+
+    // xóa cứng
+    public function hardDelete(string $id)
+    {
+        try {
+            Category::onlyTrashed()->findOrFail($id)->forceDelete();
+    
+            return response()->json(['message' => 'Xóa danh mục thành công'], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Không tìm thấy danh mục cần xóa'], 404);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return response()->json(['message' => 'Có lỗi xảy ra'], 500);
+        }
+    }
+
+// Khôi phục
+    public function restore($id)
+    {
+        try {
+            $category = Category::onlyTrashed()->findOrFail($id); 
+    
+            $category->restore(); 
+    
+            return response()->json(["message"=>"Bạn đã phục hồi thành công"], 200); 
+    
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(["message"=>"Không tìm thấy danh mục cần khôi phục"], 404); 
+        } catch (\Throwable $th) {
+            Log::error($th); 
+            return response()->json(["message"=>"Có lỗi xảy ra"], 500); 
+        }
+    }
+
 }
