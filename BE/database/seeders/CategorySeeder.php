@@ -5,7 +5,8 @@ namespace Database\Seeders;
 use App\Models\Category;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Faker\Factory as Faker;
 
 class CategorySeeder extends Seeder
 {
@@ -14,14 +15,14 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        //
-        DB::table('categories')->insert([
-            ['name' => 'Áo', 'slug' => 'ao', 'parent_id' => null],
-            ['name' => 'Áo thun','slug' =>  'ao-thun', 'parent_id' => 1],
-            ['name' => 'Áo sơ mi','slug' =>  'ao-so-mi', 'parent_id' => 1],
-            ['name' => 'Áo sơ mi châu Âu','slug' =>  'ao-so-mi-chau-au' , 'parent_id' => 3],
-            ['name' => 'Quần', 'slug' => 'quan', 'parent_id' => null],
-        ]);
+        $count = 1;
 
+        for ($i = 0; $i < 100; $i++) {
+            Category::create([
+                'name' => 'Danh mục ' . $i,
+                'slug' => 'danh-muc-' . $count++,
+                'parent_id' => null,
+            ]);
+        }
     }
 }
