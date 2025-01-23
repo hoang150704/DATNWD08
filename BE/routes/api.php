@@ -26,7 +26,7 @@ Route::prefix('categories')->group(function () {
     Route::put('/update/{id}', [CategoryController::class, 'update']);
     Route::delete('/delete/{id}', [CategoryController::class, 'destroy']);
     Route::delete('/hard-delete/{id}', [CategoryController::class, 'hardDelete']);
-    Route::put('/restore/{id}', [CategoryController::class, 'restore']);
+    Route::patch('/restore/{id}', [CategoryController::class, 'restore']);
     Route::get('/trash', [CategoryController::class, 'trash']); 
 
     
