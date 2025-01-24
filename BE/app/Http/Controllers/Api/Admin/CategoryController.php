@@ -24,10 +24,14 @@ class CategoryController extends Controller
             return response()->json($categories, 200); // trả về respone
         } catch (\Throwable $th) {
             //throw $th;
-            return response()->json(["message" => "Lỗi", 500]);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
         }
     }
-    
+
     private function convertChildren($categories)
     {
         foreach ($categories as $category) {
@@ -46,7 +50,11 @@ class CategoryController extends Controller
             return response()->json($listSoftDeleteCategories, 200); // trả về respone
         } catch (\Throwable $th) {
             //throw $th;
-            return response()->json(["message" => "Lỗi", 500]);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
         }
     }
 
@@ -54,8 +62,18 @@ class CategoryController extends Controller
 
     public function getParentCategories()
     {
-        $categories = Category::whereNull('parent_id')->select('id', 'name')->get();
-        return response()->json($categories, 200);
+        try {
+            //code...
+            $categories = Category::whereNull('parent_id')->select('id', 'name')->get();
+            return response()->json($categories, 200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
+        }
     }
 
     /**
@@ -89,7 +107,11 @@ class CategoryController extends Controller
             return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin"], 422);
         } catch (\Throwable $th) {
             Log::error($th);
-            return response()->json(['message' => 'Có lỗi xảy ra khi thêm danh mục'], 500);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
         }
     }
 
@@ -109,7 +131,7 @@ class CategoryController extends Controller
                 $parentCategories = [];
             } else {
                 // Nếu không phải danh mục cha, lấy tất cả danh mục cấp 1 trừ danh mục hiện tại
-                $parentCategories = Category::select('id','name')->whereNull('parent_id')->where('id', '!=', $category->id)->get();
+                $parentCategories = Category::select('id', 'name')->whereNull('parent_id')->where('id', '!=', $category->id)->get();
             }
             // Convert data
             $categoryData = [
@@ -120,9 +142,13 @@ class CategoryController extends Controller
             ];
 
             return response()->json(compact('categoryData', 'parentCategories'), 200);
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-            return response()->json(['message' => 'Có lỗi xảy ra.'], 500);
+        } catch (\Throwable $th) {
+            Log::error($th->getMessage());
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
         }
     }
 
@@ -170,7 +196,11 @@ class CategoryController extends Controller
             return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin"], 422);
         } catch (\Throwable $th) {
             //throw $th;
-            return response()->json(['error' => 'Lỗi cập nhật'], 500);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
         }
     }
 
@@ -182,23 +212,26 @@ class CategoryController extends Controller
     {
         try {
             $category = Category::findOrFail($id);
-    
+
             if ($category->trashed()) {
                 return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
             }
-    
+
             // Cập nhật parent_id của các danh mục con thành null
-            Category::where('parent_id', $id)->update(['parent_id' => null]); 
-    
+            Category::where('parent_id', $id)->update(['parent_id' => null]);
+
             $category->delete();
-    
+
             return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'], 200);
-    
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Danh mục không tồn tại'], 404);
-        } catch (\Exception $e) {
-            Log::error($e);
-            return response()->json(['message' => 'Có lỗi xảy ra'], 500);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
         }
     }
 
@@ -207,32 +240,38 @@ class CategoryController extends Controller
     {
         try {
             Category::onlyTrashed()->findOrFail($id)->forceDelete();
-    
+
             return response()->json(['message' => 'Xóa danh mục thành công'], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Không tìm thấy danh mục cần xóa'], 404);
         } catch (\Throwable $th) {
             Log::error($th);
-            return response()->json(['message' => 'Có lỗi xảy ra'], 500);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
         }
     }
 
-// Khôi phục
+    // Khôi phục
     public function restore($id)
     {
         try {
-            $category = Category::onlyTrashed()->findOrFail($id); 
-    
-            $category->restore(); 
-    
-            return response()->json(["message"=>"Bạn đã phục hồi thành công"], 200); 
-    
+            $category = Category::onlyTrashed()->findOrFail($id);
+
+            $category->restore();
+
+            return response()->json(["message" => "Bạn đã phục hồi thành công"], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(["message"=>"Không tìm thấy danh mục cần khôi phục"], 404); 
+            return response()->json(["message" => "Không tìm thấy danh mục cần khôi phục"], 404);
         } catch (\Throwable $th) {
-            Log::error($th); 
-            return response()->json(["message"=>"Có lỗi xảy ra"], 500); 
+            Log::error($th);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
         }
     }
-
 }
