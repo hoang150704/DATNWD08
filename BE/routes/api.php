@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AttributeController;
 use App\Http\Controllers\Api\Admin\CategoryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+// AdminCategory
 Route::prefix('categories')->group(function () {
     Route::get('/', [CategoryController::class, 'index']); // Lấy tất cả danh mục
     Route::get('/get-all-categories', [CategoryController::class, 'getParentCategories']);
@@ -27,7 +29,7 @@ Route::prefix('categories')->group(function () {
     Route::delete('/delete/{id}', [CategoryController::class, 'destroy']);
     Route::delete('/hard-delete/{id}', [CategoryController::class, 'hardDelete']);
     Route::patch('/restore/{id}', [CategoryController::class, 'restore']);
-    Route::get('/trash', [CategoryController::class, 'trash']); 
-
-    
+    Route::get('/trash', [CategoryController::class, 'trash']);  
 });
+//AdminAttribute
+Route::apiResource('attributes',AttributeController::class);

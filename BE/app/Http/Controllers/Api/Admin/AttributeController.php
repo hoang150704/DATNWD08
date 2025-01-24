@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attribute;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class AttributeController extends Controller
 {
@@ -13,6 +15,8 @@ class AttributeController extends Controller
     public function index()
     {
         //
+        $attributes = Attribute::select('name','is_default')->get();
+        return response()->json($attributes,200);
     }
 
     /**
@@ -20,7 +24,24 @@ class AttributeController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        try {
+            //code...
+            $data = $request->validate(
+                [
+                    "name"=>"required",
+                ]
+                );
+            $attribute = Attribute::create($data);
+            return response()->json($attribute,200);
+        } catch(ValidationException $e){
+            return response()->json(["message"=>"Vui lòng nhập đầy đủ và đúng thông tin"],422);
+        }catch (\Throwable $th) {
+            //throw $th;
+            return response()->json(["message"=>"Lỗi"],500);
+        }
+
+        
+
     }
 
     /**
@@ -29,6 +50,7 @@ class AttributeController extends Controller
     public function show(string $id)
     {
         //
+        
     }
 
     /**
