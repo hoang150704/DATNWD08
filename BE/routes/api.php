@@ -17,9 +17,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->group(function () {
     Route::prefix('comments')->group(function () {
-        Route::patch('{comment}/hide', [CommentController::class, 'hide']);
-        Route::get('search', [CommentController::class, 'search']);
+        Route::get('/', [CommentController::class, 'index']);
         Route::get('hidden', [CommentController::class, 'hiddenComment']);
+        Route::delete('delete', [CommentController::class, 'destroy']);
+        Route::patch('hide', [CommentController::class, 'hide']);
+        Route::get('search', [CommentController::class, 'search']);
+        Route::get('{comment}', [CommentController::class, 'show']);
     });
-    Route::apiResource('comments', CommentController::class);
 });
