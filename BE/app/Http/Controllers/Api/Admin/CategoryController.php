@@ -15,7 +15,7 @@ class CategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index()
     {
         try {
             //code...
@@ -165,7 +165,7 @@ class CategoryController extends Controller
 
     /**
      * Update the specified resource in storage.
-     */
+     */ 
     public function update(Request $request, $id)
     {
         try {
@@ -203,7 +203,6 @@ class CategoryController extends Controller
             ], 500);
         }
     }
-
 
     /**
      * Remove the specified resource from storage.
@@ -259,7 +258,6 @@ class CategoryController extends Controller
     {
         try {
             $category = Category::onlyTrashed()->findOrFail($id);
-
             $category->restore();
 
             return response()->json(["message" => "Bạn đã phục hồi thành công"], 200);

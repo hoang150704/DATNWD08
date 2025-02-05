@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Attribute;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+
 
 class AttributeController extends Controller
 {
@@ -17,8 +19,17 @@ class AttributeController extends Controller
     public function index()
     {
         //
-        $attributes = Attribute::select('name', 'is_default')->get();
-        return response()->json($attributes, 200);
+        try {
+            //code...
+            $attributes = Attribute::select('id', 'name', 'is_default')->paginate(10);
+            return response()->json($attributes, 200);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return response()->json([
+                "message" => "Lỗi hệ thống",
+                "error" => $th->getMessage() // Trả về chi tiết lỗi
+            ], 500);
+        }
     }
 
     /**
@@ -28,19 +39,25 @@ class AttributeController extends Controller
     {
         try {
             //code...
+            DB::beginTransaction();
             $data = $request->validate(
                 [
-                    "name" => "required",
+                    "name" => "required|max:100|unique:attributes,name",
                 ]
             );
-            $slug = Str::slug($data['name']);
-            // $attribute = Attribute::create($data);
-            return response()->json($slug, 200);
+            $attribute = Attribute::create($data);
+            DB::commit();
+            return response()->json($attribute, 200);
         } catch (ValidationException $e) {
-            return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin"], 422);
+            DB::rollBack();
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Throwable $th) {
-            //throw $th;
-            return response()->json(["message" => "Lỗi"], 500);
+            DB::rollBack(); // Hoàn tác nếu có lỗi khác
+            Log::error($th); // Ghi log lỗi để dễ debug
+            return response()->json([
+                "message" => "Lỗi hệ thống",
+                "error" => $th->getMessage() // Trả về chi tiết lỗi
+            ], 500);
         }
     }
 
@@ -71,7 +88,33 @@ class AttributeController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        try {
+            DB::beginTransaction();
+
+            $data = $request->validate([
+                "name" => "required",
+                "is_default" => "required|in:0,1"
+            ]);
+
+            $attribute = Attribute::findOrFail($id);
+            $attribute->update($data);
+
+            DB::commit();
+            return response()->json($attribute, 200);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json(
+                [
+                    "message" => "Lỗi nhập dữ liệu",
+                    'error' => $e->getMessage()
+                ],
+                422
+            );
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th);
+            return response()->json(["message" => "Lỗi",'error' => $th->getMessage()], 500);
+        }
     }
 
     /**
@@ -80,21 +123,25 @@ class AttributeController extends Controller
     public function destroy(string $id)
     {
         try {
+            DB::beginTransaction();
             $attribute = Attribute::withTrashed()->findOrFail($id);
 
             if ($attribute->trashed()) {
-                return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
+                return response()->json(['message' => 'Thuộc tính đã được xóa mềm'], 400);
             }
-            if($attribute->is_default == 0){
-                return response()->json(['message' => 'Danh mục mặc định không thể xóa'], 400);
+            if ($attribute->is_default == 0) {
+                return response()->json(['message' => 'Thuộc tính mặc định không thể xóa'], 400);
             }
             //Xóa
             $attribute->delete();
             //Nếu thành công 
-            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'], 200);
+            DB::commit();
+            return response()->json(['message' => 'Thuộc tính đã được chuyển vào thùng rác'], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Danh mục không tồn tại'], 404);
+            DB::rollBack();
+            return response()->json(['message' => 'Thuộc tính không tồn tại'], 404);
         } catch (\Throwable $th) {
+            DB::rollBack();
             Log::error($th);
             return response()->json([
                 'message' => 'Lỗi hệ thống',

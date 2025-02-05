@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('attribute_values', function (Blueprint $table) {
             $table->id();
+            $table->string('name',100);
+            $table->integer('attribute_id');
+            $table->softDeletes();
             $table->timestamps();
         });
     }
