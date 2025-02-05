@@ -37,11 +37,10 @@ Route::prefix('categories')->group(function () {
 Route::apiResource('attributes',AttributeController::class);
 Route::prefix('attribute_values')->group(function () {
     Route::get('/list/{id}', [AttributeValueController::class, 'index']); // Lấy tất cả danh mục
-    // Route::get('/get-all-categories', [CategoryController::class, 'getParentCategories']);
-    // Route::get('/update/{id}', [CategoryController::class, 'show']);
+    Route::get('/update/{id}', [AttributeValueController::class, 'show']);
     Route::post('/create', [AttributeValueController::class, 'store']);
-    // Route::put('/update/{id}', [CategoryController::class, 'update']);
-    // Route::delete('/delete/{id}', [CategoryController::class, 'destroy']);
+    Route::put('/update/{id}', [AttributeValueController::class, 'update']);
+    Route::delete('/delete/{id}', [AttributeValueController::class, 'destroy']);
     // Route::delete('/hard-delete/{id}', [CategoryController::class, 'hardDelete']);
     // Route::patch('/restore/{id}', [CategoryController::class, 'restore']);
     // Route::get('/trash', [CategoryController::class, 'trash']);  
