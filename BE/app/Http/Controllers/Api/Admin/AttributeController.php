@@ -92,7 +92,7 @@ class AttributeController extends Controller
             DB::beginTransaction();
 
             $data = $request->validate([
-                "name" => "required",
+                "name" => "required|max:100",
                 "is_default" => "required|in:0,1"
             ]);
 
@@ -124,11 +124,7 @@ class AttributeController extends Controller
     {
         try {
             DB::beginTransaction();
-            $attribute = Attribute::withTrashed()->findOrFail($id);
-
-            if ($attribute->trashed()) {
-                return response()->json(['message' => 'Thuộc tính đã được xóa mềm'], 400);
-            }
+            $attribute = Attribute::findOrFail($id);
             if ($attribute->is_default == 0) {
                 return response()->json(['message' => 'Thuộc tính mặc định không thể xóa'], 400);
             }
