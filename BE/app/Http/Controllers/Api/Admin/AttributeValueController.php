@@ -47,7 +47,7 @@ class AttributeValueController extends Controller
             $data = $request->validate(
                 [
                     "name" => "required|max:100",
-                    "attribute_id"=>["required|integer",Rule::exists('attributes', 'id')]
+                    "attribute_id"=>["required",Rule::exists('attributes', 'id')]
                 ]
             );
             $attribute_value = AttributeValue::create($data);
