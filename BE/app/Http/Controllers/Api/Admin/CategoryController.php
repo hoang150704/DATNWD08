@@ -134,14 +134,14 @@ class CategoryController extends Controller
                 $parentCategories = Category::select('id', 'name')->whereNull('parent_id')->where('id', '!=', $category->id)->get();
             }
             // Convert data
-            $categoryData = [
+            $categoryConvert = [
                 "id" => $category->id,
                 "name" => $category->name,
                 "slug" => $category->slug,
                 "parent_id" => $category->parent_id,
             ];
 
-            return response()->json(compact('categoryData', 'parentCategories'), 200);
+            return response()->json(compact('categoryConvert', 'parentCategories'), 200);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
             return response()->json([

@@ -21,27 +21,31 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-// AdminCategory
-Route::prefix('categories')->group(function () {
-    Route::get('/', [CategoryController::class, 'index']); // Lấy tất cả danh mục
-    Route::get('/get-all-categories', [CategoryController::class, 'getParentCategories']);
-    Route::get('/update/{id}', [CategoryController::class, 'show']);
-    Route::post('/create', [CategoryController::class, 'store']);
-    Route::put('/update/{id}', [CategoryController::class, 'update']);
-    Route::delete('/delete/{id}', [CategoryController::class, 'destroy']);
-    Route::delete('/hard-delete/{id}', [CategoryController::class, 'hardDelete']);
-    Route::patch('/restore/{id}', [CategoryController::class, 'restore']);
-    Route::get('/trash', [CategoryController::class, 'trash']);  
+
+Route::prefix('admin')->group(function () {
+    // // AdminCategory
+    Route::prefix('categories')->group(function () {
+        Route::get('/', [CategoryController::class, 'index']); // Lấy tất cả danh mục
+        Route::get('/get-all-categories', [CategoryController::class, 'getParentCategories']);
+        Route::get('/update/{id}', [CategoryController::class, 'show']);
+        Route::post('/create', [CategoryController::class, 'store']);
+        Route::put('/update/{id}', [CategoryController::class, 'update']);
+        Route::delete('/delete/{id}', [CategoryController::class, 'destroy']);
+        Route::delete('/hard-delete/{id}', [CategoryController::class, 'hardDelete']);
+        Route::patch('/restore/{id}', [CategoryController::class, 'restore']);
+        Route::get('/trash', [CategoryController::class, 'trash']);
+    });
+    // Admin Attribute
+    Route::apiResource('attributes', AttributeController::class);
+    // Admin Attribute Value
+    Route::prefix('attribute_values')->group(function () {
+        Route::get('/list/{id}', [AttributeValueController::class, 'index']); 
+        Route::get('/update/{id}', [AttributeValueController::class, 'show']);
+        Route::post('/create', [AttributeValueController::class, 'store']);
+        Route::put('/update/{id}', [AttributeValueController::class, 'update']);
+        Route::delete('/delete/{id}', [AttributeValueController::class, 'destroy']);
+    });
 });
-//AdminAttribute
-Route::apiResource('attributes',AttributeController::class);
-Route::prefix('attribute_values')->group(function () {
-    Route::get('/list/{id}', [AttributeValueController::class, 'index']); // Lấy tất cả danh mục
-    Route::get('/update/{id}', [AttributeValueController::class, 'show']);
-    Route::post('/create', [AttributeValueController::class, 'store']);
-    Route::put('/update/{id}', [AttributeValueController::class, 'update']);
-    Route::delete('/delete/{id}', [AttributeValueController::class, 'destroy']);
-    // Route::delete('/hard-delete/{id}', [CategoryController::class, 'hardDelete']);
-    // Route::patch('/restore/{id}', [CategoryController::class, 'restore']);
-    // Route::get('/trash', [CategoryController::class, 'trash']);  
-});
+
+
+

@@ -19,7 +19,7 @@ class CategorySeeder extends Seeder
             ['name' => 'Áo', 'slug' => 'ao', 'parent_id' => null],
             ['name' => 'Áo thun','slug' =>  'ao-thun', 'parent_id' => 1],
             ['name' => 'Áo sơ mi','slug' =>  'ao-so-mi', 'parent_id' => 1],
-            ['name' => 'Áo sơ mi châu Âu','slug' =>  'ao-so-mi-chau-au' , 'parent_id' => 3],
+            ['name' => 'Áo sơ mi châu Âu','slug' =>  'ao-so-mi-chau-au' , 'parent_id' => 1],
             ['name' => 'Quần', 'slug' => 'quan', 'parent_id' => null],
         ]);
 
