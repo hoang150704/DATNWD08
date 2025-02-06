@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\AttributeController;
 use App\Http\Controllers\Api\Admin\AttributeValue;
 use App\Http\Controllers\Api\Admin\AttributeValueController;
 use App\Http\Controllers\Api\Admin\CategoryController;
+use App\Http\Controllers\Api\Admin\LibraryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,7 +26,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('admin')->group(function () {
     // // AdminCategory
     Route::prefix('categories')->group(function () {
-        Route::get('/', [CategoryController::class, 'index']); // Lấy tất cả danh mục
+        Route::get('/', [CategoryController::class, 'index']); // Lấy tất cả danh mục trang list
         Route::get('/get-all-categories', [CategoryController::class, 'getParentCategories']);
         Route::get('/update/{id}', [CategoryController::class, 'show']);
         Route::post('/create', [CategoryController::class, 'store']);
@@ -34,6 +35,7 @@ Route::prefix('admin')->group(function () {
         Route::delete('/hard-delete/{id}', [CategoryController::class, 'hardDelete']);
         Route::patch('/restore/{id}', [CategoryController::class, 'restore']);
         Route::get('/trash', [CategoryController::class, 'trash']);
+        Route::get('/list', [CategoryController::class, 'getCategories']);
     });
     // Admin Attribute
     Route::apiResource('attributes', AttributeController::class);
@@ -45,6 +47,7 @@ Route::prefix('admin')->group(function () {
         Route::put('/update/{id}', [AttributeValueController::class, 'update']);
         Route::delete('/delete/{id}', [AttributeValueController::class, 'destroy']);
     });
+    Route::apiResource('libraries', LibraryController::class);
 });
 
 

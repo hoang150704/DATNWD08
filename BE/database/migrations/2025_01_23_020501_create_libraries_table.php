@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('libraries', function (Blueprint $table) {
             $table->id();
+            $table->string('public_id',255);
             $table->timestamps();
         });
     }

@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('product_variation_values', function (Blueprint $table) {
             $table->id();
+            $table->integer('variation_id');
+            $table->integer('attribute_value_id');
             $table->timestamps();
         });
     }

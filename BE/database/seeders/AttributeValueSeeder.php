@@ -21,6 +21,12 @@ class AttributeValueSeeder extends Seeder
             ['name' => 'Màu violet', 'attribute_id'=>1],
             ['name' => 'Màu trắng', 'attribute_id'=>1],
             ['name' => 'Màu đen', 'attribute_id'=>1],
+            ['name' => '36', 'attribute_id'=>2],
+            ['name' => '37', 'attribute_id'=>2],
+            ['name' => '38', 'attribute_id'=>2],
+            ['name' => '39', 'attribute_id'=>2],
+            ['name' => '40', 'attribute_id'=>2],
+            ['name' => '41', 'attribute_id'=>2],
         ]);
     }
 }
