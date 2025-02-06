@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\CommentController;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,7 +21,7 @@ Route::prefix('admin')->group(function () {
         Route::get('/', [CommentController::class, 'index']);
         Route::get('hidden', [CommentController::class, 'hiddenComment']);
         Route::delete('delete', [CommentController::class, 'destroy']);
-        Route::patch('hide', [CommentController::class, 'hide']);
+        Route::patch('status', [CommentController::class, 'statusToggle']);
         Route::get('search', [CommentController::class, 'search']);
         Route::get('{comment}', [CommentController::class, 'show']);
     });

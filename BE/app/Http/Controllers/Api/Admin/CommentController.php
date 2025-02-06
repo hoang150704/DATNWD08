@@ -41,7 +41,8 @@ class CommentController extends Controller
     public function destroy()
     {
         try {
-            Comment::whereIn('id', request()->id)->delete();
+            $id = request()->id;
+            Comment::whereIn('id', $id)->delete();
 
             return response()->json([
                 'message' => 'Success',
@@ -54,10 +55,13 @@ class CommentController extends Controller
         }
     }
 
-    public function hide()
+    public function statusToggle()
     {
         try {
-            Comment::whereIn('id', request()->id)->update(['is_active' => false]);
+            $id = request()->id;
+            $status = request()->status;
+            
+            Comment::whereIn('id', $id)->update(['is_active' => $status]);
             return response()->json([
                 'message' => 'Success',
             ], 200);
@@ -71,7 +75,7 @@ class CommentController extends Controller
     public function hiddenComment()
     {
         try {
-            $comments = Comment::where('is_active', '=', '0')->paginate(10);
+            $comments = Comment::where('is_active', '0')->paginate(10);
             return response()->json([
                 'message' => 'Success',
                 'data' => $comments
@@ -86,8 +90,17 @@ class CommentController extends Controller
     public function search()
     {
         try {
-            $keyword = request()->input('keyword');
-            $comments = Comment::where('content', 'like', "%{$keyword}%")->get();
+            $keyword = request()->keyword;
+            $rating = request()->rating;
+            if ($keyword && $rating) {
+                $comments = Comment::where('content', 'like', "%{$keyword}%")->where('rating', '=', $rating)->paginate(10);
+            } else {
+                if ($keyword) {
+                    $comments = Comment::where('content', 'like', "%{$keyword}%")->paginate(10);
+                } else {
+                    $comments = Comment::where('rating', $rating)->paginate(10);
+                }
+            }
             return response()->json([
                 'message' => 'Success',
                 'data' => $comments
@@ -95,17 +108,7 @@ class CommentController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed'
-            ]);
-        }
-
-
-    }
-    public function searchByRating()
-    {
-        try {
-            $comments = Comment::where('rating');
-        } catch (\Throwable $th) {
-            //throw $th;
+            ], 404);
         }
     }
 }
