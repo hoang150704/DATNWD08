@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\AttributeValue;
 use App\Http\Controllers\Api\Admin\AttributeValueController;
 use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\LibraryController;
+use App\Http\Controllers\Api\Admin\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +49,8 @@ Route::prefix('admin')->group(function () {
         Route::delete('/delete/{id}', [AttributeValueController::class, 'destroy']);
     });
     Route::apiResource('libraries', LibraryController::class);
+    Route::apiResource('products', ProductController::class);
+
 });
 
 

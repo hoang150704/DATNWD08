@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
-use App\Traits\UploadTraits;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Library extends Model
+class ProductImage extends Model
 {
     use HasFactory;
-    use UploadTraits;
     protected $fillable = [
-        'public_id'
+        'product_id',
+        'library_id'
     ];
 }

@@ -15,8 +15,7 @@ class ProductSeeder extends Seeder
     {
         //
         DB::table('products')->insert([
-            ['name'=>"Áo Thun Nam Họa Tiết In Excursion Mighty Bear Form Regular", 'description'=>"Áo thun xịn của mình", 'short_description'=>'Áo thun xịn của mình', 'main_image'=>'https://product.hstatic.net/1000360022/product/ao-thun-nam-hoa-tiet-in-excursion-mighty-bear-form-regular__2__cd4d953f9bf142079494b66624f4c9d0_master.jpg', 'slug'=>'ao-thun-nam-hoa-tiet-in-excursion-mighty-bear-form-regular'],
-            
+            ['name'=>"Áo Thun Nam Họa Tiết In Excursion Mighty Bear Form Regular", 'description'=>"Áo thun xịn của mình", 'short_description'=>'Áo thun xịn của mình', 'main_image'=>null, 'slug'=>'ao-thun-nam-hoa-tiet-in-excursion-mighty-bear-form-regular'],
         ]);
     }
 }

@@ -17,9 +17,9 @@ class LibraryController extends Controller
         //
         try {
             //code...
-            $publicIds = Library::latest()->paginate(12);
+            $publicIds = Library::select('id','public_id')->latest()->paginate(12);
             foreach($publicIds as $key=>$value){
-                $url = cloudinary()->getUrl($value['public_id']);
+                $url = Library::getConvertImage($value['public_id'],250,250,'thumb');
                 $publicIds[$key]['url'] = $url;
             }
             return response()->json($publicIds,200);
@@ -48,7 +48,7 @@ public function store(Request $request)
         $invalidImages = [];
             foreach ($request->file('images') as $image) {
                 if ($image->isValid()) { 
-                    if ($image->extension() && in_array($image->extension(), ['jpeg', 'png', 'jpg'])) { 
+                    if ($image->extension() && in_array($image->extension(), ['jpeg', 'png', 'jpg','webp'])) { 
                         if ($image->getSize() <= 5120 * 1024) {  // 5MB in bytes
                             try {
                                 $publicId = cloudinary()->upload($image->getRealPath())->getPublicId();
@@ -74,13 +74,14 @@ public function store(Request $request)
                         }
                     } else {
                         $invalidImages[] = [
-                            'error' => $image->getClientOriginalName() . ' upload thất bại do không thuộc type: jpg,jpeg,png.',
+                            'ex'=>$image->extension(),
+                            'error' => $image->getClientOriginalName() . ' upload thất bại do không thuộc type: jpg,jpeg,png,webp.',
                             
                         ];
                     }
                 } else {
                     $invalidImages[] = [
-                        
+
                         'error' => $image->getClientOriginalName().'đã upload thất bại do file không hợp lệ'
                     ];
                 }
@@ -129,7 +130,11 @@ public function store(Request $request)
             Cloudinary::destroy($image['public_id']);
             $image->delete();
             return response()->json(['message'=>'Xóa ảnh thành công'],200);
-        } catch (\Throwable $th) {
+        } 
+        catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Ảnh không tồn tại'], 404);
+        }
+        catch (\Throwable $th) {
             //throw $th;
             return response()->json([
                 'message' => 'Lỗi hệ thống',

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->integer('product_id');
             $table->string('sku',255);
-            $table->text('variant_image')->nullable();
+            $table->integer('variant_image')->nullable();
             $table->integer('regular_price')->nullable();
             $table->integer('sale_price')->nullable();
             $table->integer('stock_quantity')->default(0);
