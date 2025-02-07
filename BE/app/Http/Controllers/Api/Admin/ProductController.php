@@ -26,9 +26,16 @@ class ProductController extends Controller
             //code...
             $products = Product::with("categories:name","library:id,public_id")->select('id', 'name', 'main_image', 'slug')->latest()->paginate(10);
             foreach ($products as $key=>$value) {
-                $publicId = $value->library->public_id; 
-                $url = Product::getConvertImage($publicId,200,200,'thumb');
-                $products[$key]['url'] = $url;
+ 
+                if($value->main_image == null){
+                    $products[$key]['url'] = null;
+                }else{
+                    $publicId = $value->library->public_id;
+                    $url = Product::getConvertImage($publicId,200,200,'thumb');
+                    $products[$key]['url'] = $url;
+                    
+                }
+
             }
             return response()->json($products, 200);
         } catch (\Throwable $th) {
@@ -88,21 +95,20 @@ class ProductController extends Controller
             {
                 // // Data mẫu
                 // $novariants = [
+                //      [
                 //     "variant_image"=>1, // or không có thì gửi là null,
                 //     "regular_price"=>300000, // or null
                 //     "sale_price"=>190000, // or null lưu ý giá sale không bằng hoặc lớn hơn giá gốc
                 //     "stock_quantity"=>1000 ,// số lượng
                 //     "values"=>[] // gửi lên 1 mảng rỗng
+                //      ]
                 // ];
 
                 $dataVariants = [
-                    [
                         'regular_price' => $validatedData['regular_price'],
                         'sale_price' => $validatedData['sale_price'],
                         'short_description' => $validatedData['short_description'],
                         'variant_image' => $validatedData['variant_image'],
-                    ]
-
                 ];
             }
 
