@@ -18,6 +18,7 @@ class Product extends Model
         'short_description',
         'main_image',
         'slug',
+        'type'
     ];
     public function variants(){
         return $this->hasMany(ProductVariation ::class );

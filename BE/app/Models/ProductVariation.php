@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class ProductVariation extends Model
 {
     use HasFactory;
-    use SoftDeletes;
+
     protected $fillable = [
         'product_id',
         'sku',
@@ -18,5 +18,8 @@ class ProductVariation extends Model
         'sale_price',
         'stock_quantity',
     ];
+    public function values(){
+        return $this->hasMany(ProductVariationValue ::class,'variation_id','id' );
+    }
 
 }

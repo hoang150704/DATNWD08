@@ -34,7 +34,23 @@ class AttributeValueController extends Controller
             ], 500);
         }
     }
+    public function list()
+    {
+        //
+        try {
+            //code...
+            $attribute = Attribute::with('values:id,name,attribute_id')->select('id','name')->get();
+            return response()->json($attribute, 200);
+        
+        } catch (\Throwable $th) {
+            // throw $th;
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
 
+            ], 500);
+        }
+    }
 
     /**
      * Store a newly created resource in storage.
