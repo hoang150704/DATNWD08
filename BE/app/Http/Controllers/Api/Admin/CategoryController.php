@@ -62,7 +62,7 @@ class CategoryController extends Controller
     {
         try {
             //code...
-            $categories = Category::all(); //phân trang theo danh mục gốc(Không phải con của danh mục khác)
+            $categories = Category::select('id','name')->get(); //phân trang theo danh mục gốc(Không phải con của danh mục khác)
             return response()->json($categories, 200); // trả về respone
         } catch (\Throwable $th) {
             //throw $th;

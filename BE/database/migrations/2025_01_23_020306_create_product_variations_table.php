@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('regular_price')->nullable();
             $table->integer('sale_price')->nullable();
             $table->integer('stock_quantity')->default(0);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

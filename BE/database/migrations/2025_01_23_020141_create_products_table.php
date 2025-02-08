@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('short_description' )->nullable();
             $table->integer('main_image')->nullable();
             $table->string('slug',255);
-            $table->boolean('type');
+            $table->enum('type',[0,1]);
             $table->softDeletes();
             $table->timestamps();
         });

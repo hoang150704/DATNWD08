@@ -62,7 +62,7 @@ class ProductController extends Controller
                 'description' => $validatedData['description'],
                 'short_description' => $validatedData['short_description'],
                 'main_image' => $validatedData['main_image'],
-                'type'=> $validatedData['type'],
+                'type' => $validatedData['type'],
             ];
             $slug = Str::slug($dataProduct['name']);
             $count = 1;
@@ -113,20 +113,19 @@ class ProductController extends Controller
                             'sku' => $variant['sku'],
                         ];
                         $variantNew = ProductVariation::create($dataVariants);
-                    foreach($variant['values'] as $key=>$value){
-                        $dataValue = [
-                            'variation_id'=> $variantNew->id,
-                            'attribute_value_id'=>$value
-                        ];
-                        ProductVariationValue::create($dataValue);
+                        foreach ($variant['values'] as $key => $value) {
+                            $dataValue = [
+                                'variation_id' => $variantNew->id,
+                                'attribute_value_id' => $value
+                            ];
+                            ProductVariationValue::create($dataValue);
+                        }
                     }
-                    }
-
                 }
             }
             // Hoàn thành
             DB::commit();
-            return response()->json(['message'=>'Bạn đã thêm dữ liệu thành công'], 200);
+            return response()->json(['message' => 'Bạn đã thêm dữ liệu thành công'], 200);
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json(['message' => $e->getMessage()], 422);
@@ -148,8 +147,20 @@ class ProductController extends Controller
         //
         try {
             //code...
-            $products = Product::with("categories:name",'variants','variants.values', "library:id,public_id")->findOrFail($id);
-            return response()->json($products, 200);
+            $product = Product::with("categories:name", 'variants:id,product_id,sku,variant_image,regular_price,sale_price,stock_quantity', 'variants.values:id,variation_id,attribute_value_id', "productImages:id,product_id,library_id")
+                ->select('id', 'name', 'description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
+            // thêm link ảnh
+                //Ảnh chính
+                if ($product->main_image == null) {
+                    $products['url'] = null;
+                } else {
+                    $publicId = $product->library->public_id;
+                    $url = Product::getConvertImage($publicId, 400, 400, 'thumb');
+                    $product['url'] = $url;
+                }
+                // Thư viện ảnh
+
+            return response()->json($product, 200);
         } catch (\Throwable $th) {
             //throw $th;
             return response()->json([
@@ -157,8 +168,6 @@ class ProductController extends Controller
                 "error" => $th->getMessage() // Trả về chi tiết lỗi
             ], 500);
         }
-        
-        
     }
 
     /**
@@ -177,5 +186,4 @@ class ProductController extends Controller
         //
     }
 }
-
 

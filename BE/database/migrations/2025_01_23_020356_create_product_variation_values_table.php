@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->integer('variation_id');
             $table->integer('attribute_value_id');
+            $table->softDeletes();
             $table->timestamps();
         });
     }
