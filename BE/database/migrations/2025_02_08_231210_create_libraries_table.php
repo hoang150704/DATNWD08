@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_variation_values', function (Blueprint $table) {
+        Schema::create('libraries', function (Blueprint $table) {
             $table->id();
-            $table->integer('variation_id');
-            $table->integer('attribute_value_id');
-            $table->softDeletes();
+            $table->string('public_id',255);
             $table->timestamps();
         });
     }
@@ -25,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_variation_values');
+        Schema::dropIfExists('libraries');
     }
 };

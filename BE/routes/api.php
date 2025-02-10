@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\Admin\AttributeValueController;
 use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\LibraryController;
 use App\Http\Controllers\Api\Admin\ProductController;
+use App\Http\Controllers\Api\Admin\ProductVariationController;
+use App\Models\Product;
+use App\Models\ProductVariation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -49,10 +52,14 @@ Route::prefix('admin')->group(function () {
         Route::put('/update/{id}', [AttributeValueController::class, 'update']);
         Route::delete('/delete/{id}', [AttributeValueController::class, 'destroy']);
     });
-    // 
+    // Thư viện
     Route::apiResource('libraries', LibraryController::class);
+    // 
     Route::apiResource('products', ProductController::class);
-
+    //Variant
+    Route::prefix('variants')->group(function () {
+        Route::get('/{id}/{idVariant}', [ProductVariationController::class, 'index']); // Lấy tất cả Biến thể
+    });
 });
 
 

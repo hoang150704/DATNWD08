@@ -12,4 +12,8 @@ class ProductImage extends Model
         'product_id',
         'library_id'
     ];
+    public function library()
+    {
+        return $this->belongsTo(Library::class);
+    }
 }

@@ -32,14 +32,6 @@ class CategoryController extends Controller
         }
     }
 
-    private function convertChildren($categories)
-    {
-        foreach ($categories as $category) {
-            if ($category->children->count() > 0) {
-                $this->convertChildren($category->children);
-            }
-        }
-    }
 
     // Thùng rác
     public function trash(Request $request)

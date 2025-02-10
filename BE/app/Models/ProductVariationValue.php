@@ -9,10 +9,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class ProductVariationValue extends Model
 {
     use HasFactory;
-    use SoftDeletes;
+    
     protected $fillable = [
         'variation_id',
         'attribute_value_id'
     ];
-
+    public function attributeValue() 
+    {
+        return $this->belongsTo(AttributeValue::class); 
+    }
 }

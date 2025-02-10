@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('product_images', function (Blueprint $table) {
             $table->id();
-            $table->integer('product_id');
-            $table->integer('library_id');
+            $table->unsignedBigInteger('product_id'); 
+            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
+            $table->unsignedBigInteger('library_id'); 
+            $table->foreign('library_id')->references('id')->on('libraries')->onDelete('cascade');
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_images');
+        Schema::dropIfExists('attribute_product_images');
     }
 };
