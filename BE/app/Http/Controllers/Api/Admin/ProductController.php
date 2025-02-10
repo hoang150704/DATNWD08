@@ -28,14 +28,13 @@ class ProductController extends Controller
     {
         try {
             //code...
-            $products = Product::with("categories:name", "library:id,public_id")->select('id', 'name', 'main_image', 'slug')->latest()->paginate(10);
+            $products = Product::with("categories:name")->select('id', 'name', 'main_image', 'slug')->latest()->paginate(10);
             foreach ($products as $key => $value) {
 
                 if ($value->main_image == null) {
                     $products[$key]['url'] = null;
                 } else {
-                    $publicId = $value->library->public_id;
-                    $url = Product::getConvertImage($publicId, 200, 200, 'thumb');
+                    $url = Product::getConvertImage($value->library->url, 200, 200, 'thumb');
                     $products[$key]['url'] = $url;
                 }
             }
@@ -154,7 +153,7 @@ class ProductController extends Controller
                 "description" => $product->description,
                 "short_description" => $product->short_description,
                 "main_image" => $product->main_image,
-                "url_main_image" => $product->main_image == null ? null : Product::getConvertImage($product->library->public_id, 400, 400, 'thumb'),
+                "url_main_image" => $product->main_image == null ? "" : Product::getConvertImage($product->library->url, 400, 400, 'thumb'),
                 "type" => $product->type,
                 "slug" => $product->slug,
             ];
@@ -179,7 +178,7 @@ class ProductController extends Controller
             $convertData['product_images'] = $product->productImages->map(function ($image) {
                 return [
                     'public_id' => $image->id,
-                    'url' => Product::getConvertImage($image->public_id, 400, 400, 'thumb')
+                    'url' => Product::getConvertImage($image->url, 400, 400, 'thumb')
                 ];
             });
 

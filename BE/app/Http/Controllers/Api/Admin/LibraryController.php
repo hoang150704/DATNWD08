@@ -17,10 +17,10 @@ class LibraryController extends Controller
         //
         try {
             //code...
-            $publicIds = Library::select('id','public_id')->latest()->paginate(12);
-            foreach($publicIds as $key=>$value){
-                $url = Library::getConvertImage($value['public_id'],250,250,'thumb');
-                $publicIds[$key]['url'] = $url;
+            $libraries = Library::select('id','url')->latest()->paginate(12);
+            foreach($libraries as $key=>$value){
+                $url = Library::getConvertImage($value['url'],250,250,'thumb');
+                $publicIds[$value['id']]['url'] = $url;
             }
             return response()->json($publicIds,200);
         } catch (\Throwable $th) {
@@ -51,10 +51,12 @@ public function store(Request $request)
                     if ($image->extension() && in_array($image->extension(), ['jpeg', 'png', 'jpg','webp'])) { 
                         if ($image->getSize() <= 5120 * 1024) {  // 5MB in bytes
                             try {
-                                $publicId = cloudinary()->upload($image->getRealPath())->getPublicId();
-    
+                                $result = cloudinary()->upload($image->getRealPath());
+                                $publicId = $result->getPublicId();
+                                $url = $result->getSecurePath();
                                 $library = Library::create([
                                     'public_id' => $publicId,
+                                    'url'=>$url
                                 ]);
     
                                 $validImages[] = [

@@ -11,7 +11,7 @@ class Library extends Model
     use HasFactory;
     use UploadTraits;
     protected $fillable = [
-        'public_id'
+        'public_id','url'
     ];
     public function products()
     {
