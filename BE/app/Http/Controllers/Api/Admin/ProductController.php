@@ -99,7 +99,7 @@ class ProductController extends Controller
                     $dataNoVariants = [
                         'product_id' => $product->id,
                         'regular_price' => $variant['regular_price'],
-                        'sale_price' => $variant['sale_price'],
+                        'stock_quantity' => $variant['stock_quantity'],
                         'sku' => $variant['sku'],
                     ];
                 }
@@ -109,8 +109,7 @@ class ProductController extends Controller
                     $dataVariants = [
                         'product_id' => $product->id,
                         'regular_price' => $variant['regular_price'],
-                        'sale_price' => $variant['sale_price'],
-                        'variant_image' => $variant['variant_image'],
+                        'stock_quantity' => $variant['stock_quantity'],
                         'sku' => $variant['sku'],
                     ];
                     $variantNew = ProductVariation::create($dataVariants);

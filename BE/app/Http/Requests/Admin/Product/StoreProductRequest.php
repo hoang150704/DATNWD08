@@ -34,9 +34,7 @@ class StoreProductRequest extends FormRequest
             'images.*'=>'integer',
             'variants'=>'array|required',
             'variants.*.regular_price'=>'integer|nullable',
-            'variants.*.sale_price'=>'integer|nullable',
             'variants.*.stock_quantity'=>'integer|nullable',
-            'variants.*.variant_image'=>'integer|nullable',
             'variants.*.sku'=>'nullable',
             'variants.*.values'=>'array',
 
