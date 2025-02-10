@@ -20,9 +20,12 @@ class LibraryController extends Controller
             $libraries = Library::select('id','url')->latest()->paginate(12);
             foreach($libraries as $key=>$value){
                 $url = Library::getConvertImage($value['url'],250,250,'thumb');
-                $publicIds[$value['id']]['url'] = $url;
+                $list[] = [
+                    'id'=>$value['id'],
+                    'url'=>$url
+                ];
             }
-            return response()->json($publicIds,200);
+            return response()->json($list,200);
         } catch (\Throwable $th) {
             //throw $th;
             return response()->json([
