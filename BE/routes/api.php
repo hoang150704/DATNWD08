@@ -21,6 +21,7 @@ Route::prefix('admin')->group(function () {
         Route::get('/', [CommentController::class, 'index']);
         Route::get('hidden', [CommentController::class, 'hiddenComment']);
         Route::delete('delete', [CommentController::class, 'destroy']);
+        Route::patch('reply', [CommentController::class, 'reply']);
         Route::patch('status', [CommentController::class, 'statusToggle']);
         Route::get('search', [CommentController::class, 'search']);
         Route::get('{comment}', [CommentController::class, 'show']);

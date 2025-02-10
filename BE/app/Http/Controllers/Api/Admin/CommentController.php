@@ -55,12 +55,54 @@ class CommentController extends Controller
         }
     }
 
+    public function reply()
+{
+    try {
+        $id = request()->id;
+        $replyContent = request()->reply;
+
+        $comment = Comment::find($id);
+
+        if (!$comment) {
+            return response()->json([
+                'message' => 'Comment không tồn tại.'
+            ], 404);
+        }
+
+        if (empty($replyContent)) {
+            return response()->json([
+                'message' => 'Reply không được để trống.'
+            ], 400);
+        }
+
+        if (!empty($comment->reply)) {
+            return response()->json([
+                'message' => 'Comment này đã được phản hồi.'
+            ], 400);
+        }
+
+        $comment->reply = $replyContent;
+        $comment->save();
+
+        return response()->json([
+            'message' => 'Success',
+            'data' => $comment
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Failed',
+        ], 500);
+    }
+}
+
+
     public function statusToggle()
     {
         try {
             $id = request()->id;
             $status = request()->status;
-            
+
             Comment::whereIn('id', $id)->update(['is_active' => $status]);
             return response()->json([
                 'message' => 'Success',
@@ -93,7 +135,7 @@ class CommentController extends Controller
             $keyword = request()->keyword;
             $rating = request()->rating;
             if ($keyword && $rating) {
-                $comments = Comment::where('content', 'like', "%{$keyword}%")->where('rating', '=', $rating)->paginate(10);
+                $comments = Comment::where('content', 'like', "%{$keyword}%")->where('rating', $rating)->paginate(10);
             } else {
                 if ($keyword) {
                     $comments = Comment::where('content', 'like', "%{$keyword}%")->paginate(10);

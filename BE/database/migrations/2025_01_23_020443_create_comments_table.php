@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('user_id');
             $table->float('rating');
             $table->text('content');
-            // $table->text('reply')->nullable();
+            $table->text('reply')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
