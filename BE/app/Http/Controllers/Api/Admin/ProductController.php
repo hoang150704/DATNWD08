@@ -5,22 +5,17 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Product\StoreProductRequest;
 use App\Http\Requests\Admin\Product\UpdateProductRequest;
-use App\Models\Category;
 use App\Models\Product;
-use App\Models\ProductCategoryRelation;
-use App\Models\ProductImage;
-use App\Models\ProductVariation;
-use App\Models\ProductVariationValue;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use App\Traits\ProductTraits;
 use Dotenv\Exception\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Str;
+
 
 class ProductController extends Controller
 {
+    use ProductTraits;
     /**
      * Display a listing of the resource.
      */
@@ -65,65 +60,28 @@ class ProductController extends Controller
                 'main_image' => $validatedData['main_image'],
                 'type' => $validatedData['type'],
             ];
-            $slug = Str::slug($dataProduct['name']);
-            $count = 1;
-            while (Product::where('slug', $slug)->exists()) {
-                $slug = "{$slug}-$count";
-                $count++;
-            }
+            //Xử lí slug
+            $slug = $this->handleSlug($dataProduct['name'],'create');
             $dataProduct['slug'] = $slug;
-            $product = Product::create($dataProduct);
-            // Thêm list ảnh
-            foreach ($validatedData['images'] as $image) {
-                $dataProductImage = [
-                    'product_id' => $product->id,
-                    'library_id' => $image
-                ];
 
-                $productImage = ProductImage::create($dataProductImage);
-            }
-            // Thêm xong list ảnh
+            //Thêm sản phẩm
+            $product = Product::create($dataProduct);
+
+            // Thêm list ảnh
+            $this->addImages($validatedData['images'],$product->id);
+
             // Xử lí danh mục
-            foreach ($validatedData['categories'] as $category) {
-                $dataProductImage = [
-                    'product_id' => $product->id,
-                    'category_id' => $category
-                ];
-                $productImage = ProductCategoryRelation::create($dataProductImage);
-            }
-            // Xử lí variants 
-            if ($request->type == 1) // Sản phẩm đơn giản
-            {
-                foreach ($validatedData['variants'] as $variant) {
-                    $dataNoVariants = [
-                        'product_id' => $product->id,
-                        'regular_price' => $variant['regular_price'],
-                        'stock_quantity' => $variant['stock_quantity'],
-                        'sku' => $variant['sku'],
-                    ];
-                }
-                $variantNew = ProductVariation::create($dataNoVariants);
-            } else {
-                foreach ($validatedData['variants'] as $variant) {
-                    $dataVariants = [
-                        'product_id' => $product->id,
-                        'regular_price' => $variant['regular_price'],
-                        'stock_quantity' => $variant['stock_quantity'],
-                        'sku' => $variant['sku'],
-                    ];
-                    $variantNew = ProductVariation::create($dataVariants);
-                    foreach ($variant['values'] as $key => $value) {
-                        $dataValue = [
-                            'variation_id' => $variantNew->id,
-                            'attribute_value_id' => $value
-                        ];
-                        ProductVariationValue::create($dataValue);
-                    }
-                }
+            $this->addCategories($validatedData['categories'],$product->id);
+
+            // Xử lí thêm sản phẩm biến thể hay đơn giản 
+            $methodName = ($request->type == 1) ? 'createBasicProduct' : 'createVariantProduct';
+
+            if (method_exists($this, $methodName)) {
+                $this->$methodName($validatedData['variants'], $product->id);
             }
             // Hoàn thành
             DB::commit();
-            return response()->json(['message' => 'Bạn đã thêm dữ liệu thành công'], 200);
+            return response()->json(['message' => 'Bạn đã thêm sản phẩm thành công'], 200);
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json(['message' => $e->getMessage()], 422);
@@ -204,6 +162,8 @@ class ProductController extends Controller
             $product = Product::findorFail($id);
             //Sửa sản phẩm
             $validatedData = $request->validated();
+
+            //COnvert data
             $dataProduct = [
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'],
@@ -212,92 +172,40 @@ class ProductController extends Controller
                 'type' => $validatedData['type'],
                 'slug' => $validatedData['slug']
             ];
-            $slug = Str::slug($dataProduct['slug']);
+            $dataProduct['slug'] = $this->handleSlug($dataProduct['slug'],'update',$id);
 
-            $count = 1;
-            while (Product::where('slug', $slug)->where('id', '!=', $id)->exists()) {
-                $slug = "{$slug}-$count";
-                $count++;
-            }
-
-            //DOne thông tin cơ bản
+            //Tiến hành sửa biến thể or basic
             if ($product->type == 1) {  //Nếu ban dầu là sp đơn giản
                 if ($dataProduct['type'] == 1) {  // Sau khi update vẫn là sp đơn giản
-                    foreach ($validatedData['variants'] as $variant) {
-                        $dataNoVariants = [
-                            'product_id' => $product->id,
-                            'regular_price' => $variant['regular_price'],
-                            'sale_price' => $variant['sale_price'],
-                            'sku' => $variant['sku'],
-                        ];
+                    //Update sản phẩm đơn giản
+                    $this->updateBasicProduct($validatedData['variants'],$id);
 
-                        $productBasic = ProductVariation::findorFail($variant['variant_id']);
-                        $productBasic->update($dataNoVariants);
-                    }
                 } else { // Sau khi update là sp biến thể
                     //Ẩn biến thể cũ đi
-                    $productBasics = $product->variants;
-                    foreach ($productBasics as $value) {
-                        $productBasic = ProductVariation::findorFail($value['id']);
-                        $productBasic->delete();
-                    }
+                    $this->deletProductVaration($product);
+
                     // Thêm biến thể
-                    foreach ($validatedData['variants'] as $variant) {
-                        foreach ($validatedData['variants'] as $variant) {
-                            $dataVariants = [
-                                'product_id' => $product->id,
-                                'regular_price' => $variant['regular_price'],
-                                'sale_price' => $variant['sale_price'],
-                                'variant_image' => $variant['variant_image'],
-                                'sku' => $variant['sku'],
-                            ];
-                            $variantNew = ProductVariation::create($dataVariants);
-                            foreach ($variant['values'] as $key => $value) {
-                                $dataValue = [
-                                    'variation_id' => $variantNew->id,
-                                    'attribute_value_id' => $value
-                                ];
-                                ProductVariationValue::create($dataValue);
-                            }
-                        }
-                    }
+                    $this->createVariantProduct($validatedData['variants'],$id);
+
                 }
-            } else { // trước đó là sp biến thể 
+            } else { // Trước đó là sp biến thể 
                 if ($dataProduct['type'] == 1) { // sau update là sp đơn giản
                     //Ẩn biến thể cũ
-                    $productBasics = $product->variants;
-                    foreach ($productBasics as $productBasic) {
-                        $productBasic->delete();
-                    }
+                    $this->deletProductVaration($product);
+
                     //Thêm sản phẩm đơn giản
-                    foreach ($validatedData['variants'] as $variant) {
-                        $dataNoVariants = [
-                            'product_id' => $product->id,
-                            'regular_price' => $variant['regular_price'],
-                            'sale_price' => $variant['sale_price'],
-                            'sku' => $variant['sku'],
-                        ];
-                    }
-                    $variantNew = ProductVariation::create($dataNoVariants);
+                    $this->createBasicProduct($validatedData['variants'],$id);
+                    
                 } else { //sau update vẫn là biến thể
-                    foreach ($validatedData['variants'] as $variant) {
-                        $dataVariants = [
-                            'product_id' => $product->id,
-                            'regular_price' => $variant['regular_price'],
-                            'sale_price' => $variant['sale_price'],
-                            'variant_image' => $variant['variant_image'],
-                            'sku' => $variant['sku'],
-                        ];
-                        $productVari = ProductVariation::findorFail($variant['variant_id']);
-                        $productVari->update($dataVariants);
-                    }
+                    //Update sản phẩm biến thể
+                    $this->updateVariantProduct($validatedData['variants'],$id);
+
                 }
             }
-            $dataProduct['slug'] = $slug;
-            $product->update($dataProduct);
+            $product->update($dataProduct); 
             $product->categories()->sync($validatedData['categories']);
             $product->productImages()->sync($validatedData['images']);
-            return response()->json(['Bạn đã thêm thành công'], 200);
+            return response()->json(['Bạn đã sửa thành công'], 200);
         } catch (\Exception $e) {
             //throw $th;
             // DB::rollBack();
@@ -308,12 +216,6 @@ class ProductController extends Controller
             ], 500);
         }
     }
-
-    /**
-     * List variants
-     */
-
-
 
     /**
      * Remove the specified resource from storage.

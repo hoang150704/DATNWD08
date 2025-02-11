@@ -111,7 +111,7 @@ class CategoryController extends Controller
 
             return response()->json($category, 201);
         } catch (ValidationException $e) {
-            return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin"], 422);
+            return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin","errors"=>$e->getMessage()], 422);
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([

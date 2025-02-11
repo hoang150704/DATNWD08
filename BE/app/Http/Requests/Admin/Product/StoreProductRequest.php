@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Product;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreProductRequest extends FormRequest
 {
@@ -27,16 +28,19 @@ class StoreProductRequest extends FormRequest
             'type' => 'in:0,1|required',
             'description' => 'nullable',
             'short_description' => 'nullable',
-            'main_image'=>'nullable|integer',
-            'categories'=>'array|nullable',
-            'categories.*'=>'integer',
-            'images'=>'array|nullable',
-            'images.*'=>'integer',
-            'variants'=>'array|required',
-            'variants.*.regular_price'=>'integer|nullable',
-            'variants.*.stock_quantity'=>'integer|nullable',
-            'variants.*.sku'=>'nullable',
-            'variants.*.values'=>'array',
+            'main_image' => Rule::when(filled($this->main_image), ['exists:libraries,id']),
+            'categories' => 'array|nullable',
+            'categories.*' => 'integer|exists:categories,id',
+            'images' => 'array|nullable',
+            'images.*' => 'integer|nullable',
+            'variants' => 'array|required',
+            'variants.*.regular_price' => 'integer|nullable',
+            'variants.*.sale_price' => 'integer|nullable',
+            'variants.*.stock_quantity' => 'integer|nullable',
+            'variants.*.sku' => 'nullable',
+            'variants.*.values' => Rule::when($this->type == 0, ['required', 'array']),
+            'variants.*.values.*' => 'integer',
+
 
         ];
     }
