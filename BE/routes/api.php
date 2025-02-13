@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\OrderController;
+use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +16,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::prefix('admin')->group(function () {
+    Route::prefix('order')->group(function () {
+        Route::get('/', [OrderController::class, 'index']);
+        Route::get('search', [OrderController::class, 'search']);
+        Route::patch('changestatus', [OrderController::class, 'changeStatus'])->middleware('check.order.status');
+        Route::get('{order}', [OrderController::class, 'show']);
+    });
 });
