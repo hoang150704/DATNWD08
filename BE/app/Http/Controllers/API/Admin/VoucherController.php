@@ -53,7 +53,7 @@ class VoucherController extends Controller
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
         } catch (\Throwable $th) {
             Log::error($th);
-            return response()->json(['message' => 'Có lỗi xảy ra khi thêm voucher','error' => $th->getMessage()],  500);
+            return response()->json(['message' => 'Có lỗi xảy ra khi thêm voucher', 'error' => $th->getMessage()],  500);
         }
     }
 
@@ -76,10 +76,11 @@ class VoucherController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $code)
+    public function update(Request $request, $id)
     {
         try {
             $data = $request->validate([
+                'code' => 'required',
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'discount_percent' => 'nullable|integer|required_without:amount',
@@ -91,19 +92,23 @@ class VoucherController extends Controller
                 'start_date' => 'required|date',
             ]);
 
-            $voucher = Voucher::where('code', $code)->firstOrFail();
+            $voucher = Voucher::findOrFail($id);
             $voucher->update($data);
 
-            // Phát sự kiện
+            // Phát sự kiện nếu cần
             // broadcast(new VoucherUpdated($voucher))->toOthers();
 
             return response()->json($voucher, 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
         } catch (\Throwable $th) {
-            return response()->json(['error' => 'Lỗi cập nhật'], 500);
+            Log::error($th->getMessage());
+            return response()->json(['error' => 'Lỗi cập nhật: ' . $th->getMessage()], 500);
         }
     }
+
+
+
 
 
     /**

@@ -53,7 +53,7 @@ Route::prefix('admin')->group(function () {
         Route::get('/', [VoucherController::class, 'index']);
         Route::post('/create', [VoucherController::class, 'store']);
         Route::get('/{code}', [VoucherController::class, 'show']);
-        Route::put('/update/{code}', [VoucherController::class, 'update']);
+        Route::put('/update/{id}', [VoucherController::class, 'update']);
         Route::delete('/delete/{code}', [VoucherController::class, 'destroy']);
     });
 });
