@@ -101,4 +101,32 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+    public function destroy()
+    {
+        try {
+            $id = request()->id;
+
+            $orders = Order::whereIn('id', $id)->get();
+
+            foreach ($orders as $order) {
+                if ($order->stt_track != 9) {
+                    return response()->json([
+                        'message' => 'Chỉ có thể xoá những đơn hàng bị huỷ',
+                    ], 400);
+                }
+            }
+
+            Order::whereIn('id', $id)->delete();
+
+            return response()->json([
+                'message' => 'Success',
+            ], 200);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed',
+            ], 500);
+        }
+    }
 }

@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('admin')->group(function () {
     Route::prefix('order')->group(function () {
         Route::get('/', [OrderController::class, 'index']);
+        Route::delete('delete', [OrderController::class, 'destroy']);
         Route::get('search', [OrderController::class, 'search']);
         Route::patch('changestatus', [OrderController::class, 'changeStatus'])->middleware('check.order.status');
         Route::get('{order}', [OrderController::class, 'show']);
