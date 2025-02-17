@@ -36,7 +36,7 @@ class Product extends Model
     {
         return $this->belongsToMany(Library::class, 'product_images');
     }
-    public function attributes(){
+    public function productAttributes(){
         return $this->hasMany(ProductAttribute ::class );
     }
 }

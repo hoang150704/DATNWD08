@@ -77,7 +77,7 @@ class ProductController extends Controller
             $methodName = ($request->type == 1) ? 'createBasicProduct' : 'createVariantProduct';
 
             if (method_exists($this, $methodName)) {
-                $this->$methodName($validatedData['variants'], $product->id);
+                $data = $this->$methodName($validatedData['variants'], $product->id);
             }
             // Hoàn thành
             DB::commit();

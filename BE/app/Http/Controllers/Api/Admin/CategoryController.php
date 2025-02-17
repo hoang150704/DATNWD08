@@ -31,7 +31,14 @@ class CategoryController extends Controller
             ], 500);
         }
     }
-
+    private function convertChildren($categories)
+    {
+        foreach ($categories as $category) {
+            if ($category->children->count() > 0) {
+                $this->convertChildren($category->children);
+            }
+        }
+    }
 
     // Thùng rác
     public function trash(Request $request)
@@ -54,7 +61,7 @@ class CategoryController extends Controller
     {
         try {
             //code...
-            $categories = Category::select('id','name')->get(); //phân trang theo danh mục gốc(Không phải con của danh mục khác)
+            $categories = Category::select('id', 'name')->get(); //phân trang theo danh mục gốc(Không phải con của danh mục khác)
             return response()->json($categories, 200); // trả về respone
         } catch (\Throwable $th) {
             //throw $th;
@@ -111,7 +118,7 @@ class CategoryController extends Controller
 
             return response()->json($category, 201);
         } catch (ValidationException $e) {
-            return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin","errors"=>$e->getMessage()], 422);
+            return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin", "errors" => $e->getMessage()], 422);
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([
@@ -172,7 +179,7 @@ class CategoryController extends Controller
 
     /**
      * Update the specified resource in storage.
-     */ 
+     */
     public function update(Request $request, $id)
     {
         try {

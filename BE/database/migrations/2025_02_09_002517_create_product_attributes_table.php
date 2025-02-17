@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
             $table->unsignedBigInteger('attribute_id'); 
             $table->foreign('attribute_id')->references('id')->on('attributes')->onDelete('cascade');
+            $table->unsignedBigInteger('attribute_value_id'); 
+            $table->foreign('attribute_value_id')->references('id')->on('attribute_values')->onDelete('cascade');
             $table->softDeletes();
             $table->timestamps();
         });

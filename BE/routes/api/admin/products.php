@@ -1,0 +1,20 @@
+
+<?php
+
+use App\Http\Controllers\Api\Admin\ProductAttributeController;
+use App\Http\Controllers\Api\Admin\ProductController;
+use App\Http\Controllers\Api\Admin\ProductVariationController;
+use Illuminate\Support\Facades\Route;
+
+Route::apiResource('products', ProductController::class);
+//Variant
+Route::prefix('products')->group(function () {
+    Route::prefix('{idProduct}/variants')->group(function () {
+        Route::get('/', [ProductVariationController::class, 'index']); 
+        Route::post('/', [ProductVariationController::class, 'store']); 
+        Route::get('/{id}', [ProductVariationController::class, 'show']);
+    });
+    Route::prefix('{idProduct}/attributes')->group(function () {
+        Route::get('/', [ProductAttributeController::class, 'index']); 
+    });
+});

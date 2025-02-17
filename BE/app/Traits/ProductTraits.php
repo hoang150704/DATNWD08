@@ -2,7 +2,10 @@
 
 namespace App\Traits;
 
+use App\Models\Attribute;
+use App\Models\AttributeValue;
 use App\Models\Product;
+use App\Models\ProductAttribute;
 use App\Models\ProductCategoryRelation;
 use App\Models\ProductImage;
 use App\Models\ProductVariation;
@@ -29,7 +32,20 @@ trait ProductTraits
     //Xử lí thêm sản phẩm biến thể 
     private function createVariantProduct($dataVariants, $idProduct)
     {
+        $attributeMap = [];
         foreach ($dataVariants as $variant) {
+            // Xử lí dữ liệu lấy ra attribute
+            $attributes = AttributeValue::whereIn('id', $variant['values'])
+            ->pluck('attribute_id', 'id');
+            foreach ($attributes as $attribute_value_id => $attribute_id) {
+                if (!isset($attributeMap[$attribute_id])) {
+                    $attributeMap[$attribute_id] = [];
+                }
+                if (!in_array($attribute_value_id, $attributeMap[$attribute_id])) {
+                    $attributeMap[$attribute_id][] = $attribute_value_id;
+                }
+            }
+            ///
             $dataVariants = [
                 'product_id' => $idProduct,
                 'regular_price' => $variant['regular_price'],
@@ -45,6 +61,18 @@ trait ProductTraits
                 ProductVariationValue::create($dataValue);
             }
         }
+                    //Thêm vapf bảng attribute
+                    foreach($attributeMap as $key=>$values){
+                        foreach($values as $value){
+                            $dataProductAttribute =[
+                                "product_id"=>$idProduct,
+                                "attribute_id"=>$key,
+                                "attribute_value_id"=>$value,
+                            ];
+                            ProductAttribute::create($dataProductAttribute );
+                        }
+                    }
+        return $attributeMap;
     }
     // Xử lí slug
     private function handleSlug($data, $type, $idProduct = null)
@@ -165,5 +193,7 @@ trait ProductTraits
             $productBasic = ProductVariation::findorFail($value['id']);
             $productBasic->delete();
         }
+        ProductAttribute::where('product_id', $product->id)->delete();
+
     }
 }

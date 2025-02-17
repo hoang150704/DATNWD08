@@ -25,5 +25,8 @@ class ProductVariation extends Model
     {
         return $this->belongsTo(Product::class);
     }
-    
+    public function library()
+    {
+        return $this->belongsTo(Library::class, 'variant_image', 'id');
+    }
 }
