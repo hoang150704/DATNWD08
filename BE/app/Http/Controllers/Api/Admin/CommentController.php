@@ -11,7 +11,7 @@ class CommentController extends Controller
     public function index()
     {
         try {
-            $comments = Comment::where('is_active', 1)->paginate(10);
+            $comments = Comment::where('is_active', 1)->with('user')->paginate(10);
 
             return response()->json([
                 'message' => 'Success',

@@ -16,4 +16,10 @@ class Comment extends Model
         'content',
         'is_active'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id')->select('id', 'Username as user_name');
+    }
+
 }
