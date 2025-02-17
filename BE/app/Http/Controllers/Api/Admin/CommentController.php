@@ -12,7 +12,7 @@ class CommentController extends Controller
     {
         try {
             $comments = Comment::where('is_active', 1)
-                ->with('user')
+                // ->with('user')
                 ->paginate(10);
 
             return response()->json([
