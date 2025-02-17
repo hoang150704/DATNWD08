@@ -11,7 +11,9 @@ class CommentController extends Controller
     public function index()
     {
         try {
-            $comments = Comment::where('is_active', 1)->with('user')->paginate(10);
+            $comments = Comment::where('is_active', 1)
+                ->with('user')
+                ->paginate(10);
 
             return response()->json([
                 'message' => 'Success',
@@ -56,45 +58,45 @@ class CommentController extends Controller
     }
 
     public function reply()
-{
-    try {
-        $id = request()->id;
-        $replyContent = request()->reply;
+    {
+        try {
+            $id = request()->id;
+            $replyContent = request()->reply;
 
-        $comment = Comment::find($id);
+            $comment = Comment::find($id);
 
-        if (!$comment) {
+            if (!$comment) {
+                return response()->json([
+                    'message' => 'Comment không tồn tại.'
+                ], 404);
+            }
+
+            if (empty($replyContent)) {
+                return response()->json([
+                    'message' => 'Reply không được để trống.'
+                ], 400);
+            }
+
+            if (!empty($comment->reply)) {
+                return response()->json([
+                    'message' => 'Comment này đã được phản hồi.'
+                ], 400);
+            }
+
+            $comment->reply = $replyContent;
+            $comment->save();
+
             return response()->json([
-                'message' => 'Comment không tồn tại.'
-            ], 404);
-        }
+                'message' => 'Success',
+                'data' => $comment
+            ], 200);
 
-        if (empty($replyContent)) {
+        } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Reply không được để trống.'
-            ], 400);
+                'message' => 'Failed',
+            ], 500);
         }
-
-        if (!empty($comment->reply)) {
-            return response()->json([
-                'message' => 'Comment này đã được phản hồi.'
-            ], 400);
-        }
-
-        $comment->reply = $replyContent;
-        $comment->save();
-
-        return response()->json([
-            'message' => 'Success',
-            'data' => $comment
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Failed',
-        ], 500);
     }
-}
 
 
     public function statusToggle()
