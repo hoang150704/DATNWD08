@@ -28,7 +28,7 @@ Route::prefix('admin')->group(function () {
     // Admin Attribute Value
     require base_path('routes/api/admin/attribute_values.php');
     // Thư viện
-    Route::apiResource('libraries', LibraryController::class);
+    require base_path('routes/api/admin/libraries.php');
     // Products
     require base_path('routes/api/admin/products.php');
 

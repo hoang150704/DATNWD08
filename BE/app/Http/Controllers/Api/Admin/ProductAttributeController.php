@@ -14,11 +14,36 @@ class ProductAttributeController extends Controller
      */
     public function index(string $idProduct)
     {
-        //
         try {
-            //code...
-            $productAttribute = ProductAttribute::with("attribute","attribute_value")->select('id','attribute_id','attribute_value_id','product_id')->where("product_id",'=',$idProduct)->get();
-            return response()->json($productAttribute,200);
+            // Lấy danh sách thuộc tính theo product_id
+            $productAttributes = ProductAttribute::with("attribute:id,name","attribute_value:id,attribute_id,name")
+                ->select('id','attribute_id','attribute_value_id','product_id')
+                ->where("product_id", $idProduct)
+                ->get()
+                ->groupBy('attribute_id'); // Nhóm theo attribute_id
+    
+            // Định dạng lại dữ liệu
+            $formattedData = [
+                'product_id' => $idProduct,
+                'attributes' => []
+            ];
+    
+            foreach ($productAttributes as $attributeId => $items) {
+                $attribute = $items->first()->attribute; // Lấy thông tin thuộc tính
+    
+                $formattedData['attributes'][] = [
+                    'id' => $attribute->id,
+                    'name' => $attribute->name,
+                    'attribute_values' => $items->map(function ($item) {
+                        return [
+                            'id' => $item->attribute_value->id,
+                            'name' => $item->attribute_value->name
+                        ];
+                    })->unique()->values()->toArray() // Lọc trùng lặp
+                ];
+            }
+    
+            return response()->json($formattedData, 200);
         } catch (\Exception $e) {
             Log::error($e);
             return response()->json([
@@ -27,6 +52,7 @@ class ProductAttributeController extends Controller
             ], 500);
         }
     }
+    
 
     /**
      * Store a newly created resource in storage.

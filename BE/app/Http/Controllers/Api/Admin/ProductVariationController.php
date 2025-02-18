@@ -19,18 +19,26 @@ class ProductVariationController extends Controller
      */
     public function index(string $idProduct)
     {
-        //
-        $listProductVariant = Product::with('variants:id,product_id,regular_price,sale_price,sku,variant_image,stock_quantity', 'variants.values:variation_id,attribute_value_id', 'variants.values.attributeValue:id,name', 'productAttributes')->select('id', 'name', 'type')->findOrFail($idProduct);
+        $listProductVariant = Product::with(
+            'variants:id,product_id,regular_price,sale_price,sku,variant_image,stock_quantity',
+            'variants.values:variation_id,attribute_value_id',
+            'variants.values.attributeValue:id,name',
+            'productAttributes'
+        )->select('id', 'name', 'type')->findOrFail($idProduct);
+    
         if ($listProductVariant->type == 1) {
             return response()->json(['message' => 'Đây không phải sản phẩm biến thể']);
         }
+    
         $convertData = [
             'id' => $listProductVariant->id,
             'name' => $listProductVariant->name,
-            'type' => $listProductVariant->type
+            'type' => $listProductVariant->type,
+            'variants' => [] // Chuyển đổi variants thành mảng
         ];
+    
         foreach ($listProductVariant->variants as $variant) {
-            $convertData['variants'][$variant->id] = [
+            $variantData = [
                 'id' => $variant->id,
                 'sku' => $variant->sku,
                 'regular_price' => $variant->regular_price,
@@ -38,15 +46,19 @@ class ProductVariationController extends Controller
                 'stock_quantity' => $variant->stock_quantity,
                 'variant_image' => $variant->variant_image,
                 'url' => $variant->variant_image == null ? null : Product::getConvertImage($variant->library->url, 200, 200, 'thumb'),
+                'values' => []
             ];
+    
             foreach ($variant->values as $value) {
-                $convertData['variants'][$variant->id]['values'][] = $value->attributeValue->name;
+                $variantData['values'][] = $value->attributeValue->name;
             }
+    
+            $convertData['variants'][] = $variantData; // Thêm object vào mảng variants
         }
-        $listProductVariant = $convertData;
-        return response()->json($listProductVariant, 200);
+    
+        return response()->json($convertData, 200);
     }
-
+    
     /**
      * Store a newly created resource in storage.
      */
