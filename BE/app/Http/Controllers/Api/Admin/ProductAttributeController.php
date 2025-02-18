@@ -60,6 +60,12 @@ class ProductAttributeController extends Controller
     public function store(Request $request)
     {
         //
+        try {
+            //code...
+            
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
     }
 
     /**

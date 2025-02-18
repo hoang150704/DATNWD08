@@ -238,4 +238,31 @@ class ProductVariationController extends Controller
             ], 500);
         }
     }
+
+    public function list($idProduct)
+    {
+        try {
+            // Lấy danh sách biến thể sản phẩm cùng với giá trị thuộc tính
+            $listProductVariant = ProductVariation::with('values.attributeValue')
+                ->where('product_id', $idProduct)
+                ->get();
+    
+            // Chuyển đổi dữ liệu sang format mong muốn
+            $formattedVariants = $listProductVariant->map(function ($variant) {
+                return [
+                    'id' => $variant->id,
+                    'values' => $variant->values->map(fn($value) => $value->attributeValue->name)
+                ];
+            });
+    
+            return response()->json($formattedVariants, 200);
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                "message" => "Lỗi hệ thống",
+                "error" => $e->getMessage()
+            ], 500);
+        }
+    }
+    
 }

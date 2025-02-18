@@ -11,6 +11,7 @@ Route::apiResource('products', ProductController::class);
 Route::prefix('products')->group(function () {
     Route::prefix('{idProduct}/variants')->group(function () {
         Route::get('/', [ProductVariationController::class, 'index']); 
+        Route::get('/list', [ProductVariationController::class, 'list']); 
         Route::post('/', [ProductVariationController::class, 'store']); 
         Route::get('/{id}', [ProductVariationController::class, 'show']);
     });
