@@ -20,72 +20,78 @@ class ProductVariationController extends Controller
     public function index(string $idProduct)
     {
         //
-        $listProductVariant = Product::with('variants:id,product_id,regular_price,sale_price,sku,variant_image,stock_quantity','variants.values:variation_id,attribute_value_id','variants.values.attributeValue:id,name','productAttributes')->select('id','name','type')->findOrFail($idProduct);
-        // if(){
-
-        // }
+        $listProductVariant = Product::with('variants:id,product_id,regular_price,sale_price,sku,variant_image,stock_quantity', 'variants.values:variation_id,attribute_value_id', 'variants.values.attributeValue:id,name', 'productAttributes')->select('id', 'name', 'type')->findOrFail($idProduct);
+        if ($listProductVariant->type == 1) {
+            return response()->json(['message' => 'Đây không phải sản phẩm biến thể']);
+        }
         $convertData = [
-            'id'=>$listProductVariant->id,
-            'name'=>$listProductVariant ->name,
-            'type'=>$listProductVariant->type
+            'id' => $listProductVariant->id,
+            'name' => $listProductVariant->name,
+            'type' => $listProductVariant->type
         ];
-        foreach($listProductVariant->variants as $variant){
-            $convertData['variants'][$variant->id]=[
-                'id'=>$variant->id,
-                'sku'=>$variant->sku,
-                'regular_price'=>$variant->regular_price,
-                'sale_price'=>$variant->sale_price,
-                'stock_quantity'=>$variant->stock_quantity,
-                'variant_image'=>$variant->variant_image,
-                'url'=>$variant->variant_image == null ? null : Product::getConvertImage($variant->library->url,200,200,'thumb'),
+        foreach ($listProductVariant->variants as $variant) {
+            $convertData['variants'][$variant->id] = [
+                'id' => $variant->id,
+                'sku' => $variant->sku,
+                'regular_price' => $variant->regular_price,
+                'sale_price' => $variant->sale_price,
+                'stock_quantity' => $variant->stock_quantity,
+                'variant_image' => $variant->variant_image,
+                'url' => $variant->variant_image == null ? null : Product::getConvertImage($variant->library->url, 200, 200, 'thumb'),
             ];
-            foreach($variant->values as $value){
-                $convertData['variants'][$variant->id]['values'][]=$value->attributeValue->name;
+            foreach ($variant->values as $value) {
+                $convertData['variants'][$variant->id]['values'][] = $value->attributeValue->name;
             }
         }
         $listProductVariant = $convertData;
-        return response()->json($listProductVariant,200);
+        return response()->json($listProductVariant, 200);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreProductVariationRequest $request,string $idProduct)
+    public function store(StoreProductVariationRequest $request, string $idProduct)
     {
         try {
             //code...
             DB::beginTransaction();
             $data = $request->validated();
             $product = Product::findOrFail($idProduct);
-
+            // Kiểm tra xem có phải sản phẩm biến thể không
+            if ($product->type == 1) {
+                return response()->json(['message' => 'Đây không phải sản phẩm biến thể']);
+            }
+            //
             $existingAttributeValues = [];
             foreach ($product->variants as $variant) {
                 $existingAttributeValues[] = $variant->values->pluck('attribute_value_id')->toArray();
             }
-        
+
             // Kiểm tra xem mảng 'values' trong yêu cầu có trùng với bất kỳ mảng nào trong $existingAttributeValues không
             //Nếu có trùng nghĩa là biến thể đó đã tồn tại
             foreach ($existingAttributeValues as $existingValues) {
-                if (count(array_diff($data['values'], $existingValues)) === 0 && 
-                    count(array_diff($existingValues, $data['values'])) === 0) {
-                    return response()->json(["message" => "Biến thể bạn chọn đã tồn tại"], 400); 
+                if (
+                    count(array_diff($data['values'], $existingValues)) === 0 &&
+                    count(array_diff($existingValues, $data['values'])) === 0
+                ) {
+                    return response()->json(["message" => "Biến thể bạn chọn đã tồn tại"], 400);
                 }
             }
             //
             $dataVariant = [
-                "sku"=>$data['sku'],
-                "regular_price"=>$data['regular_price'],
-                "sale_price"=>$data['sale_price'],
-                "variant_image"=>$data['variant_image'],
-                "stock_quantity"=>$data['stock_quantity'],
-                "product_id"=>$idProduct
+                "sku" => $data['sku'],
+                "regular_price" => $data['regular_price'],
+                "sale_price" => $data['sale_price'],
+                "variant_image" => $data['variant_image'],
+                "stock_quantity" => $data['stock_quantity'],
+                "product_id" => $idProduct
             ];
             $productVariation = ProductVariation::create($dataVariant);
             // 
-            foreach($data['values'] as $value){
+            foreach ($data['values'] as $value) {
                 $dataProductVariationValue = [
-                    "variation_id"=>$productVariation->id,
-                    "attribute_value_id"=>$value
+                    "variation_id" => $productVariation->id,
+                    "attribute_value_id" => $value
                 ];
                 ProductVariationValue::create($dataProductVariationValue);
             }
@@ -108,36 +114,35 @@ class ProductVariationController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id,$idProduct )
+    public function show(string $id, $idProduct)
     {
         //
-        $product_variant = ProductVariation::with('values','values.attributeValue')->findOrFail($id);
+        $product_variant = ProductVariation::with('values', 'values.attributeValue')->findOrFail($id);
         $convertData = [
-            "id"=> $product_variant->id,
-            "product_id"=> $product_variant->product_id,
-            "sku"=> $product_variant->sku,
-            "variant_image"=> $product_variant->variant_image,
-            'url'=>$product_variant->variant_image == null ? null : Product::getConvertImage($product_variant->library->url,200,200,'thumb'),
-            "regular_price"=> $product_variant->regular_price,
-            "sale_price"=> $product_variant->sale_price,
-            "stock_quantity"=> $product_variant->stock_quantity,
+            "id" => $product_variant->id,
+            "product_id" => $product_variant->product_id,
+            "sku" => $product_variant->sku,
+            "variant_image" => $product_variant->variant_image,
+            'url' => $product_variant->variant_image == null ? null : Product::getConvertImage($product_variant->library->url, 200, 200, 'thumb'),
+            "regular_price" => $product_variant->regular_price,
+            "sale_price" => $product_variant->sale_price,
+            "stock_quantity" => $product_variant->stock_quantity,
         ];
-        foreach($product_variant->values as $key => $value){
+        foreach ($product_variant->values as $key => $value) {
             $convertData['values'][$key] = [
-                "id"=> $value->id,
-                'attribute_id'=>$value->attributeValue->attribute_id,
-                "attribute_value_id"=> $value->attribute_value_id,
+                "id" => $value->id,
+                'attribute_id' => $value->attributeValue->attribute_id,
+                "attribute_value_id" => $value->attribute_value_id,
 
             ];
-            
         }
-        return response()->json($convertData,200);
+        return response()->json($convertData, 200);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id,$idProduct)
+    public function update(Request $request, string $id, $idProduct)
     {
         //
         try {
@@ -145,18 +150,39 @@ class ProductVariationController extends Controller
             DB::beginTransaction();
             $data = $request->validated();
             $dataVariant = [
-                "sku"=>$data['sku'],
-                "regular_price"=>$data['regular_price'],
-                "sale_price"=>$data['sale_price'],
-                "variant_image"=>$data['variant_image'],
-                "stock_quantity"=>$data['stock_quantity'],
-                "product_id"=>$idProduct
+                "sku" => $data['sku'],
+                "regular_price" => $data['regular_price'],
+                "sale_price" => $data['sale_price'],
+                "variant_image" => $data['variant_image'],
+                "stock_quantity" => $data['stock_quantity'],
+                "product_id" => $idProduct
             ];
             $product_variant = ProductVariation::findOrFail($id);
+            $product = Product::findOrFail($idProduct);
+            // Kiểm tra xem có phải sản phẩm biến thể không
+            if ($product->type == 1) {
+                return response()->json(['message' => 'Đây không phải sản phẩm biến thể']);
+            }
+            //
+            $existingAttributeValues = [];
+            foreach ($product->variants->where('id', '!=', $id) as $variant) {
+                $existingAttributeValues[] = $variant->values->pluck('attribute_value_id')->toArray();
+            }
+
+            // Kiểm tra xem mảng 'values' trong yêu cầu có trùng với bất kỳ mảng nào trong $existingAttributeValues không
+            //Nếu có trùng nghĩa là biến thể đó đã tồn tại
+            foreach ($existingAttributeValues as $existingValues) {
+                if (
+                    count(array_diff($data['values'], $existingValues)) === 0 &&
+                    count(array_diff($existingValues, $data['values'])) === 0
+                ) {
+                    return response()->json(["message" => "Biến thể bạn chọn đã tồn tại"], 400);
+                }
+            }
             $product_variant->update($dataVariant);
-            foreach($data['values'] as $value){
-                $dataVariantValue =[
-                    'attribute_value_id'=>$value['attribute_value_id']
+            foreach ($data['values'] as $value) {
+                $dataVariantValue = [
+                    'attribute_value_id' => $value['attribute_value_id']
                 ];
                 $variantValue = ProductVariationValue::findOrFail($value['id']);
                 $variantValue->update($dataVariantValue);

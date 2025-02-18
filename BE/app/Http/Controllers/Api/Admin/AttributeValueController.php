@@ -36,21 +36,32 @@ class AttributeValueController extends Controller
     }
     public function list()
     {
-        //
         try {
-            //code...
-            $attribute = Attribute::with('values:id,name,attribute_id')->select('id','name')->get();
-            return response()->json($attribute, 200);
-        
+            $attributes = Attribute::with('values:id,name,attribute_id')->select('id', 'name')->get();
+    
+            $convertedData = $attributes->map(function ($attribute) {
+                return [
+                    'id' => $attribute->id,
+                    'name' => $attribute->name,
+                    'data' => $attribute->values->map(function ($value) {
+                        return [
+                            'label' => $value->name, 
+                            'id' => $value->id, 
+                        ];
+                    })
+                ];
+            });
+    
+            return response()->json($convertedData, 200);
+    
         } catch (\Throwable $th) {
-            // throw $th;
             return response()->json([
                 'message' => 'Lỗi hệ thống',
                 'error' => $th->getMessage()
-
             ], 500);
         }
     }
+    
 
     /**
      * Store a newly created resource in storage.
