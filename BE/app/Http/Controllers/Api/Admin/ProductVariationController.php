@@ -127,7 +127,7 @@ class ProductVariationController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id, $idProduct)
+    public function show(string $idProduct,$id )
     {
         //
         $product_variant = ProductVariation::with('values', 'values.attributeValue')->findOrFail($id);
