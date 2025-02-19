@@ -22,6 +22,7 @@ class UpdateProductVariationRequest extends FormRequest
     public function rules(): array
     {
         return [
+            //
             'variant_image' => 'integer|nullable',
             'sku' => 'nullable',
             'regular_price' => 'integer|nullable',

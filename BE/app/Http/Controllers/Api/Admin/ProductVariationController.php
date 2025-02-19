@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Product\StoreProductVariationRequest;
+use App\Http\Requests\Admin\Product\UpdateProductVariationRequest;
 use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\ProductVariationValue;
@@ -154,7 +155,7 @@ class ProductVariationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id, $idProduct)
+    public function update(UpdateProductVariationRequest $request, string $id, $idProduct)
     {
         //
         try {

@@ -14,6 +14,7 @@ Route::prefix('products')->group(function () {
         Route::get('/list', [ProductVariationController::class, 'list']); 
         Route::post('/', [ProductVariationController::class, 'store']); 
         Route::get('/{id}', [ProductVariationController::class, 'show']);
+        Route::put('/{id}', [ProductVariationController::class, 'update']);
     });
     Route::prefix('{idProduct}/attributes')->group(function () {
         Route::get('/', [ProductAttributeController::class, 'index']); 

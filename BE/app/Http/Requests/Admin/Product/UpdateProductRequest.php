@@ -23,6 +23,7 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             //
+            'attributes'=>'array',
             'name' => 'required|max:255',
             'type' => 'required|in:0,1',
             'description' => 'nullable',

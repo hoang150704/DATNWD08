@@ -8,7 +8,6 @@ use App\Http\Requests\Admin\Product\UpdateProductRequest;
 use App\Models\Product;
 use App\Traits\ProductTraits;
 use Dotenv\Exception\ValidationException;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -74,10 +73,10 @@ class ProductController extends Controller
             $this->addCategories($validatedData['categories'],$product->id);
 
             // Xử lí thêm sản phẩm biến thể hay đơn giản 
-            $methodName = ($request->type == 1) ? 'createBasicProduct' : 'createVariantProduct';
-
-            if (method_exists($this, $methodName)) {
-                $data = $this->$methodName($validatedData['variants'], $product->id);
+            if ($request->type == 1) {
+                $this->createBasicProduct($validatedData['variants'], $product->id);
+            } else {
+                $this->createVariantProduct($validatedData['variants'], $validatedData['attributes'], $product->id);
             }
             // Hoàn thành
             DB::commit();
@@ -185,7 +184,7 @@ class ProductController extends Controller
                     $this->deletProductVaration($product);
 
                     // Thêm biến thể
-                    $this->createVariantProduct($validatedData['variants'],$id);
+                    $this->createVariantProduct($validatedData['variants'],$validatedData['attributes'],$id);
 
                 }
             } else { // Trước đó là sp biến thể 

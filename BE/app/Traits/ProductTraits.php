@@ -11,6 +11,7 @@ use App\Models\ProductImage;
 use App\Models\ProductVariation;
 use App\Models\ProductVariationValue;
 use Illuminate\Support\Str;
+use Symfony\Component\CssSelector\Node\AttributeNode;
 
 trait ProductTraits
 {
@@ -30,22 +31,9 @@ trait ProductTraits
     }
 
     //Xử lí thêm sản phẩm biến thể 
-    private function createVariantProduct($dataVariants, $idProduct)
+    private function createVariantProduct($dataVariants,$dataAttributes ,$idProduct)
     {
-        $attributeMap = [];
         foreach ($dataVariants as $variant) {
-            // Xử lí dữ liệu lấy ra attribute
-            $attributes = AttributeValue::whereIn('id', $variant['values'])
-            ->pluck('attribute_id', 'id');
-            foreach ($attributes as $attribute_value_id => $attribute_id) {
-                if (!isset($attributeMap[$attribute_id])) {
-                    $attributeMap[$attribute_id] = [];
-                }
-                if (!in_array($attribute_value_id, $attributeMap[$attribute_id])) {
-                    $attributeMap[$attribute_id][] = $attribute_value_id;
-                }
-            }
-            ///
             $dataVariants = [
                 'product_id' => $idProduct,
                 'regular_price' => $variant['regular_price'],
@@ -61,18 +49,18 @@ trait ProductTraits
                 ProductVariationValue::create($dataValue);
             }
         }
-                    //Thêm vapf bảng attribute
-                    foreach($attributeMap as $key=>$values){
-                        foreach($values as $value){
-                            $dataProductAttribute =[
-                                "product_id"=>$idProduct,
-                                "attribute_id"=>$key,
-                                "attribute_value_id"=>$value,
-                            ];
-                            ProductAttribute::create($dataProductAttribute );
-                        }
-                    }
-        return $attributeMap;
+        $mergedValues = collect($dataAttributes)->flatten()->unique()->values()->toArray();
+        foreach($mergedValues as $valueAttribute){
+            $attributeValue = AttributeValue::with('attribute')->findOrFail($valueAttribute);
+            $convertData = [
+                'product_id'=>$idProduct,
+                'attribute_id'=> $attributeValue->attribute->id,
+                'attribute_value_id'=>$valueAttribute,
+
+            ];
+            ProductAttribute::create($convertData);
+
+        }
     }
     // Xử lí slug
     private function handleSlug($data, $type, $idProduct = null)

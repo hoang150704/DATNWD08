@@ -24,6 +24,7 @@ class StoreProductRequest extends FormRequest
     {
         return [
             //
+            'attributes'=>'array',
             'name' => 'required|max:255',
             'type' => 'in:0,1|required',
             'description' => 'nullable',
