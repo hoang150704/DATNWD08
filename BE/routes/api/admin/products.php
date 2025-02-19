@@ -19,6 +19,10 @@ Route::prefix('products')->group(function () {
     });
     Route::prefix('{idProduct}/attributes')->group(function () {
         Route::get('/', [ProductAttributeController::class, 'index']); 
+        Route::put('/', [ProductAttributeController::class, 'update']);
+        
     });
 });
 Route::delete('variants/{id}', [ProductVariationController::class, 'destroy']);
+Route::delete('attributes/{id}', [ProductAttributeController::class, 'destroy']);
+Route::delete('attributes/delete-attributes/{id}', [ProductAttributeController::class, 'deleteAttribute']);
