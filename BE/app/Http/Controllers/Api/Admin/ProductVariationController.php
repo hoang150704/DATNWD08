@@ -228,10 +228,11 @@ class ProductVariationController extends Controller
             //code...
             DB::beginTransaction();
             $product_variant = ProductVariation::findOrFail($id);
+            $product_variant->values()->delete();
             $product_variant->delete();
-            return response()->json([
-                "message" => "Đã xóa thành công",
-            ], 200);
+            DB::commit();
+            return response()->json(['message'=>"Bạn đã xóa thành công"], 200);
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error($e);
