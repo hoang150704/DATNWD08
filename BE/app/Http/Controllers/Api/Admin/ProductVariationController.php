@@ -156,7 +156,7 @@ class ProductVariationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateProductVariationRequest $request, string $id, $idProduct)
+    public function update(UpdateProductVariationRequest $request,  $idProduct,string $id)
     {
         //
         try {
