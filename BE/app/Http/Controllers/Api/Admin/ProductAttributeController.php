@@ -16,7 +16,7 @@ class ProductAttributeController extends Controller
     {
         try {
             // Lấy danh sách thuộc tính theo product_id
-            $productAttributes = ProductAttribute::with("attribute:id,name","attribute_value:id,attribute_id,name")
+            $productAttributes = ProductAttribute::with("attribute:id,name","attribute_value:id,attribute_id")
                 ->select('id','attribute_id','attribute_value_id','product_id')
                 ->where("product_id", $idProduct)
                 ->get()
@@ -24,7 +24,6 @@ class ProductAttributeController extends Controller
     
             // Định dạng lại dữ liệu
             $formattedData = [
-                'product_id' => $idProduct,
                 'attributes' => []
             ];
     
@@ -37,7 +36,6 @@ class ProductAttributeController extends Controller
                     'attribute_values' => $items->map(function ($item) {
                         return [
                             'id' => $item->attribute_value->id,
-                            'name' => $item->attribute_value->name
                         ];
                     })->unique()->values()->toArray() // Lọc trùng lặp
                 ];

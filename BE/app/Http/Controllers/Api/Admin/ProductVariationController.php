@@ -146,6 +146,7 @@ class ProductVariationController extends Controller
                 "id" => $value->id,
                 'attribute_id' => $value->attributeValue->attribute_id,
                 "attribute_value_id" => $value->attribute_value_id,
+                "name" => $value->attributeValue->name,
 
             ];
         }
