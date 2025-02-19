@@ -13,7 +13,7 @@ class OrderSeeder extends Seeder
      */
     public function run(): void
     {
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 100; $i++) {
             DB::table('orders')->insert([
                 'user_id' => rand(1, 20),
                 'code' => fake()->uuid,

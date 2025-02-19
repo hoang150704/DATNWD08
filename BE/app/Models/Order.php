@@ -24,4 +24,20 @@ class Order extends Model
         'stt_track',
         'stt_payment'
     ];
+
+    public function stt_track()
+    {
+        return $this->belongsTo(StatusTracking::class, 'stt_track')->select('id', 'name as status_name');
+    }
+
+    public function stt_payment()
+    {
+        return $this->belongsTo(StatusPayment::class, 'stt_payment')->select('id', 'name as payment_name');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
 }

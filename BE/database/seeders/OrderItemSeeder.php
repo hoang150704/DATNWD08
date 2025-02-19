@@ -16,7 +16,7 @@ class OrderItemSeeder extends Seeder
     {
         for ($i = 0; $i < 20; $i++) {
             DB::table('order_items')->insert([
-                'cart_id' => rand(1, 15),
+                'order_id' => rand(1, 15),
                 'product_id' => rand(1, 20),
                 'variation_id' => rand(1, 20),
                 'variation' => json_encode([

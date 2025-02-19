@@ -14,8 +14,8 @@ class StatusPaymentSeeder extends Seeder
     public function run(): void
     {
         DB::table('status_payments')->insert([
-            ['name' => 'Chờ vận chuyển'],
-            ['name' => 'Đã vận chuyển']
+            ['name' => 'Chờ thanh toán'],
+            ['name' => 'Đã thanh toán']
         ]);
     }
 }
