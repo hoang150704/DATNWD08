@@ -21,8 +21,7 @@ class ProductAttributeController extends Controller
                 ->where("product_id", $idProduct)
                 ->get()
                 ->groupBy('attribute_id'); // Nhóm theo attribute_id
-                $list = ProductAttribute::where("product_id", $idProduct)->distinct()->pluck('attribute_id')->toArray();
-
+            $list = ProductAttribute::where("product_id", $idProduct)->get();
             // Định dạng lại dữ liệu
             $formattedData = [
                 'product_id' => $idProduct,
@@ -44,7 +43,7 @@ class ProductAttributeController extends Controller
                 ];
             }
     
-            return response()->json($list, 200);
+            return response()->json($formattedData, 200);
         } catch (\Exception $e) {
             Log::error($e);
             return response()->json([
