@@ -22,14 +22,16 @@ class UpdateProductVariationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
-            'variant_image' => 'integer|nullable',
-            'sku' => 'nullable',
-            'regular_price' => 'integer|nullable',
-            'sale_price' => 'integer|nullable',
-            'stock_quantity' => 'integer|nullable',
-            'values' => 'array|required',
-            'values.*' => 'integer',
+            'variant_image' => 'nullable|integer', 
+            'sku' => 'nullable|string|max:255', 
+            'regular_price' => 'nullable|integer|min:0', 
+            'sale_price' => 'nullable|integer|min:0|lt:regular_price', 
+            'stock_quantity' => 'nullable|integer|min:0', 
+            
+            'values' => 'required|array|min:1', 
+            'values.*.id' => 'required|integer|distinct', 
+            'values.*.attribute_value_id' => 'required|integer', 
         ];
     }
+
 }

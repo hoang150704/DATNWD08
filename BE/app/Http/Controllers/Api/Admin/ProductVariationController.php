@@ -160,49 +160,50 @@ class ProductVariationController extends Controller
         //
         try {
             //code...
-            // DB::beginTransaction();
-            // $data = $request->validated();
-            // $dataVariant = [
-            //     "sku" => $data['sku'],
-            //     "regular_price" => $data['regular_price'],
-            //     "sale_price" => $data['sale_price'],
-            //     "variant_image" => $data['variant_image'],
-            //     "stock_quantity" => $data['stock_quantity'],
-            //     "product_id" => $idProduct
-            // ];
-            // $product_variant = ProductVariation::findOrFail($id);
-            // $product = Product::findOrFail($idProduct);
-            // // Kiểm tra xem có phải sản phẩm biến thể không
-            // if ($product->type == 1) {
-            //     return response()->json(['message' => 'Đây không phải sản phẩm biến thể']);
-            // }
-            // //
-            // $existingAttributeValues = [];
-            // foreach ($product->variants->where('id', '!=', $id) as $variant) {
-            //     $existingAttributeValues[] = $variant->values->pluck('attribute_value_id')->toArray();
-            // }
-
-            // // Kiểm tra xem mảng 'values' trong yêu cầu có trùng với bất kỳ mảng nào trong $existingAttributeValues không
-            // //Nếu có trùng nghĩa là biến thể đó đã tồn tại
-            // foreach ($existingAttributeValues as $existingValues) {
-            //     if (
-            //         count(array_diff($data['values'], $existingValues)) === 0 &&
-            //         count(array_diff($existingValues, $data['values'])) === 0
-            //     ) {
-            //         return response()->json(["message" => "Biến thể bạn chọn đã tồn tại"], 400);
-            //     }
-            // }
-            // $product_variant->update($dataVariant);
-            // foreach ($data['values'] as $value) {
-            //     $dataVariantValue = [
-            //         'attribute_value_id' => $value['attribute_value_id']
-            //     ];
-            //     $variantValue = ProductVariationValue::findOrFail($value['id']);
-            //     $variantValue->update($dataVariantValue);
-            // }
-            // // Hoàn thành
-            // DB::commit();
-            return response()->json(['message' => 'Bạn đã thêm biến thể thành công'], 200);
+            DB::beginTransaction();
+            $data = $request->validated();
+            $dataVariant = [
+                "sku" => $data['sku'],
+                "regular_price" => $data['regular_price'],
+                "sale_price" => $data['sale_price'],
+                "variant_image" => $data['variant_image'],
+                "stock_quantity" => $data['stock_quantity'],
+                "product_id" => $idProduct
+            ];
+            $product_variant = ProductVariation::findOrFail($id);
+            $product = Product::findOrFail($idProduct);
+            // Kiểm tra xem có phải sản phẩm biến thể không
+            if ($product->type == 1) {
+                return response()->json(['message' => 'Đây không phải sản phẩm biến thể'],422);
+            }
+            //
+            $existingAttributeValues = [];
+            foreach ($product->variants->where('id', '!=', $id) as $variant) {
+                $existingAttributeValues[] = $variant->values->pluck('attribute_value_id')->toArray();
+            }
+            //
+            $attributeValueIds = array_column($data['values'], 'attribute_value_id');
+            // Kiểm tra xem mảng 'values' trong yêu cầu có trùng với bất kỳ mảng nào trong $existingAttributeValues không
+            //Nếu có trùng nghĩa là biến thể đó đã tồn tại
+            foreach ($existingAttributeValues as $existingValues) {
+                if (
+                    count(array_diff($attributeValueIds, $existingValues)) === 0 &&
+                    count(array_diff($existingValues, $attributeValueIds)) === 0
+                ) {
+                    return response()->json(["message" => "Biến thể bạn chọn đã tồn tại"], 400);
+                }
+            }
+            $product_variant->update($dataVariant);
+            foreach ($data['values'] as $value) {
+                $dataVariantValue = [
+                    'attribute_value_id' => $value['attribute_value_id']
+                ];
+                $variantValue = ProductVariationValue::findOrFail($value['id']);
+                $variantValue->update($dataVariantValue);
+            }
+            // Hoàn thành
+            DB::commit();
+            return response()->json(['message' => 'Bạn đã sửa biến thể thành công'], 200);
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json(['message' => $e->getMessage()], 422);
