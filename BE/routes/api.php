@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('admin')->group(function () {
-    Route::prefix('order')->group(function () {
+    Route::prefix('orders')->group(function () {
         Route::get('/', [OrderController::class, 'index']);
         // Route::delete('/', [OrderController::class, 'bulk']);
         Route::delete('/delete', [OrderController::class, 'destroy']);
