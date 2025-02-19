@@ -22,7 +22,7 @@ class ProductController extends Controller
     {
         try {
             //code...
-            $products = Product::with("categories:name")->select('id', 'name', 'main_image', 'slug')->latest()->paginate(10);
+            $products = Product::with("categories:name")->select('id', 'name', 'main_image', 'type','slug')->latest()->paginate(10);
             foreach ($products as $key => $value) {
 
                 if ($value->main_image == null) {
