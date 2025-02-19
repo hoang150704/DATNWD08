@@ -91,7 +91,7 @@ class OrderController extends Controller
     {
         try {
             $id = request('id');
-            $statusId = request('statusId');
+            $statusId = request('status');
 
             $order = Order::where('id', $id)->first();
 
