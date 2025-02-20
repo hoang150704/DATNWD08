@@ -12,14 +12,14 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Route dành cho Admin
+    // Route Admin
     Route::middleware('admin')->group(function () {
         Route::get('/admin/dashboard', function () {
             return response()->json(['message' => 'Trang quản trị Admin']);
         });
     });
 
-    // Route dành cho Shop
+    // Route Shop
     Route::middleware('user')->group(function () {
         Route::get('/shop/home', function () {
             return response()->json(['message' => 'Trang web bán hàng']);
