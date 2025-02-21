@@ -27,12 +27,12 @@ class Order extends Model
 
     public function stt_track()
     {
-        return $this->belongsTo(StatusTracking::class, 'stt_track')->select('id', 'name as status_name');
+        return $this->belongsTo(StatusTracking::class, 'stt_track');
     }
 
     public function stt_payment()
     {
-        return $this->belongsTo(StatusPayment::class, 'stt_payment')->select('id', 'name as payment_name');
+        return $this->belongsTo(StatusPayment::class, 'stt_payment');
     }
 
     public function items()

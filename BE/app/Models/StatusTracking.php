@@ -10,9 +10,10 @@ class StatusTracking extends Model
     use HasFactory;
 
     protected $fillable = ['name'];
+    protected $casts = ['next_status_allowed' => 'array'];
 
     public function order()
     {
-        return $this->hasMany(Order::class,'stt_track');
+        return $this->hasOne(Order::class, 'stt_track');
     }
 }

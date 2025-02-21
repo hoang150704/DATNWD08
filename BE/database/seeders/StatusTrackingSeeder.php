@@ -14,14 +14,13 @@ class StatusTrackingSeeder extends Seeder
     public function run(): void
     {
         DB::table('status_trackings')->insert([
-            ['name' => 'Chờ xử lý'],
-            ['name' => 'Đã xử lý'],
-            ['name' => 'Đang giao hàng'],
-            ['name' => 'Chưa thanh toán'],
-            ['name' => 'Đã thanh toán'],
-            ['name' => 'Đã hoàn thành'],
-            ['name' => 'Giao hàng thất bại'],
-            ['name' => 'Đã giao hàng'],
+            ['name' => 'Chờ xử lý', 'next_status_allowed' => json_encode(['2', '7'])],
+            ['name' => 'Đã xử lý', 'next_status_allowed' => json_encode(['3', '7'])],
+            ['name' => 'Đang giao hàng', 'next_status_allowed' => json_encode(['5', '6', '7'])],
+            ['name' => 'Đã hoàn thành', 'next_status_allowed' => json_encode([])],
+            ['name' => 'Giao hàng thất bại', 'next_status_allowed' => json_encode(['3', '7'])],
+            ['name' => 'Đã giao hàng', 'next_status_allowed' => json_encode(['4'])],
+            ['name' => 'Huỷ', 'next_status_allowed' => json_encode([])],
         ]);
 
     }

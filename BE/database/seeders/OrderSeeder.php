@@ -26,7 +26,7 @@ class OrderSeeder extends Seeder
                 'o_address' => fake()->address,
                 'o_phone' => fake()->phoneNumber,
                 'o_mail' => fake()->email,
-                'stt_track' => rand(1,8),
+                'stt_track' => rand(1,7),
                 'stt_payment' => rand(1,2),
                 'created_at' => fake()->dateTime,
             ]);
