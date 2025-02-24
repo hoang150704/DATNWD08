@@ -6,30 +6,13 @@ use App\Http\Controllers\Api\Admin\LibraryController;
 use App\Http\Controllers\Api\Admin\ProductAttributeController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Middleware\CheckOrderStatus;
+use App\Http\Controllers\Api\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\AddressBookController;
 use App\Http\Controllers\Api\Admin\RoleController;
 use App\Http\Controllers\Api\Admin\UserController;
-
-
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
-
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-
 
 Route::prefix('admin')->group(function () {
     // Admin Category
@@ -93,6 +76,25 @@ Route::prefix('admin')->group(function () {
 
 });
 
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Route Admin
+    Route::middleware('admin')->group(function () {
+        Route::get('/admin/dashboard', function () {
+            return response()->json(['message' => 'Trang quản trị Admin']);
+        });
+    });
+
+    // Route Shop
+    Route::middleware('user')->group(function () {
+        Route::get('/shop/home', function () {
+            return response()->json(['message' => 'Trang web bán hàng']);
+        });
+    });
+});
+
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);

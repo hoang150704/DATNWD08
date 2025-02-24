@@ -12,6 +12,9 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    const ROLE_ADMIN = 'admin';
+    const ROLE_MEMBER = 'member';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -27,6 +30,13 @@ class User extends Authenticatable
         'is_active',
         'email_verified_at',
         'password',
+        'phone',
+        'avatar',
+        'role',
+        'active',
+        'deleted_at',
+        'provider',
+        'provider_id',
     ];
 
     public $attributes = ['is_active' => 0];
@@ -52,5 +62,19 @@ class User extends Authenticatable
     public function voucherUsages()
     {
         return $this->hasMany(VoucherUsage::class);
+    }
+
+    public function isAdmin()
+    {
+        return $this->type == self::ROLE_ADMIN;
+    }
+    public function isMember()
+    {
+        return $this->type == self::ROLE_MEMBER;
+    }
+
+    public function hasVerifiedEmail()
+    {
+        return !is_null($this->email_verified_at);
     }
 }
