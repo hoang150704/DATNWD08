@@ -24,6 +24,5 @@ use App\Http\Controllers\Api\Admin\UserController;
 
 Route::prefix('admin')->group(function () {
     Route::apiResource('users', UserController::class);
-    Route::apiResource('roles', RoleController::class);
     Route::apiResource('address-books', AddressBookController::class);
 });

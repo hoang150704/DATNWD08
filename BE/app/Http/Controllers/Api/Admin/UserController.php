@@ -36,7 +36,7 @@ class UserController extends Controller
                     'password'  => bcrypt($request->password),
                     'phone'     => $request->phone,
                     'role_id'   => $request->role_id,
-                    'is_active' => $request->has('is_active') ? $request->is_active : 0
+                    'is_active' => $request->has('is_active') ?? 0
                 ];
     
                 if ($request->hasFile('avatar')) {
@@ -77,7 +77,7 @@ class UserController extends Controller
             $data = $request->validated();
             
             // Nếu không có giá trị 'is_active', gán giá trị mặc định là 0
-            $data['is_active'] = $request->has('is_active') ? $request->is_active : 0;
+            $data['is_active'] = $request->has('is_active') ?? 0;
             
             // Kiểm tra nếu có mật khẩu mới và mã hóa mật khẩu
             if ($request->has('password')) {
