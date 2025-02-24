@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('address_books', function (Blueprint $table) {
             $table->id();
+            $table->integer('user_id');
+            $table->string('name');
+            $table->string('phone', 15);
+            $table->string('address');
+            $table->boolean('is_active');
             $table->timestamps();
         });
     }

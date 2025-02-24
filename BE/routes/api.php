@@ -9,6 +9,11 @@ use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\VoucherController;
+use App\Http\Controllers\Api\Admin\AddressBookController;
+use App\Http\Controllers\Api\Admin\RoleController;
+use App\Http\Controllers\Api\Admin\UserController;
+
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -69,6 +74,10 @@ Route::prefix('admin')->group(function () {
         Route::patch('/changestatus', [OrderController::class, 'changeStatus'])->middleware('check.order.status');
         Route::get('/{order}', [OrderController::class, 'show']);
     });
+
+    // Admin User
+    Route::apiResource('users', UserController::class);
+    Route::apiResource('address-books', AddressBookController::class);
 });
 Route::prefix('admin')->group(function () {
     // // AdminCategory
@@ -84,3 +93,6 @@ Route::prefix('admin')->group(function () {
 
 });
 
+// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+//     return $request->user();
+// });
