@@ -16,6 +16,17 @@ class DatabaseSeeder extends Seeder
             OrderSeeder::class,
             VoucherSeeder::class,
             VoucherUsageSeeder::class,
+            CategorySeeder::class,
+            Library::class,
+            AttributeSeeder::class,
+            AttributeValueSeeder::class,
+            ProductSeeder::class,
+            ProductCategoryRelationSeeder::class,
+            ProductVariationSeeder::class,
+            ProductVariationValueSeeder::class,
+            ProductAttributeSeeder::class,
+            ProductImageSeeder::class,
+            ProductAttributeSeeder::class
         ]);
     }
 }

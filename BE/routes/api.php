@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\Admin\AttributeValueController;
 use App\Http\Controllers\Api\Admin\CategoryController;
+use App\Http\Controllers\Api\Admin\LibraryController;
+use App\Http\Controllers\Api\Admin\ProductAttributeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\VoucherController;
@@ -57,3 +59,19 @@ Route::prefix('admin')->group(function () {
         Route::delete('/delete/{code}', [VoucherController::class, 'destroy']);
     });
 });
+Route::prefix('admin')->group(function () {
+    // // AdminCategory
+    require base_path('routes/api/admin/categories.php');
+    // Admin Attribute
+    require base_path('routes/api/admin/attributes.php');
+    // Admin Attribute Value
+    require base_path('routes/api/admin/attribute_values.php');
+    // Thư viện
+    require base_path('routes/api/admin/libraries.php');
+    // Products
+    require base_path('routes/api/admin/products.php');
+
+});
+
+
+
