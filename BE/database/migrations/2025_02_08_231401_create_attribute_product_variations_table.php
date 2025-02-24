@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('product_id');
             $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade'); 
-            $table->string('sku',255);
+            $table->string('sku',255)->nullable();
             $table->unsignedBigInteger('variant_image')->nullable();
             $table->foreign('variant_image')->references('id')->on('libraries')->onDelete('set null'); // Thêm ràng buộc khóa ngoại
             $table->integer('regular_price')->nullable();

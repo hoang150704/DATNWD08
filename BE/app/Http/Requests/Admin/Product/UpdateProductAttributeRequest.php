@@ -22,7 +22,7 @@ class UpdateProductAttributeRequest extends FormRequest
     public function rules(): array
     {
         return [
-        'attribute.parentVariants' => 'required|array',
+            'attribute.parentVariants' => 'array',
             'attribute.parentVariants.*' => 'integer',
 
             // Wildcard validation cho các trường thuộc tính động

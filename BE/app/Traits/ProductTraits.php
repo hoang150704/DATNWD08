@@ -23,7 +23,7 @@ trait ProductTraits
                 'product_id' => $idProduct,
                 'regular_price' => $variant['regular_price'],
                 'sale_price' => $variant['sale_price'],
-                'stock_quantity' => $variant['stock_quantity'],
+                'stock_quantity' => $variant['stock_quantity'] ?? 0,
                 'sku' => $variant['sku'],
             ];
         }

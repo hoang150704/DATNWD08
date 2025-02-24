@@ -27,7 +27,7 @@ class StoreProductRequest extends FormRequest
             'attributes'=>'array',
             'name' => 'required|max:255',
             'type' => 'in:0,1|required',
-            'description' => 'nullable',
+            'description' => 'nullable|string',
             'short_description' => 'nullable',
             'main_image' => "nullable|integer",
             'categories' => 'array|nullable',

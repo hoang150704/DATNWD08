@@ -28,7 +28,7 @@ class ProductController extends Controller
                 if ($value->main_image == null) {
                     $products[$key]['url'] = null;
                 } else {
-                    $url = Product::getConvertImage($value->library->url, 200, 200, 'thumb');
+                    $url = Product::getConvertImage($value->library->url, 100, 100, 'thumb');
                     $products[$key]['url'] = $url;
                 }
             }
@@ -54,9 +54,9 @@ class ProductController extends Controller
             // Xử lí thêm product
             $dataProduct = [
                 'name' => $validatedData['name'],
-                'description' => $validatedData['description'],
-                'short_description' => $validatedData['short_description'],
-                'main_image' => $validatedData['main_image'],
+                'description' => $validatedData['description'] ?? null,
+                'short_description' => $validatedData['short_description'] ?? null,
+                'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
             ];
             //Xử lí slug
@@ -67,10 +67,12 @@ class ProductController extends Controller
             $product = Product::create($dataProduct);
 
             // Thêm list ảnh
-            $this->addImages($validatedData['images'],$product->id);
+            $images = $validatedData['images'] ?? [];
+            $this->addImages($images,$product->id);
 
             // Xử lí danh mục
-            $this->addCategories($validatedData['categories'],$product->id);
+            $categories = $validatedData['categories'] ?? [];
+            $this->addCategories($categories,$product->id);
 
             // Xử lí thêm sản phẩm biến thể hay đơn giản 
             if ($request->type == 1) {
@@ -165,9 +167,9 @@ class ProductController extends Controller
             //COnvert data
             $dataProduct = [
                 'name' => $validatedData['name'],
-                'description' => $validatedData['description'],
-                'short_description' => $validatedData['short_description'],
-                'main_image' => $validatedData['main_image'],
+                'description' => $validatedData['description'] ?? null,
+                'short_description' => $validatedData['short_description'] ?? null,
+                'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
                 'slug' => $validatedData['slug']
             ];
