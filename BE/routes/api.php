@@ -19,9 +19,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('admin')->group(function () {
     Route::prefix('orders')->group(function () {
         Route::get('/', [OrderController::class, 'index']);
-        // Route::delete('/', [OrderController::class, 'bulk']);
-        Route::delete('/delete', [OrderController::class, 'destroy']);
         Route::get('/search', [OrderController::class, 'search']);
+        Route::post('/create', [OrderController::class, 'store']);
         Route::patch('/changestatus', [OrderController::class, 'changeStatus'])->middleware('check.order.status');
         Route::get('/{order}', [OrderController::class, 'show']);
     });
