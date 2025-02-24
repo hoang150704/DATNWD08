@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('oder_histories', function (Blueprint $table) {
             $table->id();
+            $table->integer('oders_id');
+            $table->enum('type',['tracking','paid']);
+            $table->integer('status_id');
             $table->timestamps();
         });
     }

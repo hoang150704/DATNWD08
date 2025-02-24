@@ -13,7 +13,21 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->integer('user_id')->nullable();
+            $table->char('code');
+            $table->float('total_amount');
+            $table->float('discount_amount');
+            $table->float('final_amount');
+            $table->enum('payment_method',['ship_cod','bank_transfer','e-wallets']);
+            $table->float('shipping')->nullable();
+            $table->text('o_name');
+            $table->text('o_address');
+            $table->text('o_phone');
+            $table->text('o_mail')->nullable();
+            $table->integer('stt_track');
+            $table->integer('stt_payment');
             $table->timestamps();
+            
         });
     }
 

@@ -26,7 +26,12 @@ class DatabaseSeeder extends Seeder
             ProductVariationValueSeeder::class,
             ProductAttributeSeeder::class,
             ProductImageSeeder::class,
-            ProductAttributeSeeder::class
+            ProductAttributeSeeder::class,
+            OrderHistorySeeder::class,
+            OrderItemSeeder::class,
+            OrderSeeder::class,
+            StatusTrackingSeeder::class,
+            StatusPaymentSeeder::class,
         ]);
     }
 }

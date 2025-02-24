@@ -14,7 +14,7 @@ class Order extends Model
         'code',
         'total_amount',
         'discount_amount',
-        'finnal_amount',
+        'final_amount',
         'payment_method',
         'shipping',
         'o_name',
@@ -22,6 +22,22 @@ class Order extends Model
         'o_phone',
         'o_mail',
         'stt_track',
-        'stt_payment',
+        'stt_payment'
     ];
+
+    public function stt_track()
+    {
+        return $this->belongsTo(StatusTracking::class, 'stt_track');
+    }
+
+    public function stt_payment()
+    {
+        return $this->belongsTo(StatusPayment::class, 'stt_payment');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
 }

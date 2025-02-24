@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('status_trackings', function (Blueprint $table) {
             $table->id();
+            $table->text('name');
+            $table->json('next_status_allowed')->nullable();
             $table->timestamps();
         });
     }
