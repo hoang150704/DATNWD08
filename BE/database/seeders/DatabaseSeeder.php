@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Comment;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -12,26 +13,26 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,
-            OrderSeeder::class,
-            VoucherSeeder::class,
-            VoucherUsageSeeder::class,
-            CategorySeeder::class,
             Library::class,
+            UserSeeder::class,
+            CategorySeeder::class,
             AttributeSeeder::class,
             AttributeValueSeeder::class,
             ProductSeeder::class,
             ProductCategoryRelationSeeder::class,
+            ProductImageSeeder::class,
             ProductVariationSeeder::class,
             ProductVariationValueSeeder::class,
             ProductAttributeSeeder::class,
-            ProductImageSeeder::class,
-            ProductAttributeSeeder::class,
+            VoucherSeeder::class,
+            VoucherUsageSeeder::class,
+            CommentSeeder::class,
+            OrderSeeder::class,
             OrderHistorySeeder::class,
             OrderItemSeeder::class,
-            OrderSeeder::class,
             StatusTrackingSeeder::class,
             StatusPaymentSeeder::class,
+            RolesTableSeeder::class
         ]);
     }
 }

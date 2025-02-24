@@ -14,9 +14,7 @@ class AttributeValue extends Model
         'name',
         'attribute_id'
     ];
-<<<<<<< HEAD
 
-=======
     public function attribute()
     {
         return $this->belongsTo(Attribute::class);
@@ -26,5 +24,4 @@ class AttributeValue extends Model
     {
         return $this->belongsToMany(ProductVariation::class, 'product_variation_values');
     }
->>>>>>> feature/product
 }

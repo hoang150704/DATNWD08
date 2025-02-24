@@ -4,15 +4,18 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
     public function up(): void
     {
-        Schema::create('status_payments', function (Blueprint $table) {
+        Schema::create('order_histories', function (Blueprint $table) {
             $table->id();
-            $table->text('name');
+            $table->integer('orders_id');
+            $table->enum('type',['tracking','paid']);
+            $table->integer('status_id');
             $table->timestamps();
         });
     }
@@ -22,6 +25,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('status_payments');
+        Schema::dropIfExists('oder_histories');
     }
 };

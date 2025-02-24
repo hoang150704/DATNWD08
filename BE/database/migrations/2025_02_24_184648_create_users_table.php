@@ -16,15 +16,12 @@ return new class extends Migration {
             $table->string('name');
             $table->string('username', 25)->unique();
             $table->string('email')->unique();
-            $table->string('phone', 15)->nullable();
+            $table->string('phone', 10)->nullable();
             $table->string('avatar')->nullable();
             $table->integer('role_id');
-            $table->boolean('is_active');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('phone')->nullable();
             $table->string('role')->default(User::ROLE_MEMBER);
-            $table->string('avatar')->nullable();
             $table->boolean('active')->default(true);
             $table->softDeletes();
             $table->string('provider')->nullable();

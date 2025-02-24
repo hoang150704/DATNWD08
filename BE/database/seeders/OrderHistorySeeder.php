@@ -14,8 +14,8 @@ class OrderHistorySeeder extends Seeder
     public function run(): void
     {
         for ($i = 0; $i < 10; $i++) {
-            DB::table('oder_histories')->insert([
-                'oders_id' => rand(1, 10),
+            DB::table('order_histories')->insert([
+                'orders_id' => rand(1, 10),
                 'type' => collect(['tracking', 'paid'])->random(),
                 'status_id' => rand(1, 8),
             ]);
