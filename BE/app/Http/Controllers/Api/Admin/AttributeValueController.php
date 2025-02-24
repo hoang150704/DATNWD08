@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Attribute;
 use App\Models\AttributeValue;
-use App\Models\ProductAttribute;
 use Dotenv\Exception\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,65 +34,7 @@ class AttributeValueController extends Controller
             ], 500);
         }
     }
-    public function list()
-    {
-        try {
-            $attributes = Attribute::with('values:id,name,attribute_id')->select('id', 'name')->get();
 
-            $convertedData = $attributes->map(function ($attribute) {
-                return [
-                    'id' => $attribute->id,
-                    'name' => $attribute->name,
-                    'data' => $attribute->values->map(function ($value) {
-                        return [
-                            'label' => $value->name,
-                            'id' => $value->id,
-                        ];
-                    })
-                ];
-            });
-
-            return response()->json($convertedData, 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Lỗi hệ thống',
-                'error' => $th->getMessage()
-            ], 500);
-        }
-    }
-    // 
-    public function listNonAttribute($id)
-    {
-        try {
-            $list = ProductAttribute::where("product_id", $id)->distinct()->pluck('attribute_id')->toArray();
-
-
-            $attributes = Attribute::with('values:id,name,attribute_id')
-                ->select('id', 'name')
-                ->whereNotIn('id', $list) // Loại trừ các id trong $list
-                ->get();
-
-            $convertedData = $attributes->map(function ($attribute) {
-                return [
-                    'id' => $attribute->id,
-                    'name' => $attribute->name,
-                    'data' => $attribute->values->map(function ($value) {
-                        return [
-                            'label' => $value->name,
-                            'id' => $value->id,
-                        ];
-                    })
-                ];
-            });
-
-            return response()->json($convertedData, 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Lỗi hệ thống',
-                'error' => $th->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Store a newly created resource in storage.
@@ -106,7 +47,7 @@ class AttributeValueController extends Controller
             $data = $request->validate(
                 [
                     "name" => "required|max:100",
-                    "attribute_id" => ["required", Rule::exists('attributes', 'id')]
+                    "attribute_id"=>["required",Rule::exists('attributes', 'id')]
                 ]
             );
             $attribute_value = AttributeValue::create($data);
@@ -176,7 +117,7 @@ class AttributeValueController extends Controller
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error($th);
-            return response()->json(["message" => "Lỗi", 'error' => $th->getMessage()], 500);
+            return response()->json(["message" => "Lỗi",'error' => $th->getMessage()], 500);
         }
     }
 
@@ -190,7 +131,7 @@ class AttributeValueController extends Controller
             $attribute_value = AttributeValue::findOrFail($id);
             //Xóa
             $attribute_value->delete();
-            //Nếu thành công 
+            //Nếu thành công
             DB::commit();
             return response()->json(['message' => 'Giá trị thuộc tính đã được chuyển vào thùng rác'], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

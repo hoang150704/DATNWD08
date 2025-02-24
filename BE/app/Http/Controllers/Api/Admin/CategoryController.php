@@ -31,6 +31,7 @@ class CategoryController extends Controller
             ], 500);
         }
     }
+
     private function convertChildren($categories)
     {
         foreach ($categories as $category) {
@@ -56,22 +57,7 @@ class CategoryController extends Controller
             ], 500);
         }
     }
-    // 
-    public function getCategories()
-    {
-        try {
-            //code...
-            $categories = Category::select('id', 'name')->get(); //phân trang theo danh mục gốc(Không phải con của danh mục khác)
-            return response()->json($categories, 200); // trả về respone
-        } catch (\Throwable $th) {
-            //throw $th;
-            return response()->json([
-                'message' => 'Lỗi hệ thống',
-                'error' => $th->getMessage()
 
-            ], 500);
-        }
-    }
     // Lấy danh mục cha để thêm
 
     public function getParentCategories()
@@ -118,7 +104,7 @@ class CategoryController extends Controller
 
             return response()->json($category, 201);
         } catch (ValidationException $e) {
-            return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin", "errors" => $e->getMessage()], 422);
+            return response()->json(["message" => "Vui lòng nhập đầy đủ và đúng thông tin"], 422);
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([

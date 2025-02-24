@@ -130,7 +130,7 @@ class AttributeController extends Controller
             }
             //Xóa
             $attribute->delete();
-            //Nếu thành công 
+            //Nếu thành công
             DB::commit();
             return response()->json(['message' => 'Thuộc tính đã được chuyển vào thùng rác'], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
