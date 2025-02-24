@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\CommentController;
 use Illuminate\Support\Facades\Route;
 
 /*

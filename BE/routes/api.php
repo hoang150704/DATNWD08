@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\Admin\ProductAttributeController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Middleware\CheckOrderStatus;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Admin\CommentController;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\VoucherController;
@@ -61,6 +63,18 @@ Route::prefix('admin')->group(function () {
     // Admin User
     Route::apiResource('users', UserController::class);
     Route::apiResource('address-books', AddressBookController::class);
+
+
+    // Admin Comment
+    Route::prefix('comments')->group(function () {
+        Route::get('/', [CommentController::class, 'index']);
+        Route::get('hidden', [CommentController::class, 'hiddenComment']);
+        Route::delete('delete', [CommentController::class, 'destroy']);
+        Route::patch('reply', [CommentController::class, 'reply']);
+        Route::patch('status', [CommentController::class, 'statusToggle']);
+        Route::get('search', [CommentController::class, 'search']);
+        Route::get('{comment}', [CommentController::class, 'show']);
+    });
 });
 Route::prefix('admin')->group(function () {
     // // AdminCategory
