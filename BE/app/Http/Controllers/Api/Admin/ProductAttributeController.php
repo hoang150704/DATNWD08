@@ -88,81 +88,96 @@ class ProductAttributeController extends Controller
      */
     public function update(UpdateProductAttributeRequest $request, string $idProduct)
     {
-        //
         try {
-            //
             DB::beginTransaction();
             $validatedData = $request->validated();
-            // Kiểm tra xem nó có phải sản phẩm biến thể hay không
-            $product = Product::findorFail($idProduct);
+    
+            // 1️⃣ Kiểm tra sản phẩm có phải biến thể không
+            $product = Product::findOrFail($idProduct);
             if ($product->type == 1) {
                 return response()->json(['message' => 'Đây không phải sản phẩm biến thể'], 422);
             }
-            //Lấy ra mảng data parentVariants
+    
+            // 2️⃣ Lấy danh sách attribute_id (parentVariants)
             $parentVariants = $validatedData["attribute"]["parentVariants"];
-            unset($validatedData["attribute"]["parentVariants"]); // Xóa parentVariants khỏi mảng gốc
-
-            // Gộp các mảng selected
+            unset($validatedData["attribute"]["parentVariants"]);
+    
+            // 3️⃣ Gộp tất cả các giá trị attribute_value_id được chọn
             $selectedValues = [];
-            foreach ($validatedData["attribute"] as $key => $value) {
+            foreach ($validatedData["attribute"] as $value) {
                 $selectedValues = array_merge($selectedValues, $value);
             }
-            //Lấy các attribute_value_id đã tồn tại trong database với idproduct
+    
+            // 4️⃣ Lấy danh sách giá trị đang có trong DB
             $existingValues = ProductAttribute::where('product_id', $idProduct)
-                ->whereIn('attribute_value_id', $selectedValues)
                 ->pluck('attribute_value_id')
                 ->toArray();
-
-            // Lọc ra các attribute_id mới
+    
+            // 5️⃣ Xử lý xóa những giá trị bị loại bỏ
+            $removedValues = array_diff($existingValues, $selectedValues);
+            if (!empty($removedValues)) {
+                // Xóa khỏi bảng product_attributes
+                ProductAttribute::where('product_id', $idProduct)
+                    ->whereIn('attribute_value_id', $removedValues)
+                    ->delete();
+    
+                // Tìm tất cả product_variations của product_id này
+                $variationsToDelete = ProductVariation::whereIn('id', function ($query) use ($removedValues) {
+                    $query->select('variation_id')
+                        ->from('product_variation_values')
+                        ->whereIn('attribute_value_id', $removedValues);
+                })->pluck('id')->toArray();
+    
+                if (!empty($variationsToDelete)) {
+                    // Xóa tất cả product_variation_values của variations bị ảnh hưởng
+                    ProductVariationValue::whereIn('variation_id', $variationsToDelete)->delete();
+    
+                    // Xóa tất cả product_variations bị ảnh hưởng
+                    ProductVariation::whereIn('id', $variationsToDelete)->delete();
+                }
+            }
+    
+            // 6️⃣ Xử lý thêm giá trị mới
             $newValues = array_diff($selectedValues, $existingValues);
-
-            // Lấy ra các attribute_id đã tồn tại
+            if (!empty($newValues)) {
+                foreach ($newValues as $newValue) {
+                    $attributeValue = AttributeValue::findOrFail($newValue);
+                    ProductAttribute::create([
+                        'product_id' => $idProduct,
+                        'attribute_id' => $attributeValue->attribute_id,
+                        'attribute_value_id' => $newValue
+                    ]);
+                }
+            }
+    
+            // 7️⃣ Xử lý khi người dùng thêm thuộc tính mới
             $existingAttributes = ProductAttribute::where('product_id', $idProduct)
                 ->whereIn('attribute_id', $parentVariants)
                 ->pluck('attribute_id')
                 ->toArray();
-            // Lấy ra các attribute id
             $newAttributes = array_diff($parentVariants, $existingAttributes);
-
-            // Nếu mảng có giá trị thì thêm các attribute_value_id mới này vào
-            if (!empty($newValues)) {
-                foreach ($newValues as $newValue) {
-                    $attributeValue = AttributeValue::findOrFail($newValue);
-                    $data = [
-                        'product_id' => $idProduct,
-                        'attribute_id' => $attributeValue->attribute_id,
-                        'attribute_value_id' => $newValue
-                    ];
-                    ProductAttribute::create($data);
-                }
-            }
-
-            // Sau khi thêm mới thành công tiến hành 
             
-            // Nếu các người dùng thêm thuộc tính mới
             if (!empty($newAttributes)) {
                 $existingVariations = ProductVariation::where('product_id', $idProduct)
                     ->pluck('id')
-                    ->toArray(); // Lấy ra mảng các variantion id có của sản phẩm đó
-
-                // Lặp các thuộc tính mới
+                    ->toArray();
+    
                 foreach ($newAttributes as $newAttribute) {
-                    $newAttributeValue = ProductAttribute::where('attribute_id', $newAttribute)->where('product_id', $idProduct)->first();
+                    $newAttributeValue = ProductAttribute::where('attribute_id', $newAttribute)
+                        ->where('product_id', $idProduct)
+                        ->first();
+    
                     foreach ($existingVariations as $existingVariation) {
-                        $dataValues = [
+                        ProductVariationValue::create([
                             'variation_id' => $existingVariation,
                             'attribute_value_id' => $newAttributeValue->attribute_value_id,
-                        ];
-                        ProductVariationValue::create($dataValues);
+                        ]);
                     }
                 }
             }
-            //
-
-            // 
-            // Hoàn thành
+    
             DB::commit();
-            return response()->json(['hehe'], 200);
+            return response()->json(['message' => 'Cập nhật thành công'], 200);
         } catch (ValidationException $e) {
             DB::rollBack();
             return response()->json(['message' => $e->getMessage()], 422);
@@ -175,7 +190,6 @@ class ProductAttributeController extends Controller
             ], 500);
         }
     }
-
     /**
      * Remove the specified resource from storage.
      */
