@@ -15,6 +15,7 @@ class Voucher extends Model
         'description',
         'discount_percent',
         'amount',
+        'type',
         'max_discount_amount',
         'min_product_price',
         'usage_limit',

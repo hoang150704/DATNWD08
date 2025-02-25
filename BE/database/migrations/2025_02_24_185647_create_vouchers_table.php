@@ -21,6 +21,7 @@ class CreateVouchersTable extends Migration
             $table->integer('max_discount_amount');
             $table->integer('min_product_price');
             $table->integer('usage_limit');
+            $table->integer('type');
             $table->integer('times_used')->default(0);
             $table->date('expiry_date');
             $table->date('start_date'); // Thêm cột start_date

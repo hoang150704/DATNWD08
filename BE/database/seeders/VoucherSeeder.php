@@ -21,6 +21,7 @@ class VoucherSeeder extends Seeder
                 'description' => 'Mô tả cho voucher ' . $i,
                 'discount_percent' => ($i % 2 == 0) ? rand(10, 50) : null,
                 'amount' => ($i % 2 != 0) ? rand(10000, 50000) : null,
+                'type' => $i % 2 == 0 ? 1 : 0,
                 'max_discount_amount' => rand(10000, 50000),
                 'min_product_price' => rand(100000, 500000),
                 'usage_limit' => rand(1, 10),
