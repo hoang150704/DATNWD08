@@ -92,15 +92,16 @@ class ProductVariationController extends Controller
             }
             //
             $dataVariant = [
-                "sku" => $data['sku'],
-                "regular_price" => $data['regular_price'],
-                "sale_price" => $data['sale_price'],
-                "variant_image" => $data['variant_image'],
-                "stock_quantity" => $data['stock_quantity'],
+                "sku" => $data['sku'] ??null,
+                "regular_price" => $data['regular_price'] ?? 0,
+                "sale_price" => $data['sale_price']?? null,
+                "variant_image" => $data['variant_image'] ?? null,
+                "stock_quantity" => $data['stock_quantity'] ?? 0,
                 "product_id" => $idProduct
             ];
             $productVariation = ProductVariation::create($dataVariant);
             // 
+         
             foreach ($data['values'] as $value) {
                 $dataProductVariationValue = [
                     "variation_id" => $productVariation->id,
@@ -164,11 +165,11 @@ class ProductVariationController extends Controller
             DB::beginTransaction();
             $data = $request->validated();
             $dataVariant = [
-                "sku" => $data['sku'],
-                "regular_price" => $data['regular_price'],
-                "sale_price" => $data['sale_price'],
-                "variant_image" => $data['variant_image'],
-                "stock_quantity" => $data['stock_quantity'],
+                "sku" => $data['sku'] ?? null,
+                "regular_price" => $data['regular_price'] ?? 0,
+                "sale_price" => $data['sale_price'] ?? null,
+                "variant_image" => $data['variant_image'] ?? null,
+                "stock_quantity" => $data['stock_quantity'] ?? 0,
                 "product_id" => $idProduct
             ];
             $product_variant = ProductVariation::findOrFail($id);
@@ -195,6 +196,7 @@ class ProductVariationController extends Controller
                 }
             }
             $product_variant->update($dataVariant);
+            
             foreach ($data['values'] as $value) {
                 $dataVariantValue = [
                     'attribute_value_id' => $value['attribute_value_id']
