@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendEmailVerificationUserJob;
 use App\Models\PasswordReset;
 use App\Models\User;
 use Carbon\Carbon;
@@ -23,6 +24,7 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email',
+            'username' => 'required|max:50|unique:users,username',
             'password' => 'required|min:6|confirmed',
         ]);
 
@@ -30,23 +32,11 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
+            'username'=>$request->username,
             'password' => bcrypt($request->password),
         ]);
 
-        // Tạo token xác thực email
-        $verificationToken = Str::random(64);
-
-        DB::table('email_verification_tokens')->updateOrInsert(
-            ['email' => $user->email],
-            ['token' => $verificationToken, 'created_at' => Carbon::now()]
-        );
-
-        // Gửi email chứa link xác thực
-        $verificationUrl = url("/api/verify-email?token=$verificationToken");
-
-        Mail::raw("Click vào đây để xác thực email của bạn: $verificationUrl", function ($message) use ($user) {
-            $message->to($user->email)->subject('Xác thực email');
-        });
+        SendEmailVerificationUserJob::dispatch($user);
 
         return response()->json(['message' => 'Vui lòng kiểm tra email để xác thực tài khoản!']);
     }
@@ -80,12 +70,12 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
+            'username' => 'required',
+            'password' => 'required',
             'remember' => 'boolean' // Thêm tùy chọn "Remember Me"
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('username', $request->username)->first();
 
         // Kiểm tra email có tồn tại không
         if (!$user) {
@@ -98,7 +88,7 @@ class AuthController extends Controller
         }
 
         // Kiểm tra mật khẩu
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (!Auth::attempt($request->only('username', 'password'))) {
             return response()->json(['message' => 'Email hoặc mật khẩu không chính xác!'], 401);
         }
 

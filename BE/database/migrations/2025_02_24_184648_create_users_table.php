@@ -14,18 +14,18 @@ return new class extends Migration {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('username', 25)->unique();
-            $table->string('email')->unique();
-            $table->string('phone', 10)->nullable();
-            $table->string('avatar')->nullable();
-            $table->integer('role_id');
+            $table->string('username', 50)->unique()->index();;
+            $table->string('email')->unique()->index();
+            $table->unsignedBigInteger('avatar')->nullable();
+            $table->foreign('avatar')->references('id')->on('libraries')->onDelete('set null');
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password',255);
             $table->string('role')->default(User::ROLE_MEMBER);
-            $table->boolean('active')->default(true);
+            $table->boolean('is_active')->default(true);
             $table->softDeletes();
             $table->string('provider')->nullable();
             $table->string('provider_id')->nullable();
+            $table->string('provider_token')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

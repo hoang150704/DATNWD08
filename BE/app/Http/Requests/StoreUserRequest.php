@@ -31,10 +31,7 @@ class StoreUserRequest extends FormRequest
             'username'  => 'required|string|max:25|unique:users',
             'email'     => 'required|string|email|max:255|unique:users',
             'password'  => 'required|string|min:8|max:20|confirmed',
-            'phone'     => 'nullable|string|min:10|max:15',
-            'avatar'    => 'nullable|image|max:2048',
-            'role_id'   => 'required|integer',
-            'is_active' => ['nullable', Rule::in([0, 1])]
+            'role'   => 'required',
         ];
     }
 

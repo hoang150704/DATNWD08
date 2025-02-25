@@ -34,14 +34,8 @@ class UserController extends Controller
                     'username'  => $request->username,
                     'email'     => $request->email,
                     'password'  => bcrypt($request->password),
-                    'phone'     => $request->phone,
-                    'role_id'   => $request->role_id,
-                    'is_active' => $request->has('is_active') ?? 0
+                    'role'   => $request->role,
                 ];
-    
-                if ($request->hasFile('avatar')) {
-                    $data['avatar'] = Storage::put('users', $request->file('avatar')); 
-                }
         
                 User::query()->create($data);
             });
