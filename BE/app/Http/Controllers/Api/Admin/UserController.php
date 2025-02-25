@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Traits\UploadTraits;
 
 class UserController extends Controller
 {
@@ -20,6 +21,15 @@ class UserController extends Controller
     public function index()
     {
         $data = User::latest('id')->paginate(10);
+        foreach ($data as $key => $value) {
+
+            if ($value->avatar == null) {
+                $data[$key]['urlImg'] = null;
+            } else {
+                $url = $this->getConvertImage($value->library->url, 100, 100, 'thumb');
+                $data[$key]['urlImg'] = $url;
+            }
+        }
         return response()->json($data);
     }
 
@@ -32,6 +42,7 @@ class UserController extends Controller
             DB::transaction(function () use ($request) {
                 $data = [
                     'name'      => $request->name,
+                    'avatar'      => $request->avatar,
                     'username'  => $request->username,
                     'email'     => $request->email,
                     'password'  => bcrypt($request->password),
@@ -95,6 +106,14 @@ class UserController extends Controller
         }
     }    
 
+    //
+    public function changeActive(User $user){
+        $newIsActive = $user->is_active == true ? false : true;
+        $data = [
+            "is_active"=>$newIsActive,
+        ];
+        $user->update($data);
+    }
     /**
      * Remove the specified resource from storage.
      */
