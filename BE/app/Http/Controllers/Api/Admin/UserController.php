@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Jobs\SendEmailVerificationUserJob;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -69,27 +70,17 @@ class UserController extends Controller
     {
         try {
             $data = $request->validated();
-            
-            // Nếu không có giá trị 'is_active', gán giá trị mặc định là 0
-            $data['is_active'] = $request->has('is_active') ?? 0;
-            
-            // Kiểm tra nếu có mật khẩu mới và mã hóa mật khẩu
-            if ($request->has('password')) {
-                $data['password'] = bcrypt($request->password);
-            }
-
-            // Kiểm tra xem có ảnh mới không
-            if ($request->hasFile('avatar')) {
-                // Xóa ảnh cũ nếu có
-                if ($user->avatar) {
-                    Storage::delete($user->avatar);
-                }
-                // Lưu ảnh mới
-                $data['avatar'] = Storage::put('users', $request->file('avatar'));
-            }
-    
+            // Kiểm tra xem người dùng có đổi email không
+            if($user->email != $data['email']){
+                $data['email_verified_at'] = null;
+                $user->update($data);
+                SendEmailVerificationUserJob::dispatch($user);
+                return response()->json([
+                    'message' => 'Cập nhật thành công! Vui lòng xác thực email',
+                    'user' => $user,
+                ], 200);
+            };
             $user->update($data);
-    
             return response()->json([
                 'message' => 'Cập nhật thành công!',
                 'user' => $user,

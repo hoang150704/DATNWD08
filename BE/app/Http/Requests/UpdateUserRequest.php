@@ -28,13 +28,9 @@ class UpdateUserRequest extends FormRequest
         
         return [
             'name'      => 'required|string|max:255',
-            'username'  => 'required|string|max:255|unique:users,username,' . $id,
             'email'     => 'required|string|email|max:255|unique:users,email,' . $id,
-            'password'  => 'required|string|min:8|max:20|confirmed',
-            'phone'     => 'nullable|string|min:10|max:15',
-            'avatar'    => 'nullable|image|max:2048',
-            'role_id'   => 'required|integer',
-            'is_active' => ['nullable', Rule::in([0, 1])]
+            'avatar'    => 'integer|nullable',
+            'role'   => 'required',
         ];
     }
 

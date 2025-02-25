@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
@@ -21,50 +22,79 @@ class AuthController extends Controller
     // Register
     public function register(Request $request)
     {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email',
-            'username' => 'required|max:50|unique:users,username',
-            'password' => 'required|min:6|confirmed',
-        ]);
-
-        // Tạo user nhưng chưa xác thực email
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'username'=>$request->username,
-            'password' => bcrypt($request->password),
-        ]);
-
-        SendEmailVerificationUserJob::dispatch($user);
-
-        return response()->json(['message' => 'Vui lòng kiểm tra email để xác thực tài khoản!']);
+        DB::beginTransaction();
+        try {
+            $request->validate([
+                'name' => 'required',
+                'email' => 'required|email|unique:users,email',
+                'username' => 'required|max:50|unique:users,username',
+                'password' => 'required|min:6|confirmed',
+            ]);
+    
+            // Tạo user nhưng chưa xác thực email
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'username' => $request->username,
+                'password' => bcrypt($request->password),
+            ]);
+    
+            // Dispatch Job gửi email xác thực
+            SendEmailVerificationUserJob::dispatch($user);
+    
+            DB::commit(); // Lưu thay đổi vào database
+    
+            return response()->json(['message' => 'Vui lòng kiểm tra email để xác thực tài khoản!'], 200);
+        } catch (\Throwable $th) {
+            DB::rollBack(); // Nếu lỗi, quay lại trạng thái cũ
+            Log::error("Lỗi đăng ký: " . $th->getMessage());
+            return response()->json(['message' => 'Lỗi đăng ký', 'errors' => $th->getMessage()], 500);
+        }
     }
+    
 
     public function verifyEmail(Request $request)
     {
-        $token = $request->query('token');
-
-        $record = DB::table('email_verification_tokens')->where('token', $token)->first();
-
-        if (!$record) {
-            return response()->json(['message' => 'Token không hợp lệ!'], 400);
+        DB::beginTransaction();
+        try {
+            $token = $request->query('token');
+    
+            if (!$token) {
+                Log::error('Xác thực email thất bại: Token không tồn tại trong request.');
+                return response()->json(['message' => 'Token không hợp lệ!'], 400);
+            }
+    
+            $record = DB::table('email_verification_tokens')->where('token', $token)->first();
+    
+            if (!$record) {
+                Log::error("Xác thực email thất bại: Token không hợp lệ - Token: $token");
+                return response()->json(['message' => 'Token không hợp lệ!'], 400);
+            }
+    
+            $user = User::where('email', $record->email)->first();
+            if (!$user) {
+                Log::error("Xác thực email thất bại: Không tìm thấy người dùng có email - Email: " . $record->email);
+                return response()->json(['message' => 'Người dùng không tồn tại!'], 404);
+            }
+    
+            // Cập nhật email_verified_at
+            $user->email_verified_at = Carbon::now();
+            $user->save();
+    
+            // Xóa token sau khi xác thực
+            DB::table('email_verification_tokens')->where('email', $record->email)->delete();
+    
+            DB::commit(); // Lưu thay đổi vào database
+            Log::info("Xác thực email thành công: Email " . $user->email . " đã được xác thực.");
+    
+            return response()->json(['message' => 'Email đã được xác thực!']);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error("Lỗi xác thực email: " . $th->getMessage());
+            return response()->json(['message' => 'Đã xảy ra lỗi khi xác thực email.'], 500);
         }
-
-        $user = User::where('email', $record->email)->first();
-        if (!$user) {
-            return response()->json(['message' => 'Người dùng không tồn tại!'], 404);
-        }
-
-        // Cập nhật email_verified_at
-        $user->email_verified_at = Carbon::now();
-        $user->save();
-
-        // Xóa token sau khi xác thực
-        DB::table('email_verification_tokens')->where('email', $record->email)->delete();
-
-        return response()->json(['message' => 'Email đã được xác thực!']);
     }
+    
 
     // Login
     public function login(Request $request)
@@ -149,32 +179,42 @@ class AuthController extends Controller
 
     public function resetPassword(Request $request)
     {
-        $request->validate([
-            'token' => 'required',
-            'password' => 'required|min:6|confirmed'
-        ]);
-
-        $record = DB::table('password_reset_tokens')->where('token', $request->token)->first();
-
-        if (!$record) {
-            return response()->json(['message' => 'Token không hợp lệ hoặc đã hết hạn!'], 400);
+        DB::beginTransaction();
+        try {
+            $request->validate([
+                'token' => 'required',
+                'password' => 'required|min:6|confirmed'
+            ]);
+    
+            $record = DB::table('password_reset_tokens')->where('token', $request->token)->first();
+    
+            if (!$record) {
+                return response()->json(['message' => 'Token không hợp lệ hoặc đã hết hạn!'], 400);
+            }
+    
+            $user = User::where('email', $record->email)->first();
+            if (!$user) {
+                return response()->json(['message' => 'Người dùng không tồn tại!'], 404);
+            }
+    
+            // Cập nhật mật khẩu mới
+            $user->password = bcrypt($request->password);
+            $user->save();
+    
+            // Xóa token sau khi đặt lại mật khẩu thành công
+            DB::table('password_reset_tokens')->where('email', $record->email)->delete();
+    
+            DB::commit(); // Lưu thay đổi vào database
+            Log::info("Mật khẩu của người dùng {$user->email} đã được đặt lại thành công.");
+    
+            return response()->json(['message' => 'Mật khẩu đã được đặt lại thành công!']);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error("Lỗi đặt lại mật khẩu: " . $th->getMessage());
+            return response()->json(['message' => 'Đã xảy ra lỗi khi đặt lại mật khẩu.'], 500);
         }
-
-        $user = User::where('email', $record->email)->first();
-        if (!$user) {
-            return response()->json(['message' => 'Người dùng không tồn tại!'], 404);
-        }
-
-        // Cập nhật mật khẩu mới
-        $user->password = bcrypt($request->password);
-        $user->save();
-
-        // Xóa token sau khi đặt lại mật khẩu thành công
-        DB::table('password_reset_tokens')->where('email', $record->email)->delete();
-
-        return response()->json(['message' => 'Mật khẩu đã được đặt lại thành công!']);
     }
-
+    
 
 
 
