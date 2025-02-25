@@ -41,12 +41,13 @@ class SendEmailVerificationUserJob implements ShouldQueue
         );
 
         // Tạo link xác thực
-        $verificationUrl = url("/api/verify-email?token=$verificationToken");
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $verificationUrl = $frontendUrl . "/auth/verify?token=" . $verificationToken;
 
         // Gửi email xác thực
         Mail::raw("Click vào đây để xác thực email của bạn: $verificationUrl", function ($message) {
             $message->to($this->user->email)
-                    ->subject('Xác thực email');
+                ->subject('Xác thực email');
         });
     }
 }
