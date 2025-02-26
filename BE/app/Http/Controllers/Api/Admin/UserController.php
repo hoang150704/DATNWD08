@@ -15,6 +15,7 @@ use App\Traits\UploadTraits;
 
 class UserController extends Controller
 {
+    use UploadTraits;
     /**
      * Display a listing of the resource.
      */
