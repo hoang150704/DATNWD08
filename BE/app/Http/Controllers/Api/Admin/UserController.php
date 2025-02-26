@@ -26,7 +26,7 @@ class UserController extends Controller
             if ($value->avatar == null) {
                 $data[$key]['urlImg'] = null;
             } else {
-                $url = $this->getConvertImage($value->library->url, 100, 100, 'thumb');
+                $url = $this->convertImage($value->library->url, 100, 100, 'thumb');
                 $data[$key]['urlImg'] = $url;
             }
         }
