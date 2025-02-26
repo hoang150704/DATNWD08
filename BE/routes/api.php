@@ -63,7 +63,7 @@ Route::prefix('admin')->group(function () {
     // Admin User
     Route::apiResource('users', UserController::class);
     Route::prefix('users')->group(function () {
-        Route::post('/change_status', [UserController::class, 'changeActive']);
+        Route::post('/change_status/{id}', [UserController::class, 'changeActive']);
     });
     Route::apiResource('address-books', AddressBookController::class);
 
