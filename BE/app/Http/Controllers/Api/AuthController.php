@@ -106,7 +106,7 @@ class AuthController extends Controller
             'remember' => 'boolean' // Thêm tùy chọn "Remember Me"
         ]);
 
-        $user = User::where('username', $request->username)->first();
+        $user = User::with('library')->where('username', $request->username)->first();
 
         // Kiểm tra email có tồn tại không
         if (!$user) {
