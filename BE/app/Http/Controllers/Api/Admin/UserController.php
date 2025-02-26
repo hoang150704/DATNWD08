@@ -49,9 +49,10 @@ class UserController extends Controller
                     'role'   => $request->role,
                 ];
         
-                User::query()->create($data);
+                $user = User::query()->create($data);
+                SendEmailVerificationUserJob::dispatch($user);
             });
-        
+            
             return response()->json([
                 'message' => 'Thêm mới thành công!',
             ], 201);
@@ -61,6 +62,7 @@ class UserController extends Controller
 
             return response()->json([
                 'message' => 'Đã có lỗi xảy ra!',
+                'errors' => $e->getMessage(),
             ], 500);
         }
     }

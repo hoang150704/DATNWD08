@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -12,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\User;
+use App\Mail\VerifyEmailUserMail;
 
 class SendEmailVerificationUserJob implements ShouldQueue
 {
@@ -19,17 +19,11 @@ class SendEmailVerificationUserJob implements ShouldQueue
 
     public $user;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(User $user)
     {
         $this->user = $user;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle()
     {
         // Tạo token xác thực email
@@ -44,10 +38,7 @@ class SendEmailVerificationUserJob implements ShouldQueue
         $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
         $verificationUrl = $frontendUrl . "/auth/verify?token=" . $verificationToken;
 
-        // Gửi email xác thực
-        Mail::raw("Click vào đây để xác thực email của bạn: $verificationUrl", function ($message) {
-            $message->to($this->user->email)
-                ->subject('Xác thực email');
-        });
+        // Gửi email xác thực với template đẹp
+        Mail::to($this->user->email)->send(new VerifyEmailUserMail($this->user, $verificationUrl));
     }
 }

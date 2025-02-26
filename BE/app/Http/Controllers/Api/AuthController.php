@@ -28,7 +28,7 @@ class AuthController extends Controller
                 'name' => 'required',
                 'email' => 'required|email|unique:users,email',
                 'username' => 'required|max:50|unique:users,username',
-                'password' => 'required|min:6|confirmed',
+                'password' => 'required|min:8|max:25|confirmed',
             ]);
     
             // Tạo user nhưng chưa xác thực email
