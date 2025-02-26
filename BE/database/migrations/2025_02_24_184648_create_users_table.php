@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->string('password',255);
             $table->string('role')->default(User::ROLE_MEMBER);
             $table->boolean('is_active')->default(true);
-            $table->string('reason',255);
+            $table->string('reason',255)->nullable();
             $table->softDeletes();
             $table->string('provider')->nullable();
             $table->string('provider_id')->nullable();
