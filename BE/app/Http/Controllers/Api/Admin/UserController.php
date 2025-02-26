@@ -111,6 +111,9 @@ class UserController extends Controller
     //
     public function changeActive(User $user){
         $newIsActive = $user->is_active == true ? false : true;
+        // if(){
+
+        // }
         $data = [
             "is_active"=>$newIsActive,
         ];

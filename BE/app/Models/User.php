@@ -72,4 +72,8 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return !is_null($this->email_verified_at);
     }
+    public function library()
+    {
+        return $this->belongsTo(Library::class, 'avatar', 'id');
+    }
 }
