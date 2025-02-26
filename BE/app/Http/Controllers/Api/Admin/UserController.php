@@ -110,9 +110,11 @@ class UserController extends Controller
     }    
 
     //
-    public function changeActive(Request $request,User $user){
+    public function changeActive(Request $request,$id){
         try {
             //code...
+            $user = User::findOrFail($id);
+            
             $data = [
                 "is_active"=>!$user->is_active,
                 "reason" => $user->is_active ? $request->reason ?? null : null,

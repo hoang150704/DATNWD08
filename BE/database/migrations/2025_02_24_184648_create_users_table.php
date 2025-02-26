@@ -13,8 +13,8 @@ return new class extends Migration {
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('username', 50)->unique()->index();;
+            $table->string('name',255);
+            $table->string('username', 50)->unique()->index();
             $table->string('email')->unique()->index();
             $table->unsignedBigInteger('avatar')->nullable();
             $table->foreign('avatar')->references('id')->on('libraries')->onDelete('set null');
@@ -22,6 +22,7 @@ return new class extends Migration {
             $table->string('password',255);
             $table->string('role')->default(User::ROLE_MEMBER);
             $table->boolean('is_active')->default(true);
+            $table->string('reason',255);
             $table->softDeletes();
             $table->string('provider')->nullable();
             $table->string('provider_id')->nullable();
