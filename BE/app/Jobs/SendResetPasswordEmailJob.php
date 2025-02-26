@@ -39,7 +39,8 @@ class SendResetPasswordEmailJob implements ShouldQueue
             ['token' => $resetToken, 'created_at' => Carbon::now()]
         );
         
-        $resetUrl = url("/api/reset-password?token=$resetToken");
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $resetUrl = $frontendUrl . "/auth/reset-password?token=" . $resetToken;
 
         // Gửi email đặt lại mật khẩu
         Mail::raw("Click vào đây để đặt lại mật khẩu: $resetUrl", function ($message) {
