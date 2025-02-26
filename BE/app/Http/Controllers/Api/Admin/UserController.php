@@ -110,15 +110,20 @@ class UserController extends Controller
     }    
 
     //
-    public function changeActive(User $user){
-        $newIsActive = $user->is_active == true ? false : true;
-        // if(){
+    public function changeActive(Request $request,User $user){
+        try {
+            //code...
+            $data = [
+                "is_active"=>!$user->is_active,
+                "reason" => $user->is_active ? $request->reason ?? null : null,
+            ];
+            $user->update($data);
+            return response()->json(['message'=>'Bạn đã thay đổi trạng thái thành công'],200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json(['message'=>'Bạn đã thay đổi trạng thái thất bại','errors'=>$th->getMessage()],500);
+        }
 
-        // }
-        $data = [
-            "is_active"=>$newIsActive,
-        ];
-        $user->update($data);
     }
     /**
      * Remove the specified resource from storage.
@@ -126,8 +131,6 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         try {
-            $user->avatar && Storage::delete($user->avatar);
-
             $user->delete();
 
             return response()->json([

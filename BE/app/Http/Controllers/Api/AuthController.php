@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendEmailVerificationUserJob;
+use App\Jobs\SendResetPasswordEmailJob;
 use App\Models\PasswordReset;
 use App\Models\User;
 use Carbon\Carbon;
@@ -58,36 +59,36 @@ class AuthController extends Controller
         DB::beginTransaction();
         try {
             $token = $request->query('token');
-    
+
             if (!$token) {
                 Log::error('Xác thực email thất bại: Token không tồn tại trong request.');
-                return response()->json(['message' => 'Token không hợp lệ!'], 400);
+                return response()->json(['message' => 'Token không hợp lệ!', "code" => 401], 200);
             }
-    
+
             $record = DB::table('email_verification_tokens')->where('token', $token)->first();
-    
+
             if (!$record) {
                 Log::error("Xác thực email thất bại: Token không hợp lệ - Token: $token");
-                return response()->json(['message' => 'Token không hợp lệ!'], 400);
+                return response()->json(['message' => 'Token không hợp lệ!', "code" => 400], 200);
             }
-    
+
             $user = User::where('email', $record->email)->first();
             if (!$user) {
                 Log::error("Xác thực email thất bại: Không tìm thấy người dùng có email - Email: " . $record->email);
-                return response()->json(['message' => 'Người dùng không tồn tại!'], 404);
+                return response()->json(['message' => 'Người dùng không tồn tại!', "code" => 404], 200);
             }
-    
+
             // Cập nhật email_verified_at
             $user->email_verified_at = Carbon::now();
             $user->save();
-    
+
             // Xóa token sau khi xác thực
             DB::table('email_verification_tokens')->where('email', $record->email)->delete();
-    
+
             DB::commit(); // Lưu thay đổi vào database
             Log::info("Xác thực email thành công: Email " . $user->email . " đã được xác thực.");
-    
-            return response()->json(['message' => 'Email đã được xác thực!']);
+
+            return response()->json(['message' => 'Email đã được xác thực!', "code" => 200]);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error("Lỗi xác thực email: " . $th->getMessage());
@@ -160,19 +161,7 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email|exists:users,email']);
 
-        // $resetToken = random_int(1000000, 9999999);
-        $resetToken = Str::random(64); // Tạo token bảo mật hơn
-
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $request->email],
-            ['token' => $resetToken, 'created_at' => Carbon::now()]
-        );
-
-        $resetUrl = url("/api/reset-password?token=$resetToken");
-
-        Mail::raw("Click vào đây để đặt lại mật khẩu: $resetUrl", function ($message) use ($request) {
-            $message->to($request->email)->subject('Đặt lại mật khẩu');
-        });
+        SendResetPasswordEmailJob::dispatch($request->email);
 
         return response()->json(['message' => 'Vui lòng kiểm tra email để đặt lại mật khẩu!']);
     }
