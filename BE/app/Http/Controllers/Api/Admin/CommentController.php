@@ -110,9 +110,7 @@ class CommentController extends Controller
                 'message' => 'Success',
             ], 200);
         } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Failed'
-            ]);
+            return response()->json();
         }
     }
 
@@ -126,7 +124,8 @@ class CommentController extends Controller
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Failed'
+                'message' => 'Failed',
+                'errors'=>$th->getMessage()
             ], 404);
         }
     }
