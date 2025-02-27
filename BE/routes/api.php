@@ -57,6 +57,7 @@ Route::prefix('admin')->group(function () {
         Route::get('/search', [OrderController::class, 'search']);
         Route::post('/create', [OrderController::class, 'store']);
         Route::patch('/changestatus', [OrderController::class, 'changeStatus'])->middleware('check.order.status');
+        Route::put('/{order}/edit', [OrderController::class, 'update']);
         Route::get('/{order}', [OrderController::class, 'show']);
     });
 

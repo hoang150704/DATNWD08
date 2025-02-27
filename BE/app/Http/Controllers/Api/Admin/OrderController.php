@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreOrderRequest;
+use App\Http\Requests\Admin\Order\StoreOrderRequest;
+use App\Http\Requests\Admin\Order\UpdateOrderRequest;
 use App\Models\Order;
 use App\Models\StatusTracking;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Request;
 
 class OrderController extends Controller
 {
@@ -36,54 +38,66 @@ class OrderController extends Controller
     public function store(StoreOrderRequest $request)
     {
         try {
-            DB::beginTransaction();
+            $validatedData = $request->validated();
 
-            // Tạo đơn hàng
+            // Xử lý tạo đơn hàng
             $order = Order::create([
                 'code' => 'DH!' . Carbon::now()->timestamp,
-                'total_amount' => $request->total_amount,
-                'discount_amount' => $request->discount_amount,
-                'final_amount' => $request->final_amount,
-                'payment_method' => $request->payment_method,
-                'shipping' => $request->shipping,
-                'o_name' => $request->o_name,
-                'o_address' => $request->o_address,
-                'o_phone' => $request->o_phone,
-                'stt_track' => 1,
-                'stt_payment' => 1,
+                'total_amount' => $validatedData['total_amount'],
+                'discount_amount' => $validatedData['discount_amount'] ?? 0,
+                'final_amount' => $validatedData['final_amount'],
+                'payment_method' => $validatedData['payment_method'],
+                'shipping' => $validatedData['shipping'],
+                'o_name' => $validatedData['o_name'],
+                'o_address' => $validatedData['o_address'],
+                'o_phone' => $validatedData['o_phone'],
+                'o_mail' => $validatedData['o_mail'],
             ]);
 
             // Thêm sản phẩm vào đơn hàng
-            // $items = request('items');
-            // foreach ($items as $item) {
-            //     $product = Product::find($item['id']);
-
-            //     if (!$product) {
-            //         throw new \Exception('Sản phẩm không tồn tại'); // Gây lỗi để rollback
-            //     }
-
-            //     OrderItem::create([
-            //         'order_id' => $order->id,
-            //         'product_id' => $item['id'],
-            //         'quantity' => $item['quantity'],
-            //         'price' => $product->price,
-            //     ]);
-            // }
-
-            DB::commit(); // Nếu không có lỗi, xác nhận lưu vào DB
+            foreach ($validatedData['products'] as $product) {
+                $order->orderDetails()->create([
+                    'product_id' => $product['product_id'],
+                    'variation_id' => $product['variation_id'],
+                    'variation' => $product['variation']
+                ]);
+            }
 
             return response()->json([
                 'message' => 'Success',
-                'data' => $order,
+                'order' => $order
             ], 201);
-
         } catch (\Throwable $th) {
-            DB::rollBack(); // Nếu có lỗi, hủy tất cả thay đổi
             return response()->json([
-                'message' => 'Failed'
+                'message' => 'Failed',
             ], 500);
         }
     }
+
+    public function update(UpdateOrderRequest $request, Order $order)
+    {
+        try {
+            $validatedData = $request->validated();
+
+            $order->update([
+                'o_name' => $validatedData['o_name'],
+                'o_address' => $validatedData['o_address'],
+                'o_phone' => $validatedData['o_phone'],
+                'o_mail' => $validatedData['o_mail'],
+            ]);
+
+            return response()->json([
+                'message' => 'Success',
+                'order' => $order
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed',
+            ], 500);
+        }
+    }
+
+
 
     public function show(Order $order)
     {
