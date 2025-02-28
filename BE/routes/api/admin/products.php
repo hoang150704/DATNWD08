@@ -6,15 +6,15 @@ use App\Http\Controllers\Api\Admin\ProductVariationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('products')->group(function () {
-    // ✅ Route CRUD cho sản phẩm
+    //Route CRUD cho sản phẩm
     Route::get('/', [ProductController::class, 'index']); // Lấy danh sách sản phẩm
     Route::post('/', [ProductController::class, 'store']); // Thêm sản phẩm mới
-    Route::get('/{id}', [ProductController::class, 'show']); // Xem chi tiết sản phẩm
+     Route::get('/{id}', [ProductController::class, 'show']); // Xem chi tiết sản phẩm
     Route::put('/{id}', [ProductController::class, 'update']); // Cập nhật sản phẩm
     Route::delete('/{id}', [ProductController::class, 'destroy']); // Xóa sản phẩm
 
-    // ✅ Route danh sách sản phẩm dành cho đặt hàng (Tránh xung đột với {id})
-    Route::get('/list_product_order', [ProductController::class, 'listProductForOrder']);
+    //Route danh sách sản phẩm dành cho đặt hàng (Tránh xung đột với {id})
+    
 
     // ✅ Nhóm route cho biến thể sản phẩm (Variants)
     Route::prefix('{idProduct}/variants')->group(function () {
@@ -41,3 +41,4 @@ Route::prefix('attributes')->group(function () {
     Route::delete('/{id}', [ProductAttributeController::class, 'destroy']); // Xóa thuộc tính
     Route::delete('/delete-attributes/{id}', [ProductAttributeController::class, 'deleteAttribute']); // Xóa thuộc tính chi tiết
 });
+Route::get('/list_product_order', [ProductController::class, 'listProductForOrder']);
