@@ -277,9 +277,15 @@ class ProductController extends Controller
                 return $product;
             });
 
-            return response()->json($products, 200);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Lấy danh sách sản phẩm thành công!',
+                'data' => $products
+            ], 200);
         } catch (Exception $e) {
             // Ghi log lỗi
+            Log::error('Lỗi khi lấy danh sách sản phẩm: ' . $e->getMessage());
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Đã xảy ra lỗi khi lấy danh sách sản phẩm!',
