@@ -14,9 +14,7 @@ Route::prefix('products')->group(function () {
     Route::delete('/{id}', [ProductController::class, 'destroy']); // Xóa sản phẩm
 
     //Route danh sách sản phẩm dành cho đặt hàng (Tránh xung đột với {id})
-    
-
-    // ✅ Nhóm route cho biến thể sản phẩm (Variants)
+    //Nhóm route cho biến thể sản phẩm (Variants)
     Route::prefix('{idProduct}/variants')->group(function () {
         Route::get('/', [ProductVariationController::class, 'index']); // Danh sách biến thể
         Route::get('/list', [ProductVariationController::class, 'list']); // Danh sách chi tiết
@@ -25,7 +23,7 @@ Route::prefix('products')->group(function () {
         Route::put('/{id}', [ProductVariationController::class, 'update']); // Cập nhật biến thể
     });
 
-    // ✅ Nhóm route cho thuộc tính sản phẩm (Attributes)
+    //Nhóm route cho thuộc tính sản phẩm (Attributes)
     Route::prefix('{idProduct}/attributes')->group(function () {
         Route::get('/', [ProductAttributeController::class, 'index']); // Danh sách thuộc tính
         Route::put('/', [ProductAttributeController::class, 'update']); // Cập nhật thuộc tính
