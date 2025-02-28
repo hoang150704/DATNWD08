@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\Product\UpdateProductRequest;
 use App\Models\Product;
 use App\Traits\ProductTraits;
 use Dotenv\Exception\ValidationException;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -55,6 +56,7 @@ class ProductController extends Controller
             $dataProduct = [
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'] ?? null,
+                'weight'=>$validatedData['weight'],
                 'short_description' => $validatedData['short_description'] ?? null,
                 'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
@@ -104,11 +106,12 @@ class ProductController extends Controller
         //
         try {
             //code...
-            $product = Product::select('id', 'name', 'description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
+            $product = Product::select('id', 'name', 'weight','description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
             //Covert dữ liệu
             $convertData = [
                 "id" => $product->id,
                 "name" => $product->name,
+                "weight" => $product->weight,
                 "description" => $product->description,
                 "short_description" => $product->short_description,
                 "main_image" => $product->main_image,
@@ -169,6 +172,7 @@ class ProductController extends Controller
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'] ?? null,
                 'short_description' => $validatedData['short_description'] ?? null,
+                'weight'=>$validatedData['weight'],
                 'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
                 'slug' => $validatedData['slug']
@@ -243,4 +247,51 @@ class ProductController extends Controller
             ], 500);
         }
     }
+
+    public function listProductForOrder()
+    {
+        try {
+            $products = Product::with([
+                'variants' => function ($query) {
+                    $query->select('id', 'product_id', 'stock_quantity', 'regular_price', 'sale_price');
+                },
+                'variants.values.attributeValue' => function ($query) {
+                    $query->select('id', 'name');
+                }
+            ])->select('id', 'name', 'main_image', 'weight', 'type')->get();
+    
+            // Kiểm tra nếu không có sản phẩm nào
+            if ($products->isEmpty()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Không có sản phẩm nào!',
+                    'data' => []
+                ], 200);
+            }
+    
+            // Format lại dữ liệu để chỉ lấy mảng tên thuộc tính
+            $products->transform(function ($product) {
+                $product->variants->transform(function ($variant) {
+                    $variant->values = $variant->values ? $variant->values->pluck('attributeValue.name')->toArray() : [];
+                    return $variant;
+                });
+                return $product;
+            });
+    
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Lấy danh sách sản phẩm thành công!',
+                'data' => $products
+            ], 200);
+    
+        } catch (Exception $e) {
+            // Ghi log lỗi
+            Log::error('Lỗi khi lấy danh sách sản phẩm: ' . $e->getMessage());
+    
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Đã xảy ra lỗi khi lấy danh sách sản phẩm!',
+                'error' => $e->getMessage()
+            ], 500);
+        }}
 }

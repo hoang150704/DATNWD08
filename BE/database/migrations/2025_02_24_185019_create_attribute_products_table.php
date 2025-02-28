@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name',255);
             $table->text('description')->nullable();
             $table->text('short_description' )->nullable();
+            $table->integer('weight');
             $table->unsignedBigInteger('main_image')->nullable();
             $table->foreign('main_image')->references('id')->on('libraries')->onDelete('set null');
             $table->string('slug',255);

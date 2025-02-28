@@ -43,7 +43,6 @@ class UserController extends Controller
             DB::transaction(function () use ($request) {
                 $data = [
                     'name'      => $request->name,
-                    'avatar'      => $request->avatar,
                     'username'  => $request->username,
                     'email'     => $request->email,
                     'password'  => bcrypt($request->password),

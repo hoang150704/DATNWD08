@@ -16,8 +16,7 @@ return new class extends Migration {
             $table->string('name',255);
             $table->string('username', 50)->unique()->index();
             $table->string('email')->unique()->index();
-            $table->unsignedBigInteger('avatar')->nullable();
-            $table->foreign('avatar')->references('id')->on('libraries')->onDelete('set null');
+            $table->string('avatar',255)->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password',255);
             $table->string('role')->default(User::ROLE_MEMBER);
