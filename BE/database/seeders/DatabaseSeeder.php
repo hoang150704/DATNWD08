@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             Library::class,
-            UserSeeder::class,
+            // UserSeeder::class,
             CategorySeeder::class,
             AttributeSeeder::class,
             AttributeValueSeeder::class,
@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
             OrderItemSeeder::class,
             StatusTrackingSeeder::class,
             StatusPaymentSeeder::class,
-            RolesTableSeeder::class
+          
         ]);
     }
 }

@@ -5,20 +5,32 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Jobs\SendEmailVerificationUserJob;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Traits\UploadTraits;
 
 class UserController extends Controller
 {
+    use UploadTraits;
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
         $data = User::latest('id')->paginate(10);
+        foreach ($data as $key => $value) {
+
+            if ($value->avatar == null) {
+                $data[$key]['urlImg'] = null;
+            } else {
+                $url = $this->convertImage($value->library->url, 100, 100, 'thumb');
+                $data[$key]['urlImg'] = $url;
+            }
+        }
         return response()->json($data);
     }
 
@@ -31,21 +43,17 @@ class UserController extends Controller
             DB::transaction(function () use ($request) {
                 $data = [
                     'name'      => $request->name,
+                    'avatar'      => $request->avatar,
                     'username'  => $request->username,
                     'email'     => $request->email,
                     'password'  => bcrypt($request->password),
-                    'phone'     => $request->phone,
-                    'role_id'   => $request->role_id,
-                    'is_active' => $request->has('is_active') ?? 0
+                    'role'   => $request->role,
                 ];
-    
-                if ($request->hasFile('avatar')) {
-                    $data['avatar'] = Storage::put('users', $request->file('avatar')); 
-                }
         
-                User::query()->create($data);
+                $user = User::query()->create($data);
+                SendEmailVerificationUserJob::dispatch($user);
             });
-        
+            
             return response()->json([
                 'message' => 'Thêm mới thành công!',
             ], 201);
@@ -55,6 +63,7 @@ class UserController extends Controller
 
             return response()->json([
                 'message' => 'Đã có lỗi xảy ra!',
+                'errors' => $e->getMessage(),
             ], 500);
         }
     }
@@ -75,27 +84,17 @@ class UserController extends Controller
     {
         try {
             $data = $request->validated();
-            
-            // Nếu không có giá trị 'is_active', gán giá trị mặc định là 0
-            $data['is_active'] = $request->has('is_active') ?? 0;
-            
-            // Kiểm tra nếu có mật khẩu mới và mã hóa mật khẩu
-            if ($request->has('password')) {
-                $data['password'] = bcrypt($request->password);
-            }
-
-            // Kiểm tra xem có ảnh mới không
-            if ($request->hasFile('avatar')) {
-                // Xóa ảnh cũ nếu có
-                if ($user->avatar) {
-                    Storage::delete($user->avatar);
-                }
-                // Lưu ảnh mới
-                $data['avatar'] = Storage::put('users', $request->file('avatar'));
-            }
-    
+            // Kiểm tra xem người dùng có đổi email không
+            if($user->email != $data['email']){
+                $data['email_verified_at'] = null;
+                $user->update($data);
+                SendEmailVerificationUserJob::dispatch($user);
+                return response()->json([
+                    'message' => 'Cập nhật thành công! Vui lòng xác thực email',
+                    'user' => $user,
+                ], 200);
+            };
             $user->update($data);
-    
             return response()->json([
                 'message' => 'Cập nhật thành công!',
                 'user' => $user,
@@ -110,14 +109,30 @@ class UserController extends Controller
         }
     }    
 
+    //
+    public function changeActive(Request $request,$id){
+        try {
+            //code...
+            $user = User::findOrFail($id);
+            
+            $data = [
+                "is_active"=>!$user->is_active,
+                "reason" => $user->is_active ? $request->reason ?? null : null,
+            ];
+            $user->update($data);
+            return response()->json(['message'=>'Bạn đã thay đổi trạng thái thành công'],200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json(['message'=>'Bạn đã thay đổi trạng thái thất bại','errors'=>$th->getMessage()],500);
+        }
+
+    }
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(User $user)
     {
         try {
-            $user->avatar && Storage::delete($user->avatar);
-
             $user->delete();
 
             return response()->json([
