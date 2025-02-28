@@ -137,7 +137,7 @@ class VoucherController extends Controller
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
-            return response()->json(['message' => 'Có lỗi xảy ra'], 500);
+            return response()->json(['message' => 'Có lỗi xảy ra','errors'=>$th->getMessage()], 500);
         }
     }
 }

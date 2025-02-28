@@ -3,14 +3,18 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+
+class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable,SoftDeletes;
 
     const ROLE_ADMIN = 'admin';
     const ROLE_MEMBER = 'member';
@@ -24,22 +28,15 @@ class User extends Authenticatable
         'name',
         'username',
         'email',
-        'phone',
-        'avatar',
-        'role_id',
-        'is_active',
-        'email_verified_at',
         'password',
-        'phone',
         'avatar',
+        'is_active',
+        'reason',
+        'email_verified_at',
         'role',
-        'active',
-        'deleted_at',
         'provider',
         'provider_id',
     ];
-
-    public $attributes = ['is_active' => 0];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -58,6 +55,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_active' => 'boolean',
     ];
     public function voucherUsages()
     {
@@ -66,15 +64,19 @@ class User extends Authenticatable
 
     public function isAdmin()
     {
-        return $this->type == self::ROLE_ADMIN;
+        return $this->role == self::ROLE_ADMIN;
     }
     public function isMember()
     {
-        return $this->type == self::ROLE_MEMBER;
+        return $this->role == self::ROLE_MEMBER;
     }
 
     public function hasVerifiedEmail()
     {
         return !is_null($this->email_verified_at);
+    }
+    public function library()
+    {
+        return $this->belongsTo(Library::class, 'avatar', 'id');
     }
 }
