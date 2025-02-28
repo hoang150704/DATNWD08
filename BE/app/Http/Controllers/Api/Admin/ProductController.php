@@ -268,7 +268,7 @@ class ProductController extends Controller
                     'data' => []
                 ], 200);
             }
-    
+            
             // Format lại dữ liệu để chỉ lấy mảng tên thuộc tính
             $products->transform(function ($product) {
                 $product->variants->transform(function ($variant) {
