@@ -7,16 +7,18 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendEmailVerificationUserJob;
 use App\Jobs\SendEmailVerifyNewEmailJob;
 use App\Jobs\SendResetPasswordEmailJob;
-use App\Models\PasswordReset;
+use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Validator;
+
+
 
 class AuthController extends Controller
 {
@@ -332,4 +334,40 @@ class AuthController extends Controller
             return response()->json(['message' => 'Đã xảy ra lỗi khi đặt lại mật khẩu.'], 500);
         }
     }
+
+    // public function googleAuth(Request $request)
+    // {
+    //     $request->validate([
+    //         'token' => 'required|string',
+    //     ]);
+
+    //     try {
+    //         // Xác thực token từ Google
+    //         // $googleUser = Socialite::driver('google')->userFromToken($request->token);
+
+    //         // Kiểm tra user có tồn tại không
+    //         $user = User::where('email', $googleUser->getEmail())->first();
+
+    //         if (!$user) {
+    //             // Nếu chưa có user, tạo mới
+    //             $user = User::create([
+    //                 'name' => $googleUser->getName(),
+    //                 'email' => $googleUser->getEmail(),
+    //                 'google_id' => $googleUser->getId(),
+    //                 'password' => Hash::make(uniqid()), // Tạo mật khẩu ngẫu nhiên
+    //             ]);
+    //         }
+
+    //         // Đăng nhập user và tạo token API
+    //         $token = $user->createToken('google-auth')->plainTextToken;
+
+    //         return response()->json([
+    //             'message' => 'Đăng nhập thành công!',
+    //             'user' => $user,
+    //             'token' => $token
+    //         ], 200);
+    //     } catch (\Exception $e) {
+    //         return response()->json(['message' => 'Lỗi khi xác thực Google!', 'error' => $e->getMessage()], 400);
+    //     }
+    // }
 }

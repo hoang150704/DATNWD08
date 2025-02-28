@@ -42,16 +42,16 @@ class OrderController extends Controller
 
             // Xử lý tạo đơn hàng
             $order = Order::create([
-                'code' => 'DH!' . Carbon::now()->timestamp,
-                'total_amount' => $validatedData['total_amount'],
-                'discount_amount' => $validatedData['discount_amount'] ?? 0,
-                'final_amount' => $validatedData['final_amount'],
-                'payment_method' => $validatedData['payment_method'],
-                'shipping' => $validatedData['shipping'],
-                'o_name' => $validatedData['o_name'],
-                'o_address' => $validatedData['o_address'],
-                'o_phone' => $validatedData['o_phone'],
-                'o_mail' => $validatedData['o_mail'],
+                'code' => 'DH!' . time(),
+                'total_amount' => $validatedData['total_amount'], // tổng tiền đơn hàng
+                'discount_amount' => $validatedData['discount_amount'] ?? 0, // số tiền được giảm
+                'final_amount' => $validatedData['final_amount'], // tổng tiền sau khi trừ giảm giá + phí ship
+                'payment_method' => $validatedData['payment_method'], // phương thức thanh toán
+                'shipping' => $validatedData['shipping'], // phí shipp
+                'o_name' => $validatedData['o_name'],  // tên người nhận
+                'o_address' => $validatedData['o_address'], // địa chỉ
+                'o_phone' => $validatedData['o_phone'], // số điện thoại
+                'o_mail' => $validatedData['o_mail'], // email
             ]);
 
             // Thêm sản phẩm vào đơn hàng
