@@ -23,7 +23,7 @@ class ProductController extends Controller
     {
         try {
             //code...
-            $products = Product::with("categories:name")->select('id', 'name', 'main_image', 'type','slug')->latest()->paginate(10);
+            $products = Product::with("categories:name")->select('id', 'name', 'main_image', 'type', 'slug')->latest()->paginate(10);
             foreach ($products as $key => $value) {
 
                 if ($value->main_image == null) {
@@ -56,13 +56,13 @@ class ProductController extends Controller
             $dataProduct = [
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'] ?? null,
-                'weight'=>$validatedData['weight'],
+                'weight' => $validatedData['weight'],
                 'short_description' => $validatedData['short_description'] ?? null,
                 'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
             ];
             //Xử lí slug
-            $slug = $this->handleSlug($dataProduct['name'],'create');
+            $slug = $this->handleSlug($dataProduct['name'], 'create');
             $dataProduct['slug'] = $slug;
 
             //Thêm sản phẩm
@@ -70,11 +70,11 @@ class ProductController extends Controller
 
             // Thêm list ảnh
             $images = $validatedData['images'] ?? [];
-            $this->addImages($images,$product->id);
+            $this->addImages($images, $product->id);
 
             // Xử lí danh mục
             $categories = $validatedData['categories'] ?? [];
-            $this->addCategories($categories,$product->id);
+            $this->addCategories($categories, $product->id);
 
             // Xử lí thêm sản phẩm biến thể hay đơn giản 
             if ($request->type == 1) {
@@ -106,7 +106,7 @@ class ProductController extends Controller
         //
         try {
             //code...
-            $product = Product::select('id', 'name', 'weight','description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
+            $product = Product::select('id', 'name', 'weight', 'description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
             //Covert dữ liệu
             $convertData = [
                 "id" => $product->id,
@@ -172,26 +172,24 @@ class ProductController extends Controller
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'] ?? null,
                 'short_description' => $validatedData['short_description'] ?? null,
-                'weight'=>$validatedData['weight'],
+                'weight' => $validatedData['weight'],
                 'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
                 'slug' => $validatedData['slug']
             ];
-            $dataProduct['slug'] = $this->handleSlug($dataProduct['slug'],'update',$id);
+            $dataProduct['slug'] = $this->handleSlug($dataProduct['slug'], 'update', $id);
 
             //Tiến hành sửa biến thể or basic
             if ($product->type == 1) {  //Nếu ban dầu là sp đơn giản
                 if ($dataProduct['type'] == 1) {  // Sau khi update vẫn là sp đơn giản
                     //Update sản phẩm đơn giản
-                    $this->updateBasicProduct($validatedData['variants'],$id);
-
+                    $this->updateBasicProduct($validatedData['variants'], $id);
                 } else { // Sau khi update là sp biến thể
                     //Ẩn biến thể cũ đi
                     $this->deletProductVaration($product);
 
                     // Thêm biến thể
-                    $this->createVariantProduct($validatedData['variants'],$validatedData['attributes'],$id);
-
+                    $this->createVariantProduct($validatedData['variants'], $validatedData['attributes'], $id);
                 }
             } else { // Trước đó là sp biến thể 
                 if ($dataProduct['type'] == 1) { // sau update là sp đơn giản
@@ -199,15 +197,13 @@ class ProductController extends Controller
                     $this->deletProductVaration($product);
 
                     //Thêm sản phẩm đơn giản
-                    $this->createBasicProduct($validatedData['variants'],$id);
-                    
+                    $this->createBasicProduct($validatedData['variants'], $id);
                 } else { //sau update vẫn là biến thể
                     //Update sản phẩm biến thể
-                    $this->updateVariantProduct($validatedData['variants'],$id);
-
+                    $this->updateVariantProduct($validatedData['variants'], $id);
                 }
             }
-            $product->update($dataProduct); 
+            $product->update($dataProduct);
             $product->categories()->sync($validatedData['categories']);
             $product->productImages()->sync($validatedData['images']);
             return response()->json(['Bạn đã sửa thành công'], 200);
@@ -259,7 +255,7 @@ class ProductController extends Controller
                     $query->select('id', 'name');
                 }
             ])->select('id', 'name', 'main_image', 'weight', 'type')->get();
-    
+
             // Kiểm tra nếu không có sản phẩm nào
             if ($products->isEmpty()) {
                 return response()->json([
@@ -268,30 +264,33 @@ class ProductController extends Controller
                     'data' => []
                 ], 200);
             }
-            
+
             // Format lại dữ liệu để chỉ lấy mảng tên thuộc tính
             $products->transform(function ($product) {
+                $product->image_url = $product->main_image
+                    ? Product::getConvertImage(optional($product->library)->url, 200, 200, 'thumb')
+                    : null;
                 $product->variants->transform(function ($variant) {
                     $variant->values = $variant->values ? $variant->values->pluck('attributeValue.name')->toArray() : [];
                     return $variant;
                 });
                 return $product;
             });
-    
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Lấy danh sách sản phẩm thành công!',
                 'data' => $products
             ], 200);
-    
         } catch (Exception $e) {
             // Ghi log lỗi
             Log::error('Lỗi khi lấy danh sách sản phẩm: ' . $e->getMessage());
-    
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Đã xảy ra lỗi khi lấy danh sách sản phẩm!',
                 'error' => $e->getMessage()
             ], 500);
-        }}
+        }
+    }
 }
