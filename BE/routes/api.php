@@ -46,9 +46,9 @@ Route::prefix('admin')->group(function () {
     Route::prefix('vouchers')->group(function () {
         Route::get('/', [VoucherController::class, 'index']);
         Route::post('/create', [VoucherController::class, 'store']);
-        Route::get('/{code}', [VoucherController::class, 'show']);
-        Route::put('/update/{id}', [VoucherController::class, 'update']);
-        Route::delete('/delete/{code}', [VoucherController::class, 'destroy']);
+        Route::get('/{id}', [VoucherController::class, 'show']);
+        Route::put('/{id}', [VoucherController::class, 'update']);
+        Route::delete('/', [VoucherController::class, 'destroy']);
     });
 
     // Admin Order
