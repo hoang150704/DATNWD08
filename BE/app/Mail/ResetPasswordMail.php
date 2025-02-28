@@ -16,9 +16,23 @@ class ResetPasswordMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public $user;
+    public $resetUrl;
+    public function __construct($user, $resetUrl)
     {
         //
+        $this->user = $user;
+        $this->resetUrl = $resetUrl;
+    }
+
+    public function build()
+    {
+        return $this->subject('Xác thực thay đổi mật khẩu')
+            ->markdown('emails.reset-password')
+            ->with([
+                'name' => $this->user->name,
+                'resetUrl' => $this->resetUrl
+            ]);
     }
 
     /**

@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Mail\ResetPasswordMail;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,6 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Auth\Notifications\ResetPassword;
 
 class SendResetPasswordEmailJob implements ShouldQueue
 {
@@ -33,7 +36,7 @@ class SendResetPasswordEmailJob implements ShouldQueue
     {
         // Tạo token reset mật khẩu
         $resetToken = Str::random(64);
-
+        $user = User::where('email',$this->email)->first();
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $this->email],
             ['token' => $resetToken, 'created_at' => Carbon::now()]
@@ -43,9 +46,6 @@ class SendResetPasswordEmailJob implements ShouldQueue
         $resetUrl = $frontendUrl . "/auth/reset-password?token=" . $resetToken;
 
         // Gửi email đặt lại mật khẩu
-        Mail::raw("Click vào đây để đặt lại mật khẩu: $resetUrl", function ($message) {
-            $message->to($this->email)
-                    ->subject('Đặt lại mật khẩu');
-        });
+        Mail::to($this->email)->send(new ResetPasswordMail($user, $resetUrl));
     }
 }

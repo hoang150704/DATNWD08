@@ -18,7 +18,8 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 // Chức năng cần đăng nhập <3
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-
+    Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
+    Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
     // Chức năng chỉ admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
         // Dashborad
@@ -68,6 +69,4 @@ Route::middleware('auth:sanctum')->group(function () {
         require base_path('routes/api/admin/libraries.php');
         require base_path('routes/api/admin/products.php');
     });
-
-
 });

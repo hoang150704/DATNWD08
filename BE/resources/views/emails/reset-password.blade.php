@@ -3,7 +3,7 @@
 
 Vui lòng nhấn vào nút bên dưới để đổi mật khẩu mới.
 
-@component('mail::button', ['url' => $verificationUrl])
+@component('mail::button', ['url' => $resetUrl])
 Xác Thực Email
 @endcomponent
 
@@ -16,5 +16,5 @@ Trân trọng,
 
 Nếu bạn không thể nhấn vào nút trên, hãy sao chép đường dẫn sau và dán vào trình duyệt của bạn:
 
-[{{ $verificationUrl }}]({{ $verificationUrl }})
+[{{ $resetUrl }}]({{ $resetUrl }})
 @endcomponent
