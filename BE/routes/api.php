@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\UploadController;
 use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
+    Route::post('/upload', [UploadController::class, 'uploadImage']);
     // Chức năng chỉ admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
         // Dashborad

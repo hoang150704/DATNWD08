@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProductVariationValue extends Model
 {
-    use HasFactory;
+    use HasFactory,SoftDeletes ;
     
     protected $fillable = [
         'variation_id',
@@ -17,5 +17,8 @@ class ProductVariationValue extends Model
     public function attributeValue() 
     {
         return $this->belongsTo(AttributeValue::class,'attribute_value_id','id'); 
+    }
+    public function productAttributes(){
+        return $this->hasMany(ProductAttribute ::class );
     }
 }

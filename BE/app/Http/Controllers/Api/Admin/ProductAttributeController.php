@@ -92,28 +92,28 @@ class ProductAttributeController extends Controller
             DB::beginTransaction();
             $validatedData = $request->validated();
     
-            // 1️⃣ Kiểm tra sản phẩm có phải biến thể không
+            // Kiểm tra sản phẩm có phải biến thể không
             $product = Product::findOrFail($idProduct);
             if ($product->type == 1) {
                 return response()->json(['message' => 'Đây không phải sản phẩm biến thể'], 422);
             }
     
-            // 2️⃣ Lấy danh sách attribute_id (parentVariants)
+            // Lấy danh sách attribute_id (parentVariants)
             $parentVariants = $validatedData["attribute"]["parentVariants"];
             unset($validatedData["attribute"]["parentVariants"]);
     
-            // 3️⃣ Gộp tất cả các giá trị attribute_value_id được chọn
+            // Gộp tất cả các giá trị attribute_value_id được chọn
             $selectedValues = [];
             foreach ($validatedData["attribute"] as $value) {
                 $selectedValues = array_merge($selectedValues, $value);
             }
     
-            // 4️⃣ Lấy danh sách giá trị đang có trong DB
+            // Lấy danh sách giá trị đang có trong DB
             $existingValues = ProductAttribute::where('product_id', $idProduct)
                 ->pluck('attribute_value_id')
                 ->toArray();
     
-            // 5️⃣ Xử lý xóa những giá trị bị loại bỏ
+            // Xử lý xóa những giá trị bị loại bỏ
             $removedValues = array_diff($existingValues, $selectedValues);
             if (!empty($removedValues)) {
                 // Xóa khỏi bảng product_attributes
@@ -122,7 +122,8 @@ class ProductAttributeController extends Controller
                     ->delete();
     
                 // Tìm tất cả product_variations của product_id này
-                $variationsToDelete = ProductVariation::whereIn('id', function ($query) use ($removedValues) {
+                $variationsToDelete = ProductVariation::where('product_id', $idProduct)
+                ->whereIn('id', function ($query) use ($removedValues) {
                     $query->select('variation_id')
                         ->from('product_variation_values')
                         ->whereIn('attribute_value_id', $removedValues);
@@ -137,7 +138,7 @@ class ProductAttributeController extends Controller
                 }
             }
     
-            // 6️⃣ Xử lý thêm giá trị mới
+            // Xử lý thêm giá trị mới
             $newValues = array_diff($selectedValues, $existingValues);
             if (!empty($newValues)) {
                 foreach ($newValues as $newValue) {
@@ -150,7 +151,7 @@ class ProductAttributeController extends Controller
                 }
             }
     
-            // 7️⃣ Xử lý khi người dùng thêm thuộc tính mới
+            // Xử lý khi người dùng thêm thuộc tính mới
             $existingAttributes = ProductAttribute::where('product_id', $idProduct)
                 ->whereIn('attribute_id', $parentVariants)
                 ->pluck('attribute_id')

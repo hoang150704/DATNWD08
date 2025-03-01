@@ -26,6 +26,7 @@ class UpdateProductRequest extends FormRequest
             'attributes'=>'array',
             'name' => 'required|max:255',
             'type' => 'required|in:0,1',
+            'weight'=>'required|integer',
             'description' => 'nullable',
             'short_description' => 'nullable',
             'main_image' => 'nullable|integer',
