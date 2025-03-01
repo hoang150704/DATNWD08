@@ -122,7 +122,8 @@ class ProductAttributeController extends Controller
                     ->delete();
     
                 // Tìm tất cả product_variations của product_id này
-                $variationsToDelete = ProductVariation::whereIn('id', function ($query) use ($removedValues) {
+                $variationsToDelete = ProductVariation::where('product_id', $idProduct)
+                ->whereIn('id', function ($query) use ($removedValues) {
                     $query->select('variation_id')
                         ->from('product_variation_values')
                         ->whereIn('attribute_value_id', $removedValues);

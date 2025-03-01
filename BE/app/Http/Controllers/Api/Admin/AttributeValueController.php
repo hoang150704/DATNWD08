@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Attribute;
 use App\Models\AttributeValue;
 use App\Models\ProductAttribute;
+use App\Models\ProductVariation;
+use App\Models\ProductVariationValue;
 use Dotenv\Exception\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -189,6 +191,20 @@ class AttributeValueController extends Controller
             DB::beginTransaction();
             $attribute_value = AttributeValue::findOrFail($id);
             //Xóa
+            ProductAttribute::where('attribute_value_id', $id)->delete();
+            //TÌm các product variation có variation values có attribute_value_id đang xóa
+            $variationsToDelete = ProductVariation::whereIn('id', function ($query) use ($id) {
+                $query->select('variation_id')
+                    ->from('product_variation_values')
+                    ->where('attribute_value_id', $id);
+            })->pluck('id')->toArray();
+            if (!empty($variationsToDelete)) {
+                // Xóa tất cả product_variation_values của variations bị ảnh hưởng
+                ProductVariationValue::whereIn('variation_id', $variationsToDelete)->delete();
+
+                // Xóa tất cả product_variations bị ảnh hưởng
+                ProductVariation::whereIn('id', $variationsToDelete)->delete();
+            }
             $attribute_value->delete();
             //Nếu thành công 
             DB::commit();

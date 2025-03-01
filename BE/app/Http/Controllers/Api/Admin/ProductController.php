@@ -9,6 +9,8 @@ use App\Models\Product;
 use App\Traits\ProductTraits;
 use Dotenv\Exception\ValidationException;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -162,7 +164,7 @@ class ProductController extends Controller
         //
         try {
             //code...
-            // DB::beginTransaction();
+            DB::beginTransaction();
             $product = Product::findorFail($id);
             //Sửa sản phẩm
             $validatedData = $request->validated();
@@ -206,10 +208,11 @@ class ProductController extends Controller
             $product->update($dataProduct);
             $product->categories()->sync($validatedData['categories']);
             $product->productImages()->sync($validatedData['images']);
+            DB::commit();
             return response()->json(['Bạn đã sửa thành công'], 200);
         } catch (\Exception $e) {
             //throw $th;
-            // DB::rollBack();
+            DB::rollBack();
             Log::error($e);
             return response()->json([
                 "message" => "Lỗi hệ thống",
@@ -222,51 +225,66 @@ class ProductController extends Controller
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
-    {
-        try {
-            $product = Product::findOrFail($id);
+{
+    try {
+        // Tìm sản phẩm (bao gồm cả đã xóa mềm)
+        $product = Product::withTrashed()->findOrFail($id);
 
-            if ($product->trashed()) {
-                return response()->json(['message' => 'Sản phẩm đã được xóa mềm'], 400);
-            }
-            $product->delete();
-
-            return response()->json(['message' => 'Sản phẩm đã được chuyển vào thùng rác'], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Sản phẩm không tồn tại'], 404);
-        } catch (\Throwable $th) {
-            Log::error($th);
-            return response()->json([
-                'message' => 'Lỗi hệ thống',
-                'error' => $th->getMessage()
-
-            ], 500);
+        // Nếu sản phẩm đã bị xóa mềm, báo lỗi
+        if ($product->trashed()) {
+            return response()->json(['message' => 'Sản phẩm đã bị xóa trước đó'], 400);
         }
-    }
 
-    public function listProductForOrder()
+        // Xóa tất cả giá trị thuộc tính của biến thể
+        $product->variants->each(function ($variant) {
+            $variant->values()->delete(); // Xóa các giá trị thuộc tính liên quan
+        });
+
+        // Xóa tất cả biến thể
+        $product->variants()->delete();
+        $product->variants()->productAttributes();
+
+        // Xóa mềm sản phẩm
+        $product->delete();
+
+        return response()->json(['message' => 'Sản phẩm đã được xóa'], 200);
+    } catch (ModelNotFoundException $e) {
+        return response()->json(['message' => 'Sản phẩm không tồn tại'], 404);
+    } catch (\Throwable $th) {
+        Log::error('Lỗi khi xóa sản phẩm: ' . $th->getMessage());
+        return response()->json([
+            'message' => 'Lỗi hệ thống',
+            'error' => env('APP_DEBUG') ? $th->getMessage() : 'Vui lòng thử lại sau!'
+        ], 500);
+    }}
+
+    public function listProductForOrder(Request $request)
     {
         try {
-            $products = Product::with([
+            // Lấy tham số tìm kiếm
+            $search = $request->input('search'); // Tìm theo tên sản phẩm
+            $perPage = $request->input('per_page', 10); // Số sản phẩm trên mỗi trang (mặc định 10)
+
+            // Tạo query lấy sản phẩm
+            $query = Product::with([
                 'variants' => function ($query) {
                     $query->select('id', 'product_id', 'stock_quantity', 'regular_price', 'sale_price');
                 },
                 'variants.values.attributeValue' => function ($query) {
                     $query->select('id', 'name');
                 }
-            ])->select('id', 'name', 'main_image', 'weight', 'type')->get();
+            ])->select('id', 'name', 'main_image', 'weight', 'type');
 
-            // Kiểm tra nếu không có sản phẩm nào
-            if ($products->isEmpty()) {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'Không có sản phẩm nào!',
-                    'data' => []
-                ], 200);
+            // ✅ Tìm kiếm theo tên sản phẩm nếu có
+            if ($search) {
+                $query->where('name', 'LIKE', "%{$search}%");
             }
 
-            // Format lại dữ liệu để chỉ lấy mảng tên thuộc tính
-            $products->transform(function ($product) {
+            // ✅ Phân trang sản phẩm
+            $products = $query->paginate($perPage);
+
+            // Format lại dữ liệu để chỉ lấy mảng tên thuộc tính và hình ảnh
+            $products->getCollection()->transform(function ($product) {
                 $product->image_url = $product->main_image
                     ? Product::getConvertImage(optional($product->library)->url, 200, 200, 'thumb')
                     : null;
@@ -289,7 +307,7 @@ class ProductController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Đã xảy ra lỗi khi lấy danh sách sản phẩm!',
-                'error' => $e->getMessage()
+                'error' => env('APP_DEBUG') ? $e->getMessage() : 'Vui lòng thử lại sau!'
             ], 500);
         }
     }

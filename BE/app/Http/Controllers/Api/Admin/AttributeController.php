@@ -4,6 +4,10 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attribute;
+use App\Models\AttributeValue;
+use App\Models\ProductAttribute;
+use App\Models\ProductVariation;
+use App\Models\ProductVariationValue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -113,7 +117,7 @@ class AttributeController extends Controller
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error($th);
-            return response()->json(["message" => "Lỗi",'error' => $th->getMessage()], 500);
+            return response()->json(["message" => "Lỗi", 'error' => $th->getMessage()], 500);
         }
     }
 
@@ -129,6 +133,23 @@ class AttributeController extends Controller
                 return response()->json(['message' => 'Thuộc tính mặc định không thể xóa'], 400);
             }
             //Xóa
+            ProductAttribute::where('attribute_id', $id)->delete();
+            //Lấy các values của thằng attribute đang xoad
+            $attributeValueIds = AttributeValue::where('attribute_id', $id)->pluck('id')->toArray();
+            //Lấy ra mảng các productvariations có values liên quan
+            $variationsToDelete = ProductVariation::join('product_variation_values', 'product_variations.id', '=', 'product_variation_values.variation_id')
+                ->whereIn('product_variation_values.attribute_value_id', $attributeValueIds)
+                ->distinct()
+                ->pluck('product_variations.id')
+                ->toArray();
+                // Kiểm tra xem mảng có rỗng không, nếu không rỗng thì xóa
+                if (!empty($variationsToDelete)) {
+                    ProductVariationValue::whereIn('variation_id', $variationsToDelete)->delete();
+                    ProductVariation::whereIn('id', $variationsToDelete)->delete();
+                }
+                //Xóa các attributes values liên quan
+                AttributeValue::whereIn('id', $attributeValueIds)->delete();
+                // XÓa attribute
             $attribute->delete();
             //Nếu thành công 
             DB::commit();

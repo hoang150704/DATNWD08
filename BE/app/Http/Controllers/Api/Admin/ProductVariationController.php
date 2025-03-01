@@ -230,7 +230,7 @@ class ProductVariationController extends Controller
             //code...
             DB::beginTransaction();
             $product_variant = ProductVariation::findOrFail($id);
-            $product_variant->values()->delete();
+            ProductVariationValue::where('variation_id',$id)->delete();
             $product_variant->delete();
             DB::commit();
             return response()->json(['message'=>"Bạn đã xóa thành công"], 200);
