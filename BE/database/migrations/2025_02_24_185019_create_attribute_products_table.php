@@ -19,6 +19,8 @@ return new class extends Migration
             $table->integer('weight');
             $table->unsignedBigInteger('main_image')->nullable();
             $table->foreign('main_image')->references('id')->on('libraries')->onDelete('set null');
+            $table->unsignedBigInteger('box_id')->nullable();
+            $table->foreign('box_id')->references('id')->on('boxes');
             $table->string('slug',255);
             $table->enum('type',[0,1]);
             $table->softDeletes();

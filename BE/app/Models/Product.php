@@ -40,5 +40,9 @@ class Product extends Model
     public function productAttributes(){
         return $this->hasMany(ProductAttribute ::class );
     }
+    public function box()
+    {
+        return $this->belongsTo(Box::class, 'box_id', 'id');
+    }
 }
 
