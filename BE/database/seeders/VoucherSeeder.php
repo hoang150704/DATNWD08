@@ -1,11 +1,8 @@
 <?php
-
 namespace Database\Seeders;
-
 use Illuminate\Database\Seeder;
 use App\Models\Voucher;
 use Illuminate\Support\Str;
-
 class VoucherSeeder extends Seeder
 {
     /**
@@ -22,8 +19,8 @@ class VoucherSeeder extends Seeder
                 'discount_percent' => ($i % 2 == 0) ? rand(10, 50) : null,
                 'amount' => ($i % 2 != 0) ? rand(10000, 50000) : null,
                 'type' => $i % 2 == 0 ? 1 : 0,
-                'max_discount_amount' => rand(10000, 50000),
-                'min_product_price' => rand(100000, 500000),
+                'max_discount_amount' => ($i % 2 == 0) ? rand(10000, 50000) : null,
+                'min_product_price' => ($i % 2 == 0) ? rand(100000, 500000) : null,
                 'usage_limit' => rand(1, 10),
                 'expiry_date' => now()->addDays(rand(1, 30)),
                 'start_date' => now()->subDays(rand(1, 30)),

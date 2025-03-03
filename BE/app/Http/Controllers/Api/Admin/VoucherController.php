@@ -1,14 +1,11 @@
 <?php
-
 namespace App\Http\Controllers\Api\Admin;
-
 use App\Http\Controllers\Controller;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Events\VoucherUpdated;
-
 class VoucherController extends Controller
 {
     /**
@@ -23,7 +20,6 @@ class VoucherController extends Controller
             return response()->json(["message" => "Lỗi", 500]);
         }
     }
-
     /**
      * Store a newly created resource in storage.
      */
@@ -37,18 +33,15 @@ class VoucherController extends Controller
                 'discount_percent' => 'nullable|integer|required_without:amount',
                 'amount' => 'nullable|integer|required_without:discount_percent',
                 'type' => 'required|integer',
-                'max_discount_amount' => 'required|integer',
-                'min_product_price' => 'required|integer',
+                'max_discount_amount' => 'nullable|integer',
+                'min_product_price' => 'nullable|integer',
                 'usage_limit' => 'required|integer',
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
             ]);
-
             $voucher = Voucher::create($data);
-
             // Phát sự kiện
             // broadcast(new VoucherUpdated($voucher))->toOthers();
-
             return response()->json($voucher, 201);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
@@ -57,7 +50,6 @@ class VoucherController extends Controller
             return response()->json(['message' => 'Có lỗi xảy ra khi thêm voucher', 'error' => $th->getMessage()], 500);
         }
     }
-
     /**
      * Display the specified resource.
      */
@@ -73,8 +65,6 @@ class VoucherController extends Controller
             return response()->json(['message' => 'Có lỗi xảy ra'], 500);
         }
     }
-
-
     /**
      * Update the specified resource in storage.
      */
@@ -88,19 +78,16 @@ class VoucherController extends Controller
                 'discount_percent' => 'nullable|integer|required_without:amount',
                 'amount' => 'nullable|integer|required_without:discount_percent',
                 'type' => 'required|integer',
-                'max_discount_amount' => 'required|integer',
-                'min_product_price' => 'required|integer',
+                'max_discount_amount' => 'nullable|integer',
+                'min_product_price' => 'nullable|integer',
                 'usage_limit' => 'required|integer',
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
             ]);
-
             $voucher = Voucher::findOrFail($id);
             $voucher->update($data);
-
             // Phát sự kiện nếu cần
-            // broadcast(new VoucherUpdated($voucher))->toOthers();
-
+// broadcast(new VoucherUpdated($voucher))->toOthers();
             return response()->json($voucher, 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
@@ -109,11 +96,6 @@ class VoucherController extends Controller
             return response()->json(['error' => 'Lỗi cập nhật: ' . $th->getMessage()], 500);
         }
     }
-
-
-
-
-
     /**
      * Remove the specified resource from storage.
      */
@@ -124,20 +106,16 @@ class VoucherController extends Controller
                 'ids' => 'required|array',
                 'ids.*' => 'integer|exists:vouchers,id'
             ]);
-
             $ids = $data['ids'];
-
             Voucher::whereIn('id', $ids)->delete();
-
             // Phát sự kiện nếu cần
-            // broadcast(new VoucherUpdated($voucher))->toOthers();
-
+// broadcast(new VoucherUpdated($voucher))->toOthers();
             return response()->json(['message' => 'Các voucher đã được xóa'], 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
-            return response()->json(['message' => 'Có lỗi xảy ra','errors'=>$th->getMessage()], 500);
+            return response()->json(['message' => 'Có lỗi xảy ra'], 500);
         }
     }
 }
