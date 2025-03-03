@@ -82,7 +82,8 @@ class GhnTrackingController extends Controller
      */
     public function postOrderGHN($id)
     {
-        $order = Order::with('items')->findOrFail($id);
+        $order = Order::with('items')->findOrFail(1);
+
 
         return response()->json($order);
     }

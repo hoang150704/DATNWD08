@@ -15,11 +15,11 @@ return new class extends Migration
             $table->id();
             $table->integer('user_id')->nullable();
             $table->char('code');
-            $table->float('total_amount');
-            $table->float('discount_amount');
-            $table->float('final_amount');
+            $table->bigInteger('total_amount');
+            $table->bigInteger('discount_amount');
+            $table->bigInteger('final_amount');
             $table->enum('payment_method',['ship_cod','bank_transfer','e-wallets']);
-            $table->float('shipping')->nullable();
+            $table->bigInteger('shipping')->nullable();
             $table->text('o_name');
             $table->text('o_address');
             $table->text('o_phone');
