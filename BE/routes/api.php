@@ -18,6 +18,7 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::prefix('ghn')->group(function (){
     Route::post('/get_time_and_fee',[GhnTrackingController::class,'getFeeAndTimeTracking']);
+    Route::post('/post_order/{id}',[GhnTrackingController::class,'postOrderGHN']);
 });
 
 // Chức năng cần đăng nhập <3
