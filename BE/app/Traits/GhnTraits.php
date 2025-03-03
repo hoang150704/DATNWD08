@@ -20,4 +20,6 @@ trait GhnTraits
             'province' => $province,
         ];
     }
+
+    
 }

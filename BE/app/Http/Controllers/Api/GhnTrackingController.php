@@ -82,7 +82,15 @@ class GhnTrackingController extends Controller
      */
     public function postOrderGHN($id)
     {
-        $allShop = json_decode($this->ApiService->get('/shiip/public-api/v2/shop/all'));
+        $customHeaders = [
+            'offset'=>0,
+            'limit'=>200,
+            'client_phone'=>""
+        ];
+        $allShop = json_decode($this->ApiService->get('/shiip/public-api/v2/shop/all',[],$customHeaders));
+
+        // Lấy ra thông tin shop
+        
         $order = Order::with('items')->findOrFail(1);
 
 
