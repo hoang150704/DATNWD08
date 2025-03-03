@@ -32,7 +32,6 @@ class OrderSeeder extends Seeder
                 'stt_payment' => rand(1, 2),
                 'created_at' => fake()->dateTime,
             ]);
-
         }
     }
 }

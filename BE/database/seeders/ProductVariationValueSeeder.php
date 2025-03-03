@@ -15,10 +15,10 @@ class ProductVariationValueSeeder extends Seeder
     {
         //
         DB::table('product_variation_values')->insert([
-            ['variation_id'=>1,'attribute_value_id'=>1],
-            ['variation_id'=>1,'attribute_value_id'=>7],
-            ['variation_id'=>2,'attribute_value_id'=>1],
-            ['variation_id'=>2,'attribute_value_id'=>8],
+            ['variation_id' => 1, 'attribute_value_id' => 1],
+            ['variation_id' => 1, 'attribute_value_id' => 7],
+            ['variation_id' => 2, 'attribute_value_id' => 1],
+            ['variation_id' => 2, 'attribute_value_id' => 8],
         ]);
     }
 }

@@ -21,7 +21,7 @@ class CategoryController extends Controller
             //code...
             $categories = Category::whereNull('parent_id')->with('children')->paginate(15); //phân trang theo danh mục gốc(Không phải con của danh mục khác)
             $this->convertChildren($categories); // gọi hàm để convert lại dữ liệu
-            return response()->json($categories, 200); // trả về respone
+            return response()->json($categories, 200); // trả về res
         } catch (\Throwable $th) {
             //throw $th;
             return response()->json([

@@ -29,13 +29,5 @@ class OrderItemSeeder extends Seeder
                 'price' => rand(500, 1000000),
             ]);
         }
-
-
-
-
-
-
-
-
     }
 }

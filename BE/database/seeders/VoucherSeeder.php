@@ -1,8 +1,11 @@
 <?php
+
 namespace Database\Seeders;
+
 use Illuminate\Database\Seeder;
 use App\Models\Voucher;
 use Illuminate\Support\Str;
+
 class VoucherSeeder extends Seeder
 {
     /**

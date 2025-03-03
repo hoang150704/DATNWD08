@@ -21,10 +21,11 @@ class Product extends Model
         'slug',
         'type'
     ];
-    public function variants(){
-        return $this->hasMany(ProductVariation ::class );
-    }
 
+    public function variants()
+    {
+        return $this->hasMany(ProductVariation::class);
+    }
     public function categories()
     {
         return $this->belongsToMany(Category::class, 'product_category_relations');
@@ -37,8 +38,12 @@ class Product extends Model
     {
         return $this->belongsToMany(Library::class, 'product_images');
     }
-    public function productAttributes(){
-        return $this->hasMany(ProductAttribute ::class );
+    public function productAttributes()
+    {
+        return $this->hasMany(ProductAttribute::class);
+    }
+    public function comments()
+    {
+        return $this->hasMany(Comment::class, 'product_id');
     }
 }
-

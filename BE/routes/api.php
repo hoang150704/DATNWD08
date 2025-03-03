@@ -5,23 +5,34 @@ use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Support\Facades\Route;
 
-// Chức năng không cần đăng nhập 
+// ===============================================================================
+// Các chức năng KHÔNG cần LOGIN
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-// Chức năng cần đăng nhập <3
+// Trang chủ
+Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
+Route::get('/categories', [HomeController::class, 'getAllCategories']);
+Route::get('/top-comments', [HomeController::class, 'getTopComments']);
+Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
+Route::get('/search', [HomeController::class, 'searchProducts']);
+
+// ===============================================================================
+// Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
     Route::post('/upload', [UploadController::class, 'uploadImage']);
+
     // Chức năng chỉ admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
         // Dashborad

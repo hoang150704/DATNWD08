@@ -22,6 +22,5 @@ class StatusTrackingSeeder extends Seeder
             ['name' => 'Đã giao hàng', 'next_status_allowed' => json_encode(['4'])],
             ['name' => 'Huỷ', 'next_status_allowed' => json_encode([])],
         ]);
-
     }
 }

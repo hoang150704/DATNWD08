@@ -15,14 +15,22 @@ class ProductImageSeeder extends Seeder
     {
         //
         DB::table('product_images')->insert([
-            [  'product_id'=>1,
-            'library_id'=>1],
-            [  'product_id'=>1,
-            'library_id'=>3],
-            [  'product_id'=>1,
-            'library_id'=>4],
-            [  'product_id'=>1,
-            'library_id'=>5],
+            [
+                'product_id' => 1,
+                'library_id' => 1
+            ],
+            [
+                'product_id' => 1,
+                'library_id' => 3
+            ],
+            [
+                'product_id' => 1,
+                'library_id' => 4
+            ],
+            [
+                'product_id' => 1,
+                'library_id' => 5
+            ],
         ]);
     }
 }

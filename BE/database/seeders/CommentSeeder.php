@@ -13,13 +13,13 @@ class CommentSeeder extends Seeder
      */
     public function run(): void
     {
-       for ($i=0; $i < 10; $i++) { 
-        DB::table('comments')->insert([
-            'product_id' => rand(1, 6),
-            'user_id' => rand(1, 10),
-            'rating' => rand(0, 5),
-            'content' => fake()->paragraph
-        ]);
-       }
+        for ($i = 0; $i < 10; $i++) {
+            DB::table('comments')->insert([
+                'product_id' => rand(1, 9),
+                'user_id' => rand(1, 9),
+                'rating' => rand(0, 5),
+                'content' => fake()->paragraph
+            ]);
+        }
     }
 }

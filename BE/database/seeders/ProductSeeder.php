@@ -4,18 +4,109 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ProductSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+    private function getRandomDate()
+    {
+        return Carbon::create(2025, 2, rand(1, 28), rand(0, 23), rand(0, 59), rand(0, 59));
+    }
+
     public function run(): void
     {
-        //
         DB::table('products')->insert([
-            ['name' => "Áo Thun Nam Họa Tiết In Excursion Mighty Bear Form Regular", 'description' => "Áo thun xịn của mình",'weight'=>500 ,'short_description' => 'Áo thun xịn của mình', 'main_image' => 2, 'slug' => 'ao-thun-nam-hoa-tiet-in-excursion-mighty-bear-form-regular'],
+            [
+                'name' => "Tên sản phẩm 1",
+                'description' => "mô tả",
+                'weight' => 450,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 1,
+                'slug' => 'ten-san-pham-1',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 2",
+                'description' => "mô tả",
+                'weight' => 500,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 4,
+                'slug' => 'ten-san-pham-2',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 3",
+                'description' => "mô tả",
+                'weight' => 550,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 3,
+                'slug' => 'ten-san-pham-3',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 4",
+                'description' => "mô tả",
+                'weight' => 600,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 4,
+                'slug' => 'ten-san-pham-4',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 5",
+                'description' => "mô tả",
+                'weight' => 650,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 5,
+                'slug' => 'ten-san-pham-5',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 6",
+                'description' => "mô tả",
+                'weight' => 700,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 1,
+                'slug' => 'ten-san-pham-6',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 7",
+                'description' => "mô tả",
+                'weight' => 750,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 2,
+                'slug' => 'ten-san-pham-7',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 8",
+                'description' => "mô tả",
+                'weight' => 800,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 3,
+                'slug' => 'ten-san-pham-8',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 9",
+                'description' => "mô tả",
+                'weight' => 850,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 4,
+                'slug' => 'ten-san-pham-9',
+                'created_at' => $this->getRandomDate()
+            ],
+            [
+                'name' => "Tên sản phẩm 10",
+                'description' => "mô tả",
+                'weight' => 900,
+                'short_description' => "mô tả ngắn",
+                'main_image' => 5,
+                'slug' => 'ten-san-pham-10',
+                'created_at' => $this->getRandomDate()
+            ]
         ]);
     }
 }

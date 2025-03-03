@@ -14,15 +14,12 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        //
         DB::table('categories')->insert([
-            ['name' => 'Áo', 'slug' => 'ao', 'parent_id' => null],
-            ['name' => 'Áo thun','slug' =>  'ao-thun', 'parent_id' => 1],
-            ['name' => 'Áo sơ mi','slug' =>  'ao-so-mi', 'parent_id' => 1],
-            ['name' => 'Áo sơ mi châu Âu','slug' =>  'ao-so-mi-chau-au' , 'parent_id' => 1],
-            ['name' => 'Quần', 'slug' => 'quan', 'parent_id' => null],
-            
+            ['name' => 'Danh mục 1', 'slug' => 'danh-muc-1', 'parent_id' => null],
+            ['name' => 'Danh mục 2', 'slug' => 'danh-muc-2', 'parent_id' => 1],
+            ['name' => 'Danh mục 3', 'slug' => 'danh-muc-3', 'parent_id' => 1],
+            ['name' => 'Danh mục 4', 'slug' => 'danh-muc-4', 'parent_id' => 1],
+            ['name' => 'Danh mục 5', 'slug' => 'danh-muc-5', 'parent_id' => 1],
         ]);
-
     }
 }
