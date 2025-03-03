@@ -12,7 +12,7 @@ class CommentController extends Controller
     protected function search($keyword = null, $rating = null, $isActive = null)
     {
         try {
-            $query = Comment::query()->with('users:id,name');
+            $query = Comment::query();
 
             if ($keyword) {
                 $query->where('content', 'like', "%{$keyword}%");
@@ -26,7 +26,9 @@ class CommentController extends Controller
                 $query->where('is_active', $isActive);
             }
 
-            return $query->paginate(10);
+            return $query
+                ->with(['user:id,name', 'product:id,name',])
+                ->paginate(10);
 
         } catch (\Throwable $th) {
             return response()->json([
