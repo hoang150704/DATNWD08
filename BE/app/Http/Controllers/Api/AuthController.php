@@ -31,7 +31,7 @@ class AuthController extends Controller
                 'username' => 'required|max:50|unique:users,username',
                 'password' => 'required|min:8|max:25|confirmed',
             ]);
-    
+
             // Tạo user nhưng chưa xác thực email
             $user = User::create([
                 'name' => $request->name,
@@ -39,12 +39,12 @@ class AuthController extends Controller
                 'username' => $request->username,
                 'password' => bcrypt($request->password),
             ]);
-    
+
             // Dispatch Job gửi email xác thực
             SendEmailVerificationUserJob::dispatch($user);
-    
+
             DB::commit(); // Lưu thay đổi vào database
-    
+
             return response()->json(['message' => 'Vui lòng kiểm tra email để xác thực tài khoản!'], 200);
         } catch (\Throwable $th) {
             DB::rollBack(); // Nếu lỗi, quay lại trạng thái cũ
@@ -52,7 +52,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Lỗi đăng ký', 'errors' => $th->getMessage()], 500);
         }
     }
-    
+
 
     public function verifyEmail(Request $request)
     {
@@ -95,7 +95,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Đã xảy ra lỗi khi xác thực email.'], 500);
         }
     }
-    
+
 
     // Login
     public function login(Request $request)
@@ -108,9 +108,9 @@ class AuthController extends Controller
 
         $user = User::with('library')->where('username', $request->username)->first();
 
-        // Kiểm tra email có tồn tại không
+        // Kiểm tra user có tồn tại không
         if (!$user) {
-            return response()->json(['message' => 'Email hoặc mật khẩu không chính xác!'], 401);
+            return response()->json(['message' => 'Tên đăng nhập hoặc mật khẩu không chính xác!'], 401);
         }
 
         // Kiểm tra email đã xác thực chưa
@@ -120,7 +120,7 @@ class AuthController extends Controller
 
         // Kiểm tra mật khẩu
         if (!Auth::attempt($request->only('username', 'password'))) {
-            return response()->json(['message' => 'Email hoặc mật khẩu không chính xác!'], 401);
+            return response()->json(['message' => 'Tên đăng nhập hoặc mật khẩu không chính xác!'], 401);
         }
 
         // Xóa token cũ nếu người dùng đăng nhập lại (tránh trùng lặp token)
@@ -128,6 +128,9 @@ class AuthController extends Controller
 
         // Nếu chọn "Remember Me", token sẽ có thời gian sống dài hơn
         $tokenExpiration = $request->remember ? now()->addWeeks(2) : now()->addHours(2);
+
+        // // Lưu thời gian hết hạn vào database (tuỳ chọn)
+        // $user->update(['remember_token' => $tokenExpiration]);
 
         // Tạo token đăng nhập
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -174,28 +177,28 @@ class AuthController extends Controller
                 'token' => 'required',
                 'password' => 'required|min:6|confirmed'
             ]);
-    
+
             $record = DB::table('password_reset_tokens')->where('token', $request->token)->first();
-    
+
             if (!$record) {
                 return response()->json(['message' => 'Token không hợp lệ hoặc đã hết hạn!'], 400);
             }
-    
+
             $user = User::where('email', $record->email)->first();
             if (!$user) {
                 return response()->json(['message' => 'Người dùng không tồn tại!'], 404);
             }
-    
+
             // Cập nhật mật khẩu mới
             $user->password = bcrypt($request->password);
             $user->save();
-    
+
             // Xóa token sau khi đặt lại mật khẩu thành công
             DB::table('password_reset_tokens')->where('email', $record->email)->delete();
-    
+
             DB::commit(); // Lưu thay đổi vào database
             Log::info("Mật khẩu của người dùng {$user->email} đã được đặt lại thành công.");
-    
+
             return response()->json(['message' => 'Mật khẩu đã được đặt lại thành công!']);
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -203,7 +206,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Đã xảy ra lỗi khi đặt lại mật khẩu.'], 500);
         }
     }
-    
+
 
 
 

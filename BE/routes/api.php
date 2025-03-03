@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\LibraryController;
 use App\Http\Controllers\Api\Admin\ProductAttributeController;
 use App\Http\Controllers\Api\Admin\OrderController;
+use App\Http\Controllers\Api\Pages\AddressController;
+use App\Http\Controllers\Api\Pages\ProfileController;
 use App\Http\Middleware\CheckOrderStatus;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Admin\CommentController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\AddressBookController;
 use App\Http\Controllers\Api\Admin\RoleController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\MemberController;
 
 Route::prefix('admin')->group(function () {
     // Admin Voucher
@@ -71,6 +74,15 @@ Route::prefix('admin')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    route::prefix('profile')->group(function () {
+        Route::get('/', [ProfileController::class, 'index']);
+        Route::post('/update', [ProfileController::class, 'update']);
+        Route::get('/address-books', [AddressController::class, 'index']);    // 📌 Lấy danh sách
+        Route::post('/address-books', [AddressController::class, 'create']);  // 📌 Tạo mới
+        Route::put('/address-books/{id}', [AddressController::class, 'update']); // 📌 Cập nhật
+    });
+
+
     // Route Admin
     Route::middleware('admin')->group(function () {
         Route::get('/admin/dashboard', function () {
@@ -91,3 +103,6 @@ Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+
+

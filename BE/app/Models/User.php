@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Model;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable,SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     const ROLE_ADMIN = 'admin';
     const ROLE_MEMBER = 'member';
@@ -32,6 +33,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_active',
         'reason',
         'email_verified_at',
+        'remember_token',
         'role',
         'provider',
         'provider_id',
