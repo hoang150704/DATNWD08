@@ -24,6 +24,7 @@ return new class extends Migration
             $table->text('o_address');
             $table->text('o_phone');
             $table->text('o_mail')->nullable();
+            $table->text('note')->nullable();
             $table->integer('stt_track');
             $table->integer('stt_payment');
             $table->timestamps();

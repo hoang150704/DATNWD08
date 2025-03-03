@@ -22,7 +22,8 @@ class Order extends Model
         'o_phone',
         'o_mail',
         'stt_track',
-        'stt_payment'
+        'stt_payment',
+        'note'
     ];
 
     public function stt_track()

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\GhnTrackingController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,9 @@ Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::prefix('ghn')->group(function (){
+    Route::post('/get_time_and_fee',[GhnTrackingController::class,'getFeeAndTimeTracking']);
+});
 
 // Chức năng cần đăng nhập <3
 Route::middleware('auth:sanctum')->group(function () {
@@ -47,7 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{order}/edit', [OrderController::class, 'update']);
             Route::get('/{order}', [OrderController::class, 'show']);
         });
-
+        //Xử lí api giao hàng nhanh
         // User
         Route::apiResource('users', UserController::class);
         Route::prefix('users')->group(function () {

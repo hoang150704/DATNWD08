@@ -15,11 +15,12 @@ return new class extends Migration {
             $table->integer('order_id');
             $table->integer('product_id');
             $table->integer('variation_id');
+            $table->integer('weight');
             $table->json('variation');
             $table->text('image');
             $table->text('product_name');
             $table->integer('quantity');
-            $table->float('price');
+            $table->bigInteger('price');
             $table->timestamps();
         });
     }
