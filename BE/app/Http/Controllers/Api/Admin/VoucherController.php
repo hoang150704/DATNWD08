@@ -87,7 +87,7 @@ class VoucherController extends Controller
             $voucher = Voucher::findOrFail($id);
             $voucher->update($data);
             // Phát sự kiện nếu cần
-// broadcast(new VoucherUpdated($voucher))->toOthers();
+            // broadcast(new VoucherUpdated($voucher))->toOthers();
             return response()->json($voucher, 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
@@ -109,7 +109,7 @@ class VoucherController extends Controller
             $ids = $data['ids'];
             Voucher::whereIn('id', $ids)->delete();
             // Phát sự kiện nếu cần
-// broadcast(new VoucherUpdated($voucher))->toOthers();
+            // broadcast(new VoucherUpdated($voucher))->toOthers();
             return response()->json(['message' => 'Các voucher đã được xóa'], 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
