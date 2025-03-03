@@ -41,6 +41,34 @@ class BoxController extends Controller
 
     }
 
+    // 
+    public function listForDelete($id)
+    {
+        //
+        try {
+            //code...
+            $boxes = Box::select('id,name')->whereNot('id',$id)->get(10);
+            return response()->json(
+                [
+                    'message'=>'Success',
+                    'code'=>200,
+                    'data'=>$boxes
+                ],200
+            );
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json(
+                [
+                    'message'=>'Failed',
+                    'code'=>500,
+                    'errors'=>$th->getMessage()
+                ],500
+            );
+        }
+        
+
+
+    }
     /**
      * Store a newly created resource in storage.
      */
