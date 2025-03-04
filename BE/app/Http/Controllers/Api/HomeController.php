@@ -40,9 +40,10 @@ class HomeController extends Controller
         return response()->json($products, 200);
     }
 
-    public function getAllCategories()
+    public function getParentCategories()
     {
-        $categories = Category::all();
+        // Lấy tất cả danh mục cha (parent_id = null)
+        $categories = Category::whereNull('parent_id')->get();
         return response()->json($categories, 200);
     }
 
@@ -122,7 +123,7 @@ class HomeController extends Controller
 
         $products = Product::with(['library', 'variants'])
             ->where('name', 'like', '%' . $query . '%') // Tìm sản phẩm theo tên
-            ->paginate(8); // Phân trang 8 sản phẩm mỗi trang
+            ->paginate(12); // Phân trang 12 sản phẩm mỗi trang
 
         // Xử lý hiển thị ảnh tương tự như getLatestProducts()
         foreach ($products as $key => $value) {

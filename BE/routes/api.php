@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Support\Facades\Route;
@@ -20,10 +21,14 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
-Route::get('/categories', [HomeController::class, 'getAllCategories']);
+Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
 Route::get('/top-comments', [HomeController::class, 'getTopComments']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
+
+// Cửa hàng
+Route::get('/products', [ShopController::class, 'getAllProducts']);
+Route::get('/categories', [ShopController::class, 'getAllCategories']);
 
 // ===============================================================================
 // Chức năng cần LOGIN
