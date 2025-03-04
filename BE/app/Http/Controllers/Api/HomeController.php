@@ -87,7 +87,7 @@ class HomeController extends Controller
         $products = $category->products()
             ->with(['library', 'variants']) // Load thêm ảnh và biến thể sản phẩm
             ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo
-            ->paginate(8); // Phân trang 10 sản phẩm mỗi lần
+            ->paginate(8);
 
         // Xử lý dữ liệu hiển thị
         foreach ($products as $key => $product) {

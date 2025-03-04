@@ -26,10 +26,6 @@ Route::get('/top-comments', [HomeController::class, 'getTopComments']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
 
-// Cửa hàng
-Route::get('/products', [ShopController::class, 'getAllProducts']);
-Route::get('/categories', [ShopController::class, 'getAllCategories']);
-
 // ===============================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
