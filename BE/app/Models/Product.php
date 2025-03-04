@@ -19,7 +19,8 @@ class Product extends Model
         'main_image',
         'weight',
         'slug',
-        'type'
+        'type',
+        'box_id'
     ];
     public function variants(){
         return $this->hasMany(ProductVariation ::class );
@@ -38,7 +39,11 @@ class Product extends Model
         return $this->belongsToMany(Library::class, 'product_images');
     }
     public function productAttributes(){
-        return $this->hasMany(ProductAttribute ::class );
+        return $this->hasMany(ProductAttribute ::class);
+    }
+    public function box()
+    {
+        return $this->belongsTo(Box::class, 'box_id', 'id');
     }
 }
 

@@ -9,7 +9,7 @@ Route::prefix('products')->group(function () {
     //Route CRUD cho sản phẩm
     Route::get('/', [ProductController::class, 'index']); // Lấy danh sách sản phẩm
     Route::post('/', [ProductController::class, 'store']); // Thêm sản phẩm mới
-     Route::get('/{id}', [ProductController::class, 'show']); // Xem chi tiết sản phẩm
+    Route::get('/{id}', [ProductController::class, 'show']); // Xem chi tiết sản phẩm
     Route::put('/{id}', [ProductController::class, 'update']); // Cập nhật sản phẩm
     Route::delete('/{id}', [ProductController::class, 'destroy']); // Xóa sản phẩm
 

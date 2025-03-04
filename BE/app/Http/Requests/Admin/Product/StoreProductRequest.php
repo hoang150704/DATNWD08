@@ -27,7 +27,6 @@ class StoreProductRequest extends FormRequest
             'attributes'=>'array',
             'name' => 'required|max:255',
             'type' => 'in:0,1|required',
-            'weight'=>'required|integer',
             'description' => 'nullable|string',
             'short_description' => 'nullable',
             'main_image' => "nullable|integer",
@@ -40,6 +39,7 @@ class StoreProductRequest extends FormRequest
             'variants.*.sale_price' => 'integer|nullable',
             'variants.*.stock_quantity' => 'integer|nullable',
             'variants.*.sku' => 'nullable',
+            'variants.*.weight'=>'required',
             'variants.*.values' => Rule::when($this->type == 0, ['required', 'array']),
             'variants.*.values.*' => 'integer',
 

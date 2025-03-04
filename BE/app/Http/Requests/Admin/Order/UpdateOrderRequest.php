@@ -25,7 +25,7 @@ class UpdateOrderRequest extends FormRequest
             'o_name' => 'required|string|max:255',
             'o_address' => 'required|string|max:500',
             'o_phone' => 'required|regex:/^0\d{9}$/',
-            'o_mail' => 'nullable|email|unique:users,email',
+            'o_mail' => 'nullable',
         ];
     }
 

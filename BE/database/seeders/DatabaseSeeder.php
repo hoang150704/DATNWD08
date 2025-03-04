@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Comment;
+use App\Models\SettingGhn;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -32,6 +33,7 @@ class DatabaseSeeder extends Seeder
             OrderItemSeeder::class,
             StatusTrackingSeeder::class,
             StatusPaymentSeeder::class,
+            SettingGhnSeeder::class,
           
         ]);
     }
