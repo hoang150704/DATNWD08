@@ -13,6 +13,7 @@ class Library extends Model
     protected $fillable = [
         'public_id','url'
     ];
+    
     public function products()
     {
         return $this->belongsToMany(Product::class, 'product_images');

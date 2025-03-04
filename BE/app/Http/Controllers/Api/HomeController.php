@@ -68,6 +68,7 @@ class HomeController extends Controller
             ->where('is_active', 1) // Chỉ lấy bình luận được kích hoạt
             ->orderByDesc('rating') // Ưu tiên bình luận có rating cao
             ->take(10) // Giới hạn số bình luận
+            ->with('user:id,avatar,name,username') // Eager load thông tin người dùng (id, avatar)
             ->get();
 
         return response()->json($comments, 200);

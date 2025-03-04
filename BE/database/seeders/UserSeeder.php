@@ -21,7 +21,7 @@ class UserSeeder extends Seeder
                 'username' => fake()->userName,
                 'email' => fake()->email,
                 'avatar' => fake()->imageUrl,
-                'role' => User::ROLE_ADMIN || User::ROLE_MEMBER,
+                'role' => User::ROLE_MEMBER,
                 'password' => Hash::make(12345678),
             ]);
         }
