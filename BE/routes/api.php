@@ -23,12 +23,12 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
 Route::get('/top-comments', [HomeController::class, 'getTopComments']);
-Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
 
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
+Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
 
 // ===============================================================================
 // Chức năng cần LOGIN

@@ -147,4 +147,40 @@ class ShopController extends Controller
         $categories = Category::whereNull('parent_id')->with('children')->get();
         return response()->json($categories, 200);
     }
+
+    public function getProductsByCategory($category_id)
+    {
+        // Kiểm tra danh mục có tồn tại không
+        $category = Category::find($category_id);
+        if (!$category) {
+            return response()->json(['message' => 'Category not found'], 404);
+        }
+
+        // Lấy danh sách sản phẩm thuộc danh mục đó
+        $products = $category->products()
+            ->with(['library', 'variants']) // Load thêm ảnh và biến thể sản phẩm
+            ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo
+            ->paginate(9);
+
+        // Xử lý dữ liệu hiển thị
+        foreach ($products as $key => $product) {
+            if ($product->main_image == null) {
+                $products[$key]['url'] = null;
+            } else {
+                $url = Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb');
+                $products[$key]['url'] = $url;
+            }
+
+            // Thêm giá từ biến thể sản phẩm
+            if ($product->variants->isNotEmpty()) {
+                $products[$key]['regular_price'] = $product->variants->first()->regular_price;
+                $products[$key]['sale_price'] = $product->variants->first()->sale_price;
+            } else {
+                $products[$key]['regular_price'] = null;
+                $products[$key]['sale_price'] = null;
+            }
+        }
+
+        return response()->json($products, 200);
+    }
 }
