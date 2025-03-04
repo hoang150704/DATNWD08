@@ -58,7 +58,6 @@ class ProductController extends Controller
             $dataProduct = [
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'] ?? null,
-                'weight' => $validatedData['weight'],
                 'short_description' => $validatedData['short_description'] ?? null,
                 'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
@@ -128,6 +127,7 @@ class ProductController extends Controller
                     'sku' => $variant->sku,
                     'regular_price' => $variant->regular_price,
                     'sale_price' => $variant->sale_price,
+                    'weight'=>$variant->weight,
                     'stock_quantity' => $variant->stock_quantity,
                     'values' => $variant->values->map(function ($value) {
                         return [
@@ -174,7 +174,6 @@ class ProductController extends Controller
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'] ?? null,
                 'short_description' => $validatedData['short_description'] ?? null,
-                'weight' => $validatedData['weight'],
                 'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
                 'slug' => $validatedData['slug']
