@@ -155,7 +155,10 @@ class GhnTrackingController extends Controller
         }, $order_items);
         $data['items'] = $convertedItems;
         $postOrder = $this->ApiService->post('/shiip/public-api/v2/shipping-order/create', $data, $customHeaders);
-        return response()->json($data);
+        if($postOrder['code'] == 200){
+            
+        }
+        return response()->json($postOrder);
     }
 
     /**
