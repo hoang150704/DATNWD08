@@ -261,18 +261,17 @@ class ProductController extends Controller
     {
         try {
             // Lấy tham số tìm kiếm
-            $search = $request->input('search'); // Tìm theo tên sản phẩm
-            $perPage = $request->input('per_page', 10); // Số sản phẩm trên mỗi trang (mặc định 10)
+            $search = $request->input('search'); 
 
             // Tạo query lấy sản phẩm
             $query = Product::with([
                 'variants' => function ($query) {
-                    $query->select('id', 'product_id', 'stock_quantity', 'regular_price', 'sale_price');
+                    $query->select('id', 'product_id', 'stock_quantity', 'weight','regular_price', 'sale_price');
                 },
                 'variants.values.attributeValue' => function ($query) {
                     $query->select('id', 'name');
                 }
-            ])->select('id', 'name', 'main_image', 'weight', 'type');
+            ])->select('id', 'name', 'main_image',  'type');
 
             // ✅ Tìm kiếm theo tên sản phẩm nếu có
             if ($search) {
@@ -280,7 +279,7 @@ class ProductController extends Controller
             }
 
             // ✅ Phân trang sản phẩm
-            $products = $query->paginate($perPage);
+            $products = $query->paginate(10);
 
             // Format lại dữ liệu để chỉ lấy mảng tên thuộc tính và hình ảnh
             $products->getCollection()->transform(function ($product) {
