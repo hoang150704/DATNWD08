@@ -38,7 +38,6 @@ class GhnTrackingController extends Controller
                 'to_ward_code' => $data['to_ward_code'],
                 'to_district_id' => $data['to_district_id'],
                 'service_type_id' => $setting_ghn->service_type_id,
-                1
             ];
             //Lấy setiing của shoop
 
@@ -85,52 +84,49 @@ class GhnTrackingController extends Controller
      */
     public function postOrderGHN(Request $request, $id)
     {
-        //Lấy 
         $setting_ghn = GhnSetting::first(); // Lấy setting ghn
-        
+        // Setup data lấy tt shop
         $dataShop  = [
             'offset' => 1,
             'limit' => 200,
             'client_phone'=>''
         ];
-        $responseShop = json_decode($this->ApiService->post('/shiip/public-api/v2/shop/all',$dataShop,[]));
+        // Lấy thông tin shop
+        $responseShop = $this->ApiService->post('/shiip/public-api/v2/shop/all',$dataShop,[]);
+        // COnvert thông tin
         $infoShop = $this->covertInfoShop($responseShop,$setting_ghn->shop_id);
+        // convert địa chỉ
+        $convertAddressShop = $this->convertAddress($infoShop['address']);
         // Lấy ra thông tin shop
-
+        // Lấy thông tin order
         $order = Order::with('items')->findOrFail($id);
+        // Convert địa chỉ
         $addressConvert = $this->convertAddress($order->o_address);
+        // Tính cân nặng
         $totalWeight = OrderItem::where('order_id', $id)
             ->selectRaw('SUM(weight * quantity) as total_weight')
             ->value('total_weight');
-        $finalWeight = (int) $totalWeight + $setting_ghn->weight_box;
-        $dataValidated = $request->validate(
+        $finalWeight = (int) $totalWeight + $setting_ghn->weight_box; 
+        $dataValidated = $request->validate( 
             [
-                'insurance_value' => 'nullable|integer|min:0|max:5000000',
                 'note' => 'nullable|string|max:5000',
-                'note' => 'nullable|string|max:2000',
+                'content' => 'nullable|string|max:2000',
                 'payment_type_id' => 'required|integer|in:1,2',
                 'required_note' => 'required|string|in:CHOTHUHANG,CHOXEMHANGKHONGTHU,KHONGCHOXEMHANG',
-                'length' => 'required_if:service_type_id,2|integer|min:1|max:200',
-                'width' => 'required_if:service_type_id,2|integer|min:1|max:200',
-                'height' => 'required_if:service_type_id,2|integer|min:1|max:200',
             ]
         );
 
         $data = [
             "from_name"=> $infoShop['name'],
-            "from_phone"=> $infoShop['name'],
+            "from_phone"=> $infoShop['phone'],
             "from_address"=> $infoShop['address'],
-            "from_ward_name"=> "Phường 14",
-            "from_district_name"=> "Quận 10",
-            "from_province_name"=> "HCM",
-            'insurance_value' => $dataValidated['insurance_value'] ?? 0,
+            "from_ward_name"=> $convertAddressShop['ward'],
+            "from_district_name"=> $convertAddressShop['district'],
+            "from_province_name"=> $convertAddressShop['province'],
             'note' => $dataValidated['note'] ?? "",
             'content' => $dataValidated['content'] ?? "",
             'payment_type_id' => $dataValidated['payment_type_id'],
             'required_note' => $dataValidated['required_note'],
-            'length' => $dataValidated['length'],
-            'width' => $dataValidated['width'],
-            'height' => $dataValidated['height'],
             'client_order_code' => $order->code,
             "to_name" => $order->o_name,
             "to_phone" => $order->o_phone,
@@ -155,7 +151,7 @@ class GhnTrackingController extends Controller
         }, $order_items);
         $data['items'] = $convertedItems;
         $postOrder = $this->ApiService->post('/shiip/public-api/v2/shipping-order/create', $data, $customHeaders);
-        return response()->json($data);
+        return response()->json($postOrder);
     }
 
     /**

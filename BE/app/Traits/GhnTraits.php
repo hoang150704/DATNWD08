@@ -28,7 +28,7 @@ trait GhnTraits
                 return $shop['_id'] == $id;
             });
 
-            $foundShop = $foundShops ?? null; // lấy phần từ đầu tieen
+            $foundShop = reset($foundShops) ?? null; // lấy phần từ đầu tieen
             if(!$foundShop){
                 return null;
             }else{
