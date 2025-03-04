@@ -33,9 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('vouchers')->group(function () {
             Route::get('/', [VoucherController::class, 'index']);
             Route::post('/create', [VoucherController::class, 'store']);
-            Route::get('/{code}', [VoucherController::class, 'show']);
+            Route::get('/{id}', [VoucherController::class, 'show']);
             Route::put('/{id}', [VoucherController::class, 'update']);
-            Route::delete('/{id}', [VoucherController::class, 'destroy']);
+            Route::delete('/', [VoucherController::class, 'destroy']);
         });
 
         // Đơn hàng 
