@@ -30,11 +30,11 @@ class VoucherController extends Controller
                 'code' => 'required|unique:vouchers',
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'discount_percent' => 'nullable|integer|required_without:amount',
+                'discount_percent' => 'nullable|integer|required_without:amount|max:100',
                 'amount' => 'nullable|integer|required_without:discount_percent',
                 'type' => 'required|integer',
-                'max_discount_amount' => 'nullable|integer',
-                'min_product_price' => 'nullable|integer',
+                'max_discount_amount' => 'nullable',
+                'min_product_price' => 'nullable',
                 'usage_limit' => 'required|integer',
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
@@ -75,15 +75,20 @@ class VoucherController extends Controller
                 'code' => 'required|string|max:255',
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'discount_percent' => 'nullable|integer|required_without:amount',
+                'discount_percent' => 'nullable|integer|required_without:amount|max:100',
                 'amount' => 'nullable|integer|required_without:discount_percent',
                 'type' => 'required|integer',
-                'max_discount_amount' => 'nullable|integer',
-                'min_product_price' => 'nullable|integer',
+                'max_discount_amount' => 'nullable',
+                'min_product_price' => 'nullable',
                 'usage_limit' => 'required|integer',
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
             ]);
+            if ($data['type'] == 1) {
+                unset($data['amount']);
+            } else {
+                unset($data['discount_percent']);
+            }
             $voucher = Voucher::findOrFail($id);
             $voucher->update($data);
             // Phát sự kiện nếu cần
