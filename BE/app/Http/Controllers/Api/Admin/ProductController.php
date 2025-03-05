@@ -207,7 +207,7 @@ class ProductController extends Controller
             $product->categories()->sync($validatedData['categories']);
             $product->productImages()->sync($validatedData['images']);
             DB::commit();
-            return response()->json(['Bạn đã sửa thành công'], 200);
+            return response()->json($validatedData['variants'], 200);
         } catch (\Exception $e) {
             //throw $th;
             DB::rollBack();
