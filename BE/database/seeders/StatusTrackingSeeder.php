@@ -19,7 +19,7 @@ class StatusTrackingSeeder extends Seeder
             ['name' => 'Đã lên đơn', 'next_status_allowed' => json_encode(['3', '7'])],
             ['name' => 'Đang giao hàng', 'next_status_allowed' => json_encode(['5', '6', '7'])],
             ['name' => 'Đã giao hàng', 'next_status_allowed' => json_encode(['4'])],
-            ['name' => 'Đã hoàn thành', 'next_status_allowed' => json_encode([])],
+            ['name' => 'Hoàn thành', 'next_status_allowed' => json_encode([])],
             ['name' => 'Yêu cầu hoàn hàng', 'next_status_allowed' => json_encode(['3', '7'])],
             ['name' => 'Xử lí yêu cầu hoàn hàng', 'next_status_allowed' => json_encode(['3', '7'])],
             ['name' => 'Đã hoàn hàng', 'next_status_allowed' => json_encode(['3', '7'])],

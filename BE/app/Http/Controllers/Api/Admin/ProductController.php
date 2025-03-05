@@ -107,12 +107,11 @@ class ProductController extends Controller
         //
         try {
             //code...
-            $product = Product::select('id', 'name', 'weight', 'description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
+            $product = Product::select('id', 'name', 'description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
             //Covert dữ liệu
             $convertData = [
                 "id" => $product->id,
                 "name" => $product->name,
-                "weight" => $product->weight,
                 "description" => $product->description,
                 "short_description" => $product->short_description,
                 "main_image" => $product->main_image,

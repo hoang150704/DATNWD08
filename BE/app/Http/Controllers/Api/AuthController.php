@@ -334,40 +334,41 @@ class AuthController extends Controller
             return response()->json(['message' => 'Đã xảy ra lỗi khi đặt lại mật khẩu.'], 500);
         }
     }
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
 
-    // public function googleAuth(Request $request)
-    // {
-    //     $request->validate([
-    //         'token' => 'required|string',
-    //     ]);
+    public function googleAuth()
+    {
 
-    //     try {
-    //         // Xác thực token từ Google
-    //         // $googleUser = Socialite::driver('google')->userFromToken($request->token);
+        try {
+            // Xác thực token từ Google
+            $googleUser = Socialite::driver('google')->user();
 
-    //         // Kiểm tra user có tồn tại không
-    //         $user = User::where('email', $googleUser->getEmail())->first();
+            // Kiểm tra user có tồn tại không
+            $user = User::where('email', $googleUser->getEmail())->first();
 
-    //         if (!$user) {
-    //             // Nếu chưa có user, tạo mới
-    //             $user = User::create([
-    //                 'name' => $googleUser->getName(),
-    //                 'email' => $googleUser->getEmail(),
-    //                 'google_id' => $googleUser->getId(),
-    //                 'password' => Hash::make(uniqid()), // Tạo mật khẩu ngẫu nhiên
-    //             ]);
-    //         }
+            if (!$user) {
+                // Nếu chưa có user, tạo mới
+                $user = User::create([
+                    'name' => $googleUser->getName(),
+                    'email' => $googleUser->getEmail(),
+                    'google_id' => $googleUser->getId(),
+                    'password' => Hash::make(uniqid()), 
+                ]);
+            }
 
-    //         // Đăng nhập user và tạo token API
-    //         $token = $user->createToken('google-auth')->plainTextToken;
+            // Đăng nhập user và tạo token API
+            $token = $user->createToken('google-auth')->plainTextToken;
 
-    //         return response()->json([
-    //             'message' => 'Đăng nhập thành công!',
-    //             'user' => $user,
-    //             'token' => $token
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response()->json(['message' => 'Lỗi khi xác thực Google!', 'error' => $e->getMessage()], 400);
-    //     }
-    // }
+            return response()->json([
+                'message' => 'Đăng nhập thành công!',
+                'user' => $user,
+                'token' => $token
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Lỗi khi xác thực Google!', 'error' => $e->getMessage()], 400);
+        }
+    }
 }
