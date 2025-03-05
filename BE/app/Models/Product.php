@@ -17,7 +17,6 @@ class Product extends Model
         'description',
         'short_description',
         'main_image',
-        'weight',
         'slug',
         'type',
         'box_id'

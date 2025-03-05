@@ -117,6 +117,10 @@ class GhnTrackingController extends Controller
         );
 
         $data = [
+            "return_phone"=> $infoShop['phone'],
+            "return_address"=> $infoShop['address'],
+            "return_district_id"=> $infoShop['district_id'],
+            "return_ward_code"=> $infoShop['ward_code'],
             "from_name"=> $infoShop['name'],
             "from_phone"=> $infoShop['phone'],
             "from_address"=> $infoShop['address'],
@@ -151,6 +155,9 @@ class GhnTrackingController extends Controller
         }, $order_items);
         $data['items'] = $convertedItems;
         $postOrder = $this->ApiService->post('/shiip/public-api/v2/shipping-order/create', $data, $customHeaders);
+        if($postOrder['code'] == 200){
+            
+        }
         return response()->json($postOrder);
     }
 

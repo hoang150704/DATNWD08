@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\GhnTrackingController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\User\ProductDetailController;
 use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Support\Facades\Route;
 
@@ -16,9 +17,10 @@ Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::prefix('ghn')->group(function (){
-    Route::post('/get_time_and_fee',[GhnTrackingController::class,'getFeeAndTimeTracking']);
-    Route::post('/post_order/{id}',[GhnTrackingController::class,'postOrderGHN']);
+Route::get('/product_detail/{id}',[ProductDetailController::class,'show']);
+Route::prefix('ghn')->group(function () {
+Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
+Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
 });
 
 // Chức năng cần đăng nhập <3

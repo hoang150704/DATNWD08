@@ -16,6 +16,7 @@ class ProductVariation extends Model
         'variant_image',
         'regular_price',
         'sale_price',
+        'weight',
         'stock_quantity',
     ];
     public function values(){

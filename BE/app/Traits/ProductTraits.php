@@ -150,6 +150,7 @@ trait ProductTraits
             $dataNoVariants = [
                 'product_id' => $id,
                 'regular_price' => $variant['regular_price'],
+                'weight'=>$variant['weight'],
                 'sale_price' => $variant['sale_price'],
                 'stock_quantity' => $variant['stock_quantity'],
                 'sku' => $variant['sku'],
@@ -167,6 +168,7 @@ trait ProductTraits
             $dataVariants = [
                 'product_id' => $id,
                 'regular_price' => $variant['regular_price'],
+                'weight'=>$variant['weight'],
                 'stock_quantity' => $variant['stock_quantity'],
                 'sku' => $variant['sku'],
             ];

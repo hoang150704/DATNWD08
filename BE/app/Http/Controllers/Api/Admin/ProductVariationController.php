@@ -21,7 +21,7 @@ class ProductVariationController extends Controller
     public function index(string $idProduct)
     {
         $listProductVariant = Product::with(
-            'variants:id,product_id,regular_price,sale_price,sku,variant_image,stock_quantity',
+            'variants:id,weight,product_id,regular_price,sale_price,sku,variant_image,stock_quantity',
             'variants.values:variation_id,attribute_value_id',
             'variants.values.attributeValue:id,name',
             'productAttributes'
