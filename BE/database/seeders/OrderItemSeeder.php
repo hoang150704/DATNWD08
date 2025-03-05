@@ -27,6 +27,7 @@ class OrderItemSeeder extends Seeder
                 'product_name' => fake()->name,
                 'quantity' => rand(0, 99),
                 'price' => rand(500, 1000000),
+                'weight'=>200
             ]);
         }
     }

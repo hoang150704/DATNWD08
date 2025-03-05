@@ -8,12 +8,43 @@ use Illuminate\Http\Request;
 
 class CommentController extends Controller
 {
+
+    protected function search($keyword = null, $rating = null, $isActive = null)
+    {
+        try {
+            $query = Comment::query();
+
+            if ($keyword) {
+                $query->where('content', 'like', "%{$keyword}%");
+            }
+
+            if ($rating) {
+                $query->where('rating', $rating);
+            }
+
+            if ($isActive !== null) {
+                $query->where('is_active', $isActive);
+            }
+
+            return $query
+                ->with(['user:id,name', 'product:id,name',])
+                ->paginate(10);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed'
+            ], 404);
+        }
+    }
+
+
     public function index()
     {
         try {
-            $comments = Comment::where('is_active', 1)
-                // ->with('user')
-                ->paginate(10);
+            $keyword = request('keyword');
+            $rating = request('rating');
+
+            $comments = $this->search($keyword, $rating, 1);
 
             return response()->json([
                 'message' => 'Success',
@@ -21,8 +52,8 @@ class CommentController extends Controller
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Failed'
-            ]);
+                'message' => 'Failed',
+            ], 404);
         }
     }
 
@@ -117,7 +148,11 @@ class CommentController extends Controller
     public function hiddenComment()
     {
         try {
-            $comments = Comment::where('is_active', '0')->paginate(10);
+            $keyword = request('keyword');
+            $rating = request('rating');
+
+            $comments = $this->search($keyword, $rating, 0);
+
             return response()->json([
                 'message' => 'Success',
                 'data' => $comments
@@ -125,33 +160,8 @@ class CommentController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
-                'errors'=>$th->getMessage()
             ], 404);
         }
     }
 
-    public function search()
-    {
-        try {
-            $keyword = request()->keyword;
-            $rating = request()->rating;
-            if ($keyword && $rating) {
-                $comments = Comment::where('content', 'like', "%{$keyword}%")->where('rating', $rating)->paginate(10);
-            } else {
-                if ($keyword) {
-                    $comments = Comment::where('content', 'like', "%{$keyword}%")->paginate(10);
-                } else {
-                    $comments = Comment::where('rating', $rating)->paginate(10);
-                }
-            }
-            return response()->json([
-                'message' => 'Success',
-                'data' => $comments
-            ], 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Failed'
-            ], 404);
-        }
-    }
 }

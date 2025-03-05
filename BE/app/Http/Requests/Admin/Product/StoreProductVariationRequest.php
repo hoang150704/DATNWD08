@@ -24,6 +24,7 @@ class StoreProductVariationRequest extends FormRequest
         return [
             'variant_image' => 'integer|nullable',
             'sku' => 'nullable',
+            'weight'=>'required',
             'regular_price' => 'integer|nullable',
             'sale_price' => 'integer|nullable',
             'stock_quantity' => 'integer|nullable',

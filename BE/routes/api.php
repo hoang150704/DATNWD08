@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\ShopController;
+use App\Http\Controllers\Api\GhnTrackingController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\User\ProductDetailController;
 use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +20,11 @@ Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::get('/product_detail/{id}',[ProductDetailController::class,'show']);
+Route::prefix('ghn')->group(function () {
+Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
+Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
+});
 
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
@@ -50,9 +57,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('vouchers')->group(function () {
             Route::get('/', [VoucherController::class, 'index']);
             Route::post('/create', [VoucherController::class, 'store']);
-            Route::get('/{code}', [VoucherController::class, 'show']);
+            Route::get('/{id}', [VoucherController::class, 'show']);
             Route::put('/{id}', [VoucherController::class, 'update']);
-            Route::delete('/{id}', [VoucherController::class, 'destroy']);
+            Route::delete('/', [VoucherController::class, 'destroy']);
         });
 
         // Đơn hàng 
@@ -64,7 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{order}/edit', [OrderController::class, 'update']);
             Route::get('/{order}', [OrderController::class, 'show']);
         });
-
+        //Xử lí api giao hàng nhanh
         // User
         Route::apiResource('users', UserController::class);
         Route::prefix('users')->group(function () {
@@ -78,7 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('delete', [CommentController::class, 'destroy']);
             Route::patch('reply', [CommentController::class, 'reply']);
             Route::patch('status', [CommentController::class, 'statusToggle']);
-            Route::get('search', [CommentController::class, 'search']);
+            // Route::get('search', [CommentController::class, 'search']);
             Route::get('{comment}', [CommentController::class, 'show']);
         });
 
