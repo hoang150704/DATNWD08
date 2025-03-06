@@ -47,11 +47,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
 
-    // Giỏ hàng 
-    Route::get('/cart', [CartController::class, 'index'])->withoutMiddleware('auth:sanctum');
-    Route::post('/cart', [CartController::class, 'addCart']);
-    Route::patch('/cart', [CartController::class, 'removeItem']);
-
     Route::post('/upload', [UploadController::class, 'uploadImage']);
     // Chức năng chỉ admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
