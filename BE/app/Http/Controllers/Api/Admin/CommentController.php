@@ -60,6 +60,9 @@ class CommentController extends Controller
     public function show(Comment $comment)
     {
         try {
+
+            $comment = Comment::with(['user:id,name', 'product:id,name'])->findOrFail($comment->id);
+
             return response()->json([
                 'message' => 'Success',
                 'data' => $comment
