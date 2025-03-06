@@ -11,7 +11,7 @@ class ProductDetailController extends Controller
     public function show(string $id)
     {
         try {
-            // Lấy sản phẩm với đầy đủ biến thể, thuộc tính và hình ảnh
+            // Lấy sản phẩm 
             $product = Product::with([
                 'variants.values.attributeValue.attribute',
                 'categories',
@@ -19,7 +19,7 @@ class ProductDetailController extends Controller
                 'library'
             ])->findOrFail($id);
     
-            // Chuyển đổi dữ liệu sản phẩm
+            // Convert dữ liệu
             $convertData = [
                 "id" => $product->id,
                 "name" => $product->name,
@@ -30,7 +30,7 @@ class ProductDetailController extends Controller
                 "slug" => $product->slug,
             ];
     
-            // Danh sách biến thể (variants)
+            // Danh sách biến thể
             $convertData['variants'] = $product->variants->map(function ($variant) {
                 return [
                     'id' => $variant->id,
@@ -41,16 +41,16 @@ class ProductDetailController extends Controller
                     'stock_quantity' => $variant->stock_quantity,
                     'values' => $variant->values->map(function ($value) {
                         return [
-                            'attribute_id' => $value->attributeValue->attribute->id,  // Lấy ID của thuộc tính
-                            'attribute_name' => $value->attributeValue->attribute->name, // Lấy tên thuộc tính
-                            'attribute_value_id' => $value->attributeValue->id, // Lấy ID của giá trị thuộc tính
-                            'value' => $value->attributeValue->name, // Lấy tên giá trị thuộc tính
+                            'attribute_id' => $value->attributeValue->attribute->id,  
+                            'attribute_name' => $value->attributeValue->attribute->name, 
+                            'attribute_value_id' => $value->attributeValue->id, 
+                            'value' => $value->attributeValue->name, 
                         ];
                     })
                 ];
             });
     
-            // Nhóm thuộc tính động (để hiển thị trên giao diện)
+            // bIẾN THỂ
             $convertData['attributes'] = $product->variants->flatMap(function ($variant) {
                 return $variant->values->map(function ($value) {
                     return [
@@ -62,12 +62,12 @@ class ProductDetailController extends Controller
                 });
             })->groupBy('attribute_name')->map(function ($items, $attribute_name) {
                 return [
-                    'attribute_id' => $items->first()['attribute_id'], // Lấy ID của thuộc tính
+                    'attribute_id' => $items->first()['attribute_id'], 
                     'attribute_name' => $attribute_name,
                     'values' => $items->map(function ($item) {
                         return [
-                            'attribute_value_id' => $item['attribute_value_id'], // Lấy ID của giá trị thuộc tính
-                            'value' => $item['value'], // Lấy tên giá trị thuộc tính
+                            'attribute_value_id' => $item['attribute_value_id'], 
+                            'value' => $item['value'], 
                         ];
                     })->unique('attribute_value_id')->values()->toArray()
                 ];
