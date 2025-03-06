@@ -58,7 +58,6 @@ class ProductController extends Controller
             $dataProduct = [
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'] ?? null,
-                'weight' => $validatedData['weight'],
                 'short_description' => $validatedData['short_description'] ?? null,
                 'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
@@ -108,12 +107,11 @@ class ProductController extends Controller
         //
         try {
             //code...
-            $product = Product::select('id', 'name', 'weight', 'description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
+            $product = Product::select('id', 'name', 'description', 'short_description', 'main_image', 'slug', 'type')->findOrFail($id);
             //Covert dữ liệu
             $convertData = [
                 "id" => $product->id,
                 "name" => $product->name,
-                "weight" => $product->weight,
                 "description" => $product->description,
                 "short_description" => $product->short_description,
                 "main_image" => $product->main_image,
@@ -128,6 +126,7 @@ class ProductController extends Controller
                     'sku' => $variant->sku,
                     'regular_price' => $variant->regular_price,
                     'sale_price' => $variant->sale_price,
+                    'weight'=>$variant->weight,
                     'stock_quantity' => $variant->stock_quantity,
                     'values' => $variant->values->map(function ($value) {
                         return [
@@ -174,7 +173,6 @@ class ProductController extends Controller
                 'name' => $validatedData['name'],
                 'description' => $validatedData['description'] ?? null,
                 'short_description' => $validatedData['short_description'] ?? null,
-                'weight' => $validatedData['weight'],
                 'main_image' => $validatedData['main_image'] ?? null,
                 'type' => $validatedData['type'],
                 'slug' => $validatedData['slug']
@@ -209,7 +207,7 @@ class ProductController extends Controller
             $product->categories()->sync($validatedData['categories']);
             $product->productImages()->sync($validatedData['images']);
             DB::commit();
-            return response()->json(['Bạn đã sửa thành công'], 200);
+            return response()->json($validatedData['variants'], 200);
         } catch (\Exception $e) {
             //throw $th;
             DB::rollBack();
@@ -262,18 +260,17 @@ class ProductController extends Controller
     {
         try {
             // Lấy tham số tìm kiếm
-            $search = $request->input('search'); // Tìm theo tên sản phẩm
-            $perPage = $request->input('per_page', 10); // Số sản phẩm trên mỗi trang (mặc định 10)
+            $search = $request->input('search'); 
 
             // Tạo query lấy sản phẩm
             $query = Product::with([
                 'variants' => function ($query) {
-                    $query->select('id', 'product_id', 'stock_quantity', 'regular_price', 'sale_price');
+                    $query->select('id', 'product_id', 'stock_quantity', 'weight','regular_price', 'sale_price');
                 },
                 'variants.values.attributeValue' => function ($query) {
                     $query->select('id', 'name');
                 }
-            ])->select('id', 'name', 'main_image', 'weight', 'type');
+            ])->select('id', 'name', 'main_image',  'type');
 
             // ✅ Tìm kiếm theo tên sản phẩm nếu có
             if ($search) {
@@ -281,7 +278,7 @@ class ProductController extends Controller
             }
 
             // ✅ Phân trang sản phẩm
-            $products = $query->paginate($perPage);
+            $products = $query->paginate(10);
 
             // Format lại dữ liệu để chỉ lấy mảng tên thuộc tính và hình ảnh
             $products->getCollection()->transform(function ($product) {

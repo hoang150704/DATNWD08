@@ -9,3 +9,4 @@ class MemberController extends Controller
 {
     //
 }
+ 

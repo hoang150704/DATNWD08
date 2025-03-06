@@ -17,9 +17,9 @@ class Product extends Model
         'description',
         'short_description',
         'main_image',
-        'weight',
         'slug',
-        'type'
+        'type',
+        'box_id'
     ];
 
     public function variants()
@@ -45,5 +45,10 @@ class Product extends Model
     public function comments()
     {
         return $this->hasMany(Comment::class, 'product_id');
+    }
+
+    public function box()
+    {
+        return $this->belongsTo(Box::class, 'box_id', 'id');
     }
 }

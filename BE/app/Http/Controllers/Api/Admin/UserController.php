@@ -25,10 +25,10 @@ class UserController extends Controller
         foreach ($data as $key => $value) {
 
             if ($value->avatar == null) {
-                $data[$key]['urlImg'] = null;
+                $data[$key]['avatar'] = null;
             } else {
-                $url = $this->convertImage($value->library->url, 100, 100, 'thumb');
-                $data[$key]['urlImg'] = $url;
+                $url = $this->convertImage($value->avatar, 100, 100, 'thumb');
+                $data[$key]['avatar'] = $url;
             }
         }
         return response()->json($data);

@@ -35,6 +35,10 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
+    'ghn'=>[
+        'token' =>env('TOKEN_GHN'),
+        'url'   =>env('URL_GHN')
+    ]
 
 
 ];

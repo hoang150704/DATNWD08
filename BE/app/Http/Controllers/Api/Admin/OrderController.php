@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\Admin\Order\UpdateOrderRequest;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\StatusTracking;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -35,9 +36,14 @@ class OrderController extends Controller
         }
     }
 
+    // call api lấy phí vận chuyển và thời gián duqwj kiến giao
+
+       
+
     public function store(StoreOrderRequest $request)
     {
         try {
+            DB::beginTransaction();
             $validatedData = $request->validated();
 
             // Xử lý tạo đơn hàng
@@ -46,34 +52,44 @@ class OrderController extends Controller
                 'total_amount' => $validatedData['total_amount'], // tổng tiền đơn hàng
                 'discount_amount' => $validatedData['discount_amount'] ?? 0, // số tiền được giảm
                 'final_amount' => $validatedData['final_amount'], // tổng tiền sau khi trừ giảm giá + phí ship
-                'payment_method' => $validatedData['payment_method'], // phương thức thanh toán
+                'payment_method' => 'ship_cod', // phương thức thanh toán
                 'shipping' => $validatedData['shipping'], // phí shipp
                 'o_name' => $validatedData['o_name'],  // tên người nhận
                 'o_address' => $validatedData['o_address'], // địa chỉ
                 'o_phone' => $validatedData['o_phone'], // số điện thoại
-                'o_mail' => $validatedData['o_mail'], // email
+                'o_mail' => $validatedData['o_mail'] ?? null, // email
+                'note'  => $validatedData['note'] ?? null,
+                'stt_payment'=>1, // Trạng thái thanh toán
+                'stt_track' => 1
             ]);
 
             // Thêm sản phẩm vào đơn hàng
             foreach ($validatedData['products'] as $product) {
-                $order->orderDetails()->create([
+                $order_items = OrderItem::create([
+                    'order_id'=>$order->id,
                     'product_id' => $product['product_id'],
                     'variation_id' => $product['variation_id'],
-                    'variation' => $product['variation']
+                    'weight'=>$product['weight'],
+                    'image'=>$product['image'],
+                    'variation' => json_encode($product['variation']),
+                    'product_name'=>$product['name'],
+                    'price'=>$product['price'],  
+                    'quantity'=>$product['quantity']
                 ]);
             }
-
+            DB::commit();
             return response()->json([
-                'message' => 'Success',
-                'order' => $order
+                'message' => 'Bạn đã thêm đơn hàng thành công'
             ], 201);
         } catch (\Throwable $th) {
+            DB::rollBack();    
             return response()->json([
                 'message' => 'Failed',
+                'errors'=>$th->getMessage(),
             ], 500);
         }
     }
-
+       
     public function update(UpdateOrderRequest $request, Order $order)
     {
         try {
@@ -93,6 +109,7 @@ class OrderController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
+                'errors'=>$th->getMessage(),
             ], 500);
         }
     }
