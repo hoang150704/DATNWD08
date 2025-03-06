@@ -23,7 +23,7 @@ class ShopController extends Controller
         $query = $this->filterByPriceRange($query, $minPrice, $maxPrice);
 
         // 2. Lọc và phân trang
-        $products = $this->getPaginatedProducts($query, 9, $request->input('page', 1));
+        $products = $products = $query->get();
 
         // 3. Xử lý sắp xếp theo giá hoặc đánh giá (nếu có)
         $products = $this->sortByPrice($products, $sortBy);
@@ -82,19 +82,6 @@ class ShopController extends Controller
         }
     
         return $query;
-    }    
-
-    /**
-     * Lọc và phân trang kết quả
-     *
-     * @param $query
-     * @param $perPage
-     * @param $page
-     * @return mixed
-     */
-    private function getPaginatedProducts($query, $perPage, $page)
-    {
-        return $query->paginate($perPage, ['*'], 'page', $page);  // Phân trang với số sản phẩm mỗi trang
     }
 
     /**
