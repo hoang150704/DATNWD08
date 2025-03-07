@@ -27,7 +27,7 @@ class UserSeeder extends Seeder
         ]);
 
         // Tạo 10 user giả mạo
-        \App\Models\User::factory(10)->create();
+        
         }
     }
 
