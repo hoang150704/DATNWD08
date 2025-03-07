@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
-use App\Models\Comment;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
@@ -18,24 +17,15 @@ class HomeController extends Controller
             ->limit(8)
             ->get();
 
-        // xử lý hiển thị ảnh
-        foreach ($products as $key => $value) {
-            if ($value->main_image == null) {
-                $products[$key]['url'] = null;
-            } else {
-                $url = Product::getConvertImage($value->library->url, 100, 100, 'thumb');
-                $products[$key]['url'] = $url;
-            }
-        }
+        $products->transform(function ($product) {
+            $product->url = $product->main_image ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb') : null;
 
-        // Thêm price từ biến thể sản phẩm
-        if ($value->variants->isNotEmpty()) {
-            $products[$key]['regular_price'] = $value->variants->first()->regular_price;
-            $products[$key]['sale_price'] = $value->variants->first()->sale_price;
-        } else {
-            $products[$key]['regular_price'] = null;
-            $products[$key]['sale_price'] = null;
-        }
+            $price = $this->getVariantPrice($product);
+            $product->regular_price = $price['regular_price'];
+            $product->sale_price = $price['sale_price'];
+
+            return $product;
+        });
 
         return response()->json($products, 200);
     }
@@ -47,40 +37,12 @@ class HomeController extends Controller
         return response()->json($categories, 200);
     }
 
-    public function getTopComments()
-    {
-        // Lấy danh sách sản phẩm có rating trung bình cao nhất (top 5)
-        $topRatedProducts = Product::withAvg('comments', 'rating') // Lấy trung bình rating của bình luận
-            ->orderByDesc('comments_avg_rating') // Sắp xếp giảm dần theo rating trung bình
-            ->take(5)
-            ->pluck('id'); // Lấy danh sách ID sản phẩm
-
-        // Lấy danh sách sản phẩm có nhiều lượt bình luận nhất (top 5)
-        $mostCommentedProducts = Product::withCount('comments') // Đếm số bình luận
-            ->orderByDesc('comments_count') // Sắp xếp giảm dần theo số bình luận
-            ->take(5)
-            ->pluck('id'); // Lấy danh sách ID sản phẩm
-
-        // Gộp danh sách các sản phẩm tiêu biểu
-        $featuredProductIds = $topRatedProducts->merge($mostCommentedProducts)->unique();
-
-        // Lấy bình luận từ các sản phẩm tiêu biểu
-        $comments = Comment::whereIn('product_id', $featuredProductIds)
-            ->where('is_active', 1) // Chỉ lấy bình luận được kích hoạt
-            ->orderByDesc('rating') // Ưu tiên bình luận có rating cao
-            ->take(10) // Giới hạn số bình luận
-            ->with('user:id,avatar,name,username') // Eager load thông tin người dùng (id, avatar)
-            ->get();
-
-        return response()->json($comments, 200);
-    }
-
     public function getProductsByCategory($category_id)
     {
         // Kiểm tra danh mục có tồn tại không
         $category = Category::find($category_id);
         if (!$category) {
-            return response()->json(['message' => 'Category not found'], 404);
+            return response()->json(['message' => 'Không tìm thấy danh mục!'], 404);
         }
 
         // Lấy danh sách sản phẩm thuộc danh mục đó
@@ -89,24 +51,15 @@ class HomeController extends Controller
             ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo
             ->paginate(8);
 
-        // Xử lý dữ liệu hiển thị
-        foreach ($products as $key => $product) {
-            if ($product->main_image == null) {
-                $products[$key]['url'] = null;
-            } else {
-                $url = Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb');
-                $products[$key]['url'] = $url;
-            }
+        $products->transform(function ($product) {
+            $product->url = $product->main_image ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb') : null;
 
-            // Thêm giá từ biến thể sản phẩm
-            if ($product->variants->isNotEmpty()) {
-                $products[$key]['regular_price'] = $product->variants->first()->regular_price;
-                $products[$key]['sale_price'] = $product->variants->first()->sale_price;
-            } else {
-                $products[$key]['regular_price'] = null;
-                $products[$key]['sale_price'] = null;
-            }
-        }
+            $price = $this->getVariantPrice($product);
+            $product->regular_price = $price['regular_price'];
+            $product->sale_price = $price['sale_price'];
+
+            return $product;
+        });
 
         return response()->json($products, 200);
     }
@@ -117,32 +70,46 @@ class HomeController extends Controller
 
         if (!$query) {
             return response()->json([
-                'message' => 'Please enter a search query.'
+                'message' => 'Vui lòng nhập từ khóa!'
             ], 400);
         }
 
         $products = Product::with(['library', 'variants'])
             ->where('name', 'like', '%' . $query . '%') // Tìm sản phẩm theo tên
-            ->paginate(12); // Phân trang 12 sản phẩm mỗi trang
+            ->paginate(9);
 
-        // Xử lý hiển thị ảnh tương tự như getLatestProducts()
+        // Xử lý hiển thị ảnh
         foreach ($products as $key => $value) {
-            if ($value->main_image == null) {
+            if ($value->main_image == null || !$value->library) {
                 $products[$key]['url'] = null;
             } else {
                 $url = Product::getConvertImage($value->library->url, 100, 100, 'thumb');
                 $products[$key]['url'] = $url;
             }
 
-            if ($value->variants->isNotEmpty()) {
-                $products[$key]['regular_price'] = $value->variants->first()->regular_price;
-                $products[$key]['sale_price'] = $value->variants->first()->sale_price;
-            } else {
-                $products[$key]['regular_price'] = null;
-                $products[$key]['sale_price'] = null;
-            }
+            // Xử lý giá
+            $price = $this->getVariantPrice($value);
+            $products[$key]['regular_price'] = $price['regular_price'];
+            $products[$key]['sale_price'] = $price['sale_price'];
         }
 
         return response()->json($products, 200);
+    }
+
+    private function getVariantPrice($product)
+    {
+        if ($product->variants->isNotEmpty()) {
+            $latestVariant = $product->variants()->latest()->first();
+
+            return [
+                'regular_price' => $latestVariant->regular_price,
+                'sale_price' => $latestVariant->sale_price ?? null,
+            ];
+        }
+
+        return [
+            'regular_price' => null,
+            'sale_price' => null,
+        ];
     }
 }

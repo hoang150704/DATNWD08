@@ -20,16 +20,15 @@ Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::get('/product_detail/{id}',[ProductDetailController::class,'show']);
+Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 Route::prefix('ghn')->group(function () {
-Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
-Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
+    Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
+    Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
 });
 
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
-Route::get('/top-comments', [HomeController::class, 'getTopComments']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
 
