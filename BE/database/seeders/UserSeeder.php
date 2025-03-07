@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
         for ($i = 0; $i < 10; $i++) {
             DB::table('users')->insert([
                 'name' => 'Hoàng',
-                'username' => fake()->userName,
+                'username' => 'hoang2k4',
                 'email' => fake()->email,
                 'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
                 'role' => User::ROLE_ADMIN,
