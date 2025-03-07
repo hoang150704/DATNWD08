@@ -34,6 +34,7 @@ class ProductVariationSeeder extends Seeder
                 'product_id' => $variation['product_id'],
                 'sku' => $this->generateSku($variation['product_id']),  // Tạo mã SKU cho từng sản phẩm
                 'variant_image' => null,
+                'weight'=>$variation['weight'],
                 'regular_price' => $variation['regular_price'],
                 'sale_price' => $variation['sale_price'],
                 'stock_quantity' => $variation['stock_quantity'],
