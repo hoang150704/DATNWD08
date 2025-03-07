@@ -26,7 +26,7 @@ class VoucherController extends Controller
     public function store(Request $request)
     {
         try {
-            $data = $request->validate([
+            $voucher = $request->validate([
                 'code' => 'required|unique:vouchers',
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -39,9 +39,9 @@ class VoucherController extends Controller
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
             ]);
-            $voucher = Voucher::create($data);
+            $voucher = Voucher::create($voucher);
             // Phát sự kiện
-            // broadcast(new VoucherUpdated($voucher))->toOthers();
+            broadcast(new VoucherUpdated($voucher))->toOthers();
             return response()->json($voucher, 201);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
@@ -71,7 +71,7 @@ class VoucherController extends Controller
     public function update(Request $request, int $id)
     {
         try {
-            $data = $request->validate([
+            $voucher = $request->validate([
                 'code' => 'required|string|max:255',
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -84,15 +84,15 @@ class VoucherController extends Controller
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
             ]);
-            if ($data['type'] == 1) {
-                unset($data['amount']);
+            if ($voucher['type'] == 1) {
+                unset($voucher['amount']);
             } else {
-                unset($data['discount_percent']);
+                unset($voucher['discount_percent']);
             }
             $voucher = Voucher::findOrFail($id);
-            $voucher->update($data);
+            $voucher->update($voucher);
             // Phát sự kiện nếu cần
-            // broadcast(new VoucherUpdated($voucher))->toOthers();
+            broadcast(new VoucherUpdated($voucher))->toOthers();
             return response()->json($voucher, 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
