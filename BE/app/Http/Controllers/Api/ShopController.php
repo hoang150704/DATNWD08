@@ -22,10 +22,10 @@ class ShopController extends Controller
         // 1. Xử lý lọc theo khoảng giá
         $query = $this->filterByPriceRange($query, $minPrice, $maxPrice);
 
-        // 2. Lọc và phân trang
-        $products = $products = $query->get();
+        // 2. Lọc và phân trang (lấy tất cả sản phẩm trước khi sắp xếp)
+        $products = $query->get();
 
-        // 3. Xử lý sắp xếp theo giá hoặc đánh giá (nếu có)
+        // 3. Xử lý sắp xếp theo giá
         $products = $this->sortByPrice($products, $sortBy);
 
         if ($sortBy == 'top_rated') {
@@ -33,6 +33,18 @@ class ShopController extends Controller
                 ->orderByDesc('comments_avg_rating')
                 ->get();
         }
+        
+        // 4. Chuyển Collection về dạng Paginator
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage();
+        $perPage = 9;
+        $pagedData = $products->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        $products = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedData,
+            $products->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
 
         // Xử lý hiển thị hình ảnh và giá sản phẩm
         foreach ($products as $key => $value) {
@@ -50,7 +62,15 @@ class ShopController extends Controller
             $products[$key]['price'] = $price;
         }
 
-        return response()->json($products, 200);
+        return response()->json([
+            "current_page" => $products->currentPage(),
+            "data" => array_values($products->items()), // Đảm bảo luôn trả về dạng array
+            "total" => $products->total(),
+            "per_page" => $products->perPage(),
+            "last_page" => $products->lastPage(),
+            "next_page_url" => $products->nextPageUrl(),
+            "prev_page_url" => $products->previousPageUrl(),
+        ]);
     }
 
     /**
@@ -80,7 +100,7 @@ class ShopController extends Controller
                 $q->whereRaw('IFNULL(sale_price, regular_price) <= ?', [$maxPrice]);
             });
         }
-    
+
         return $query;
     }
 
