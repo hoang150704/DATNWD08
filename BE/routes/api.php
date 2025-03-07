@@ -37,7 +37,8 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
-
+//Chi tiết sản phẩm 
+Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 
 
 // ===============================================================================
