@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendEmailVerificationUserJob;
 use App\Jobs\SendEmailVerifyNewEmailJob;
 use App\Jobs\SendResetPasswordEmailJob;
+use App\Models\Cart;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -41,6 +42,11 @@ class AuthController extends Controller
                 'email' => $request->email,
                 'username' => $request->username,
                 'password' => bcrypt($request->password),
+                // 'email_verified_at'=>now()
+            ]);
+
+            $cart = Cart::create([
+                'user_id' => $user->id
             ]);
 
             // Dispatch Job gửi email xác thực
@@ -172,42 +178,42 @@ class AuthController extends Controller
             'new_email.unique' => 'Email đã tồn tại trong hệ thống!',
             'password.required' => 'Mật khẩu không được để trống!',
         ]);
-    
+
         // Lấy user đang đăng nhập
         $user = Auth::user();
-    
+
         // Kiểm tra email mới có giống email hiện tại không
         if ($request->new_email == $user->email) {
             return response()->json(['message' => 'Email mới không được trùng với email hiện tại!'], 400);
         }
-    
+
         // Kiểm tra mật khẩu
         if (!Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Mật khẩu không chính xác!'], 401);
         }
-    
+
         // Giới hạn gửi OTP 1 lần mỗi phút
         $existingOtp = DB::table('email_verification_tokens')
             ->where('user_id', $user->id)
             ->where('email', $request->new_email)
             ->where('created_at', '>', Carbon::now()->subMinutes(1))
             ->first();
-    
+
         if ($existingOtp) {
             return response()->json(['message' => 'Vui lòng gửi lại mã sau 1 phút!'], 429);
         }
-    
+
         // Tạo OTP ngẫu nhiên, đảm bảo không bị trùng
         do {
             $otp = mt_rand(100000, 999999);
             $otpExists = DB::table('email_verification_tokens')->where('token', $otp)->exists();
         } while ($otpExists);
-    
+
         // Xóa mã OTP cũ của user cho cùng email (nếu có)
         DB::table('email_verification_tokens')
             ->where('user_id', $user->id)
             ->delete();
-    
+
         // Lưu OTP mới vào database
         DB::table('email_verification_tokens')->insert([
             'email' => $request->new_email,
@@ -215,13 +221,13 @@ class AuthController extends Controller
             'token' => $otp,
             'created_at' => Carbon::now(),
         ]);
-    
+
         // chạy email
         SendEmailVerifyNewEmailJob::dispatch($user, $request->new_email, $otp);
-    
+
         return response()->json(['message' => 'Vui lòng kiểm tra email để nhận mã xác thực!'], 200);
     }
-    
+
 
     // Xác thực và đổi email
     public function verifyNewEmail(Request $request)
