@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Comment;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
@@ -66,32 +67,46 @@ class HomeController extends Controller
 
     public function searchProducts(Request $request)
     {
-        $query = $request->input('keyword'); // Lấy từ khóa tìm kiếm từ query string
+        $keyword = $request->input('keyword');
 
-        if (!$query) {
-            return response()->json([
-                'message' => 'Vui lòng nhập từ khóa!'
-            ], 400);
+        if (empty($keyword)) {
+            return response()->json(['message' => 'Vui lòng nhập từ khóa tìm kiếm!'], 400);
         }
 
         $products = Product::with(['library', 'variants'])
-            ->where('name', 'like', '%' . $query . '%') // Tìm sản phẩm theo tên
-            ->paginate(9);
+            ->where('name', 'like', '%' . $keyword . '%')
+            ->orWhere('slug', 'like', '%' . $keyword . '%')
+            ->orWhere('description', 'like', '%' . $keyword . '%')
+            ->get();
 
-        // Xử lý hiển thị ảnh
-        foreach ($products as $key => $value) {
-            if ($value->main_image == null || !$value->library) {
-                $products[$key]['url'] = null;
-            } else {
-                $url = Product::getConvertImage($value->library->url, 100, 100, 'thumb');
-                $products[$key]['url'] = $url;
-            }
+        if ($products->isEmpty()) {
+            return response()->json(['message' => 'Không tìm thấy sản phẩm!'], 404);
+        }
+
+        // 4. Phân trang thủ công
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage();
+        $perPage = 9;
+        $pagedData = $products->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        $products = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedData,
+            $products->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+
+        $products->getCollection()->transform(function ($product) {
+            // Xử lý ảnh
+            $product->url = $product->main_image && $product->library
+                ? Product::getConvertImage($product->library->url, 100, 100, 'thumb') : null;
 
             // Xử lý giá
-            $price = $this->getVariantPrice($value);
-            $products[$key]['regular_price'] = $price['regular_price'];
-            $products[$key]['sale_price'] = $price['sale_price'];
-        }
+            $price = $this->getVariantPrice($product);
+            $product->regular_price = $price['regular_price'];
+            $product->sale_price = $price['sale_price'];
+
+            return $product;
+        });
 
         return response()->json($products, 200);
     }
