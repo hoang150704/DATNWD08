@@ -5,24 +5,38 @@ namespace App\Http\Controllers\Api\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\ProductVariation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
-    public function index()
+
+    public function getVariation()
     {
         try {
-            if (auth()->check()) {
-                // $cart = Cart::where('user_id', Auth::id())->first();
-                $cartItems = 'Auth: ' . Auth::id();
-            } else {
-                $cartItems = 'Session';
-            }
+            $variation_id = request('variation_id');
+            $variation = ProductVariation::where('id', $variation_id)->with('product:id,name,main_image')->get();
 
             return response()->json([
                 'message' => 'Success',
-                'data' => $cartItems
+                'data' => $variation
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed'
+            ], 500);
+        }
+    }
+    public function index()
+    {
+        try {
+            $cartId = Cart::where('user_id', Auth::id())->first();
+            $cartItem = CartItem::where('cart_id', $cartId->id)->with('variation')->get();
+
+            return response()->json([
+                'message' => 'Success',
+                'data' => $cartItem
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\User\ProductDetailController;
 use App\Http\Middleware\CheckOrderStatus;
+use App\Models\ProductVariation;
 use Illuminate\Support\Facades\Route;
 
 // ===============================================================================
@@ -39,6 +40,8 @@ Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
 //Chi tiết sản phẩm 
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+// Lấy biến thể
+Route::get('/variation', [CartController::class, 'getVariation']);
 
 
 // ===============================================================================
@@ -47,6 +50,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
+
+    // Giỏ hàng 
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart', [CartController::class, 'addCart']);
+    Route::patch('/cart', [CartController::class, 'removeItem']);
 
     Route::post('/upload', [UploadController::class, 'uploadImage']);
     // Chức năng chỉ admin mới call được api
