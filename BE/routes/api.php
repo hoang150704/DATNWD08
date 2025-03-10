@@ -27,7 +27,7 @@ Route::prefix('ghn')->group(function () {
 });
 // Đăng nhập bằng google
 // Route::get('/auth/google', [AuthController::class, 'redirect']);
-Route::post('/auth/google', [AuthController::class, 'googleAuth']);
+Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 
 
 // Trang chủ
