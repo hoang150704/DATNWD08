@@ -220,7 +220,7 @@ class CartController extends Controller
     }
 
 
-    public function changeQuantity()
+    public function changeQuantity($id)
     {
         try {
             $user = Auth::user();
@@ -244,19 +244,13 @@ class CartController extends Controller
             }
             $updateItem = CartItem::where('cart_id', $cart->id)
                 ->where('variation_id', $variationId)
+                ->where('id',$id)
                 ->first();
 
             if (!$updateItem) {
                 return response()->json([
                     'message' => 'Không timg thấy sản phẩm cần update',
                 ], 404);
-            }
-
-            // Đảm bảo số lượng hợp lệ (ít nhất là 1)
-            if ($newQuantity < 1) {
-                return response()->json([
-                    'message' => 'Invalid quantity',
-                ], 400);
             }
 
             $updateItem->quantity = $newQuantity;
