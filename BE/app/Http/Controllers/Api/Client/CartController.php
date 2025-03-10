@@ -11,12 +11,11 @@ use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
-
     public function getVariation()
     {
         try {
             $variation_id = request('variation_id');
-            $variation = ProductVariation::where('id', $variation_id)->with('product:id,name,main_image')->get();
+            $variation = ProductVariation::where('id', $variation_id)->with('product:id,name,main_image')->first();
 
             return response()->json([
                 'message' => 'Success',
@@ -28,9 +27,15 @@ class CartController extends Controller
             ], 500);
         }
     }
+
     public function index()
     {
         try {
+            if (Auth::check()) {
+                return response()->json([
+                    'message' => 'Không tìm thấy người dùng'
+                ], 404);
+            }
             $cartId = Cart::where('user_id', Auth::id())->first();
             $cartItem = CartItem::where('cart_id', $cartId->id)->with('variation')->get();
 

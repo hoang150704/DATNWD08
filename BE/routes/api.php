@@ -54,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Giỏ hàng 
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'addCart']);
+    Route::post('/cart/sync-cart', [CartController::class, 'addCart']);
     Route::patch('/cart', [CartController::class, 'removeItem']);
 
     Route::post('/upload', [UploadController::class, 'uploadImage']);
