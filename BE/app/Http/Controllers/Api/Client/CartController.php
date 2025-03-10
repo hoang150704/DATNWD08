@@ -5,37 +5,83 @@ namespace App\Http\Controllers\Api\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Product;
 use App\Models\ProductVariation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
-    public function getVariation()
+    public function getVariation(Request $request)
     {
         try {
-            $variation_id = request('variation_id'); // Đảm bảo là mảng hoặc một danh sách id
-            $variation = ProductVariation::whereIn('id', $variation_id)
+            $data = $request->json()->all(); /// Lấy tất cả dữu liệu gửi lên
+            //
+            if (!is_array($data) || empty($data)) {
+                return response()->json([
+                    'message' => 'Dữ liệu gửi lên không hợp lệ hoặc rỗng'
+                ], 400);
+            }
+            //Tạo mảng các id variant
+            $variationIds = array_column($data, 'variant');
+
+            // Đảm bảo là mảng hoặc một danh sách id
+            $variations = ProductVariation::whereIn('id', $variationIds)
                 ->with('product:id,name,main_image')
                 ->get();
+            //
+            if ($variations->isEmpty()) {
+                return response()->json([
+                    'message' => 'Không tìm thấy sản phẩm nào!',
+                ], 404);
+            }
+            // Duyệt qua từng variation và thêm hình ảnh + quantity  vào mảng
+            $variations->transform(function ($variation) use ($data) {
+                // Thêm quantity
+                $matchedVariant = collect($data)->firstWhere('variant', $variation->id);
+                $quantity = $matchedVariant ? $matchedVariant['quantity'] : 1;
 
-            // Duyệt qua từng variation và thêm hình ảnh vào mảng
-            $variation->each(function ($variation) use (&$images) {
-                // Nếu có ảnh biến thể, sử dụng ảnh đó, nếu không lấy ảnh chính của sản phẩm
-                $variation->image = $variation->variant_image ?? $variation->product->main_image;
+                // Xác định link ảnh
+                $imageUrl = null;
+                if ($variation->variant_image) {
+                    $imageUrl = Product::getConvertImage($variation->library->url, 100, 100, 'thumb');
+                } elseif ($variation->product->main_image) {
+                    $imageUrl = Product::getConvertImage($variation->product->library->url, 100, 100, 'thumb');
+                }
+                // Xử lí biến thể 
+                $attributeValues = $variation->attributeValues->pluck('name')->toArray();
+                $attributeString = implode(' - ', $attributeValues);
+                // Gán quantity và link ảnh vào kết quả trả về
+                $variation->quantity = $quantity;
+                $variation->image_url = $imageUrl;
+
+                return [
+                    'id' => $variation->id,
+                    'product_id' => $variation->product_id,
+                    'sku' => $variation->sku,
+                    'weight' => $variation->weight,
+                    'variant_image' => $variation->variant_image,
+                    'regular_price' => $variation->regular_price,
+                    'sale_price' => $variation->sale_price,
+                    'stock_quantity' => $variation->stock_quantity,
+                    'quantity' => $quantity,
+                    'image_url' => $imageUrl,
+                    'name' => $variation->product->name,
+                    'value'=>$attributeString
+                ];
             });
 
             return response()->json([
                 'message' => 'Success',
-                'data' => $variation,
+                'data' => $variations,
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
+                'error' => $th->getMessage(),
             ], 500);
         }
     }
-
     public function index()
     {
         try {
@@ -94,7 +140,6 @@ class CartController extends Controller
             if ($cartItem) {
                 $cartItem->quantity += $quantity;
                 $cartItem->save();
-
             } else {
                 $cartItem = CartItem::create([
                     'cart_id' => $cart->id,
@@ -107,7 +152,6 @@ class CartController extends Controller
                 'message' => 'Success',
                 'data' => $cartItem
             ], 201);
-
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',

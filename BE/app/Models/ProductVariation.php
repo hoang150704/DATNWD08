@@ -19,8 +19,9 @@ class ProductVariation extends Model
         'weight',
         'stock_quantity',
     ];
-    public function values(){
-        return $this->hasMany(ProductVariationValue ::class,'variation_id','id' );
+    public function values()
+    {
+        return $this->hasMany(ProductVariationValue::class, 'variation_id', 'id');
     }
     public function product()
     {
@@ -29,5 +30,9 @@ class ProductVariation extends Model
     public function library()
     {
         return $this->belongsTo(Library::class, 'variant_image', 'id');
+    }
+    public function attributeValues()
+    {
+        return $this->belongsToMany(AttributeValue::class, 'product_variation_values', 'variation_id', 'attribute_value_id');
     }
 }
