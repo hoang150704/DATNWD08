@@ -14,16 +14,31 @@ class CartController extends Controller
     public function getVariation()
     {
         try {
-            $variation_id = request('variation_id');
-            $variation = ProductVariation::where('id', $variation_id)->with('product:id,name,main_image')->first();
+            $variation_id = request('variation_id'); // Đảm bảo là mảng hoặc một danh sách id
+            $variation = ProductVariation::whereIn('id', $variation_id)
+                ->with('product:id,name,main_image')
+                ->get();
+
+            // Tạo mảng để lưu hình ảnh của mỗi variation
+            $images = [];
+
+            // Duyệt qua từng variation và thêm hình ảnh vào mảng
+            $variation->each(function ($variation) use (&$images) {
+                // Nếu có ảnh biến thể, sử dụng ảnh đó, nếu không lấy ảnh chính của sản phẩm
+                $variation->image = $variation->variant_image ?? $variation->product->main_image;
+
+                // Lưu ảnh của variation vào mảng $images
+                $images[] = $variation->image;
+            });
 
             return response()->json([
                 'message' => 'Success',
-                'data' => $variation
+                'data' => $variation, // Trả về thông tin biến thể đã cập nhật với image
+                'images' => $images   // Trả về mảng ảnh
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Failed'
+                'message' => 'Failed',
             ], 500);
         }
     }
