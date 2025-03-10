@@ -14,20 +14,21 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('users')->insert([
-            'name' => 'Hoàng',
-            'username' => 'hoang2k4',
-            'email' => 'phuongminhhoang77@gmail.com',
-            'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
-            'role' => User::ROLE_ADMIN,
-            'password' => Hash::make('12345678'),
-            'email_verified_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        for ($i = 0; $i < 10; $i++) {
+            DB::table('users')->insert([
+                'name' => 'Hoàng',
+                'username' => fake()->userName,
+                'email' => fake()->email,
+                'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
+                'role' => User::ROLE_ADMIN,
+                'password' => Hash::make(12345678),
+                'email_verified_at' => now()
+            ]);
+        }
+
 
         // Tạo 10 user giả mạo
-        \App\Models\User::factory(10)->create();
+        // \App\Models\User::factory(10)->create();
         }
     }
 
