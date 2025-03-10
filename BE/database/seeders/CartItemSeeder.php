@@ -6,7 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class CommentSeeder extends Seeder
+class CartItemSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -14,11 +14,9 @@ class CommentSeeder extends Seeder
     public function run(): void
     {
         for ($i = 0; $i < 10; $i++) {
-            DB::table('comments')->insert([
-                'product_id' => rand(1, 9),
-                'user_id' => 1,
-                'rating' => rand(0, 5),
-                'content' => fake()->paragraph
+            DB::table('cart_items')->insert([
+                'cart_id' => rand(1, 10),
+                'variantion_id' => rand(1, 2)
             ]);
         }
     }

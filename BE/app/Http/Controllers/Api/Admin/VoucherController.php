@@ -38,6 +38,7 @@ class VoucherController extends Controller
             ]);
             $voucher = Voucher::create($voucher);
             // Phát sự kiện
+
             broadcast(new VoucherEvent('created', $voucher))->toOthers();
             return response()->json($voucher, 201);
         } catch (ValidationException $e) {
@@ -64,7 +65,7 @@ class VoucherController extends Controller
     public function update(Request $request, int $id)
     {
         try {
-            $data = $request->validate([
+            $voucher = $request->validate([
                 'code' => 'required|string|max:255',
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -77,6 +78,7 @@ class VoucherController extends Controller
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
             ]);
+
             if ($data['type'] == 1) {
                 unset($data['amount']);
                 unset($data['min_product_price']);
@@ -88,6 +90,7 @@ class VoucherController extends Controller
             $voucher->update($data);
             // Phát sự kiện
             broadcast(new VoucherEvent('updated', $voucher))->toOthers();
+
             return response()->json($voucher, 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
