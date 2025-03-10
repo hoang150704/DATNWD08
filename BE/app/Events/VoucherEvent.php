@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
@@ -9,27 +8,27 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Voucher;
 
-class VoucherUpdated implements ShouldBroadcast
+class VoucherEvent implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public $action;
     public $voucher;
 
-    /**
-     * Create a new event instance.
-     */
-    public function __construct(Voucher $voucher)
+    public function __construct($action, $voucher)
     {
+        $this->action = $action;
         $this->voucher = $voucher;
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     */
     public function broadcastOn()
     {
         return new Channel('vouchers');
+    }
+
+    public function broadcastAs()
+    {
+        return 'voucher.' . $this->action;
     }
 }

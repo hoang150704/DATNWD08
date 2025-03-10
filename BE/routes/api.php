@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\Client\CartController;
 use App\Http\Controllers\Api\GhnTrackingController;
 use App\Http\Controllers\Api\HomeController;
@@ -22,6 +23,8 @@ Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+
 Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
@@ -51,6 +54,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
 
+
+    // Voucher
+    Route::prefix('voucher')->group(function () {
+        Route::get('/', [ClientVoucherController::class, 'index']); // Lấy danh sách voucher
+        Route::get('/{id}', [ClientVoucherController::class, 'show']); // Lấy chi tiết voucher
+        Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
+    });
+
+    // ===============================================================================
+
     // Giỏ hàng 
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'addCart']);
@@ -58,6 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cart', [CartController::class, 'removeItem']);
 
     Route::post('/upload', [UploadController::class, 'uploadImage']);
+
     // Chức năng chỉ admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
         // Dashborad
@@ -74,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/', [VoucherController::class, 'destroy']);
         });
 
-        // Đơn hàng 
+        // Đơn hàng
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
             Route::get('/search', [OrderController::class, 'search']);

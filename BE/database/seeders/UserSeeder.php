@@ -14,8 +14,8 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+
         // Tạo người dùng mẫ
- 
             DB::table('users')->insert([
                 'name' => 'Hoàng',
                 'username' => 'hoang2k4',
@@ -25,8 +25,6 @@ class UserSeeder extends Seeder
                 'password' => Hash::make(12345678),
                 'email_verified_at' => now()
             ]);
-        
-
     }
 }
 
