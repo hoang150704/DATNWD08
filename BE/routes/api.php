@@ -70,7 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cart', [CartController::class, 'addCart']);
     Route::post('/cart/sync', [CartController::class, 'syncCart']);
     Route::patch('/cart', [CartController::class, 'changeQuantity']);
-    Route::delete('/cart', [CartController::class, 'removeItem']);
+    Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
 
     Route::post('/upload', [UploadController::class, 'uploadImage']);
 

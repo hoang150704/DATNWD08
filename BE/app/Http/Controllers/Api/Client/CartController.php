@@ -110,6 +110,7 @@ class CartController extends Controller
                     : Product::getConvertImage($cartItem->variation->product->library->url, 100, 100, 'thumb');
 
                 return [
+                    'cart_item_id' => $cartItem->id,
                     'id' => $cartItem->variation->id,
                     'product_id' => $cartItem->variation->product_id,
                     'sku' => $cartItem->variation->sku,
@@ -180,16 +181,30 @@ class CartController extends Controller
         }
     }
 
-    public function removeItem()
+    public function removeItem($id)
     {
         try {
-            $cart = Cart::where('user_id', Auth::id())->first();
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['message' => 'Chưa đăng nhập'], 401);
+            }
+            $cart = Cart::where('user_id', $user->id)->first();
 
-            $variation = request('variation_id');
+            if (!$cart) {
+                return response()->json([
+                    'message' => 'Không tìm thấy cart',
+                ], 404);
+            }
 
             $cartItem = CartItem::where('cart_id', $cart->id)
-                ->where('variation_id', $variation)
+                ->where('id', $id)
                 ->first();
+
+            if (!$cartItem) {
+                return response()->json([
+                    'message' => 'Không tìm thấy item cần xóa',
+                ], 404);
+            }
 
             $cartItem->delete();
 
@@ -199,41 +214,66 @@ class CartController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
+                'error' => $th->getMessage()
             ], 500);
         }
     }
 
+
     public function changeQuantity()
     {
         try {
-            $cart = Cart::where('user_id', Auth::id())->first();
-
-            $variation = request('variation_id');
-            $change = request('change');
-
-            $updateItem = CartItem::where('cart_id', $cart->id)->where('variation_id', $variation)->first();
-
-            if ($change == "+") {
-                $updateItem->quantity += 1;
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
-            if ($change == "-") {
-                if ($updateItem->quantity > 1) {
-                    $updateItem->quantity -= 1;
-                }
+            $cart = Cart::where('user_id', $user->id)->first();
+
+            if (!$cart) {
+                return response()->json([
+                    'message' => 'Không tìm thấy giỏ hàng của bạn',
+                ], 404);
             }
 
+            $variationId = request('variation_id');
+            $newQuantity = request('quantity');
+            if ($newQuantity < 1) {
+                return response()->json([
+                    'message' => 'Số lượng phải lớn hơn bằng 1',
+                ], 400);
+            }
+            $updateItem = CartItem::where('cart_id', $cart->id)
+                ->where('variation_id', $variationId)
+                ->first();
+
+            if (!$updateItem) {
+                return response()->json([
+                    'message' => 'Không timg thấy sản phẩm cần update',
+                ], 404);
+            }
+
+            // Đảm bảo số lượng hợp lệ (ít nhất là 1)
+            if ($newQuantity < 1) {
+                return response()->json([
+                    'message' => 'Invalid quantity',
+                ], 400);
+            }
+
+            $updateItem->quantity = $newQuantity;
             $updateItem->save();
 
             return response()->json([
-                'message' => 'Success',
+                'message' => 'Thành công',
                 'data' => $updateItem
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
+                'error' => $th->getMessage()
             ], 500);
         }
     }
+
     public function syncCart(Request $request)
     {
         try {
