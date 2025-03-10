@@ -336,4 +336,29 @@ class CartController extends Controller
             return response()->json(['message' => 'Lỗi đồng bộ giỏ hàng', 'errors' => $e->getMessage()], 500);
         }
     }
+    public function clearAll()
+    {
+        try {
+            $cart = Cart::where('user_id', Auth::id())->first();
+    
+            if (!$cart) {
+                return response()->json([
+                    'message' => 'Không tìm thấy cart',
+                ], 404);
+            }
+    
+            // Xóa toàn bộ sản phẩm trong giỏ hàng
+            CartItem::where('cart_id', $cart->id)->delete();
+    
+            return response()->json([
+                'message' => 'Xóa thành công'
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
+    
 }
