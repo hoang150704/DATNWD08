@@ -30,6 +30,7 @@ class ProductAttributeController extends Controller
                 ->groupBy('attribute_id'); // Nhóm theo attribute_id
             $list = ProductAttribute::where("product_id", $idProduct)->get();
             // Định dạng lại dữ liệu
+            
             $formattedData = [
                 'product_id' => $idProduct,
                 'attributes' => []

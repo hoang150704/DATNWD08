@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -13,12 +14,14 @@ class SuccessOrderMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public Order $order;
+
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct(Order $order)
     {
-        //
+        $this->order = $order;
     }
 
     /**
@@ -27,7 +30,7 @@ class SuccessOrderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Success Order Mail',
+            subject: 'Xác nhận đơn hàng #' . $this->order->code,
         );
     }
 
@@ -37,7 +40,11 @@ class SuccessOrderMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            markdown: 'emails.success_order',
+            with: [
+                'order' => $this->order,
+                'orderItems' => $this->order->items,
+            ]
         );
     }
 

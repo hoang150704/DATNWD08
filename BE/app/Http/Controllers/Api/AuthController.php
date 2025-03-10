@@ -16,6 +16,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -142,14 +143,14 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Kiểm tra vai trò và trả về đường dẫn phù hợp
-        $redirect_url = $user->role === 'admin' ? '/admin/dashboard' : '/shop/home';
+        // $redirect_url = $user->role === 'admin' ? '/admin/dashboard' : '/shop/home';
 
         return response()->json([
             'message' => 'Đăng nhập thành công!',
             'access_token' => $token,
             'token_type' => 'Bearer',
             'user' => $user,
-            'redirect_url' => $redirect_url,
+            // 'redirect_url' => $redirect_url,
         ]);
     }
 
@@ -340,41 +341,62 @@ class AuthController extends Controller
             return response()->json(['message' => 'Đã xảy ra lỗi khi đặt lại mật khẩu.'], 500);
         }
     }
-    public function redirectToGoogle()
-    {
-        return Socialite::driver('google')->redirect();
-    }
+    // public function redirect()
+    // {
+    //     return response()->json([
+    //         'url' => Socialite::driver('google')->stateless()->redirect()->getTargetUrl()
+    //     ]);
+    // }
 
-    public function googleAuth()
+    public function googleAuth(Request $request)
     {
-
         try {
-            // Xác thực token từ Google
-            $googleUser = Socialite::driver('google')->user();
-
-            // Kiểm tra user có tồn tại không
-            $user = User::where('email', $googleUser->getEmail())->first();
-
-            if (!$user) {
-                // Nếu chưa có user, tạo mới
-                $user = User::create([
-                    'name' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
-                    'google_id' => $googleUser->getId(),
-                    'password' => Hash::make(uniqid()), 
-                ]);
+            // Lấy token từ request frontend
+            $token = $request->token;
+    
+            // Xác thực token với Google
+            $googleUser = Http::get('https://www.googleapis.com/oauth2/v3/tokeninfo', [
+                'id_token' => $token
+            ])->json();
+    
+            // Nếu token không hợp lệ
+            if (isset($googleUser['error_description'])) {
+                return response()->json(['error' => 'Invalid token'], 401);
             }
-
-            // Đăng nhập user và tạo token API
-            $token = $user->createToken('google-auth')->plainTextToken;
-
+    
+            // Lấy thông tin user từ Google
+            $email = $googleUser['email'];
+            $name = $googleUser['name'];
+            $avatar = $googleUser['picture'];
+    
+            // Tạo username từ email
+            $username = explode('@', $email)[0];
+    
+            // Kiểm tra nếu username đã tồn tại thì thêm số ngẫu nhiên
+            while (User::where('username', $username)->exists()) {
+                $username = $username . rand(100, 999);
+            }
+    
+            // Tạo hoặc cập nhật user
+            $user = User::updateOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $name,
+                    'username' => $username,
+                    'avatar' => $avatar
+                ]
+            );
+    
+            // Tạo token đăng nhập
+            $token = $user->createToken('authToken')->plainTextToken;
+    
             return response()->json([
-                'message' => 'Đăng nhập thành công!',
                 'user' => $user,
                 'token' => $token
-            ], 200);
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Lỗi khi xác thực Google!', 'error' => $e->getMessage()], 400);
+            return response()->json(['error' => 'Authentication failed'], 401);
         }
     }
-}
+    }
+

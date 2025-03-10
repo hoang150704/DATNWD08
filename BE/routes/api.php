@@ -25,6 +25,10 @@ Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
 });
+// Đăng nhập bằng google
+// Route::get('/auth/google', [AuthController::class, 'redirect']);
+Route::post('/auth/google', [AuthController::class, 'googleAuth']);
+
 
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
