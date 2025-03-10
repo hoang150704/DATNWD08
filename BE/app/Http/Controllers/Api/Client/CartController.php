@@ -244,7 +244,7 @@ class CartController extends Controller
             }
             $updateItem = CartItem::where('cart_id', $cart->id)
                 ->where('variation_id', $variationId)
-                ->where('id',$id)
+                ->where('id', $id)
                 ->first();
 
             if (!$updateItem) {
@@ -340,16 +340,16 @@ class CartController extends Controller
     {
         try {
             $cart = Cart::where('user_id', Auth::id())->first();
-    
+
             if (!$cart) {
                 return response()->json([
                     'message' => 'Không tìm thấy cart',
                 ], 404);
             }
-    
+
             // Xóa toàn bộ sản phẩm trong giỏ hàng
             CartItem::where('cart_id', $cart->id)->delete();
-    
+
             return response()->json([
                 'message' => 'Xóa thành công'
             ], 200);
@@ -360,5 +360,4 @@ class CartController extends Controller
             ], 500);
         }
     }
-    
 }
