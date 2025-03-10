@@ -19,22 +19,15 @@ class CartController extends Controller
                 ->with('product:id,name,main_image')
                 ->get();
 
-            // Tạo mảng để lưu hình ảnh của mỗi variation
-            $images = [];
-
             // Duyệt qua từng variation và thêm hình ảnh vào mảng
             $variation->each(function ($variation) use (&$images) {
                 // Nếu có ảnh biến thể, sử dụng ảnh đó, nếu không lấy ảnh chính của sản phẩm
                 $variation->image = $variation->variant_image ?? $variation->product->main_image;
-
-                // Lưu ảnh của variation vào mảng $images
-                $images[] = $variation->image;
             });
 
             return response()->json([
                 'message' => 'Success',
-                'data' => $variation, // Trả về thông tin biến thể đã cập nhật với image
-                'images' => $images   // Trả về mảng ảnh
+                'data' => $variation,
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
@@ -46,24 +39,39 @@ class CartController extends Controller
     public function index()
     {
         try {
-            if (Auth::check()) {
+            // Kiểm tra xem người dùng đã đăng nhập chưa
+            if (!Auth::check()) {
                 return response()->json([
                     'message' => 'Không tìm thấy người dùng'
                 ], 404);
             }
+
+            // Lấy giỏ hàng của người dùng
             $cartId = Cart::where('user_id', Auth::id())->first();
-            $cartItem = CartItem::where('cart_id', $cartId->id)->with('variation')->get();
+
+            // Lấy danh sách các sản phẩm trong giỏ hàng, kèm theo thông tin về variation và product
+            $cartItems = CartItem::where('cart_id', $cartId->id)
+                ->with(['variation.product:id,name,main_image']) // Eager load để lấy thông tin về sản phẩm và ảnh chính
+                ->get();
+
+            // Duyệt qua các cartItems và kiểm tra variation có variant_image hay không
+            $cartItems->each(function ($cartItem) {
+                // Kiểm tra nếu có ảnh variant_image trong ProductVariation
+                $cartItem->image = $cartItem->variation->variant_image ?? $cartItem->variation->product->main_image;
+            });
 
             return response()->json([
                 'message' => 'Success',
-                'data' => $cartItem
+                'data' => $cartItems,
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Failed'
+                'message' => 'Failed',
+                'error' => $th->getMessage()  // Trả về thông báo lỗi chi tiết nếu cần
             ], 500);
         }
     }
+
 
     public function addCart()
     {
