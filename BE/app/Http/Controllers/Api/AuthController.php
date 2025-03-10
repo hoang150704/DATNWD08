@@ -16,6 +16,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -340,41 +341,80 @@ class AuthController extends Controller
             return response()->json(['message' => 'Đã xảy ra lỗi khi đặt lại mật khẩu.'], 500);
         }
     }
-    public function redirectToGoogle()
-    {
-        return Socialite::driver('google')->redirect();
-    }
 
-    public function googleAuth()
-    {
 
+    public function googleAuth(Request $request)
+    {
         try {
-            // Xác thực token từ Google
-            $googleUser = Socialite::driver('google')->user();
+            // validate
+            $request->validate([
+                'token' => 'required|string'
+            ]);
 
-            // Kiểm tra user có tồn tại không
-            $user = User::where('email', $googleUser->getEmail())->first();
+            $token = $request->token;
 
-            if (!$user) {
-                // Nếu chưa có user, tạo mới
+            // Xác thực token với Google
+            $response = Http::get('https://www.googleapis.com/oauth2/v3/tokeninfo', [
+                'id_token' => $token
+            ]);
+            // nếu thất bại thù 
+            if ($response->failed() || !isset($response['email'])) {
+                return response()->json(['error' => 'Xác thực thất bại'], 401);
+            }
+
+            $googleUser = $response->json();
+
+            // Kiểm tra nếu token không hợp lệ
+            if (isset($googleUser['error']) || empty($googleUser['sub'])) {
+                return response()->json(['error' => 'Token không hợp lệ'], 401);
+            }
+
+            // Lấy thông tin user từ Google
+            $email = $googleUser['email'];
+            $name = $googleUser['name'];
+            $avatar = $googleUser['picture'];
+            $providerId = $googleUser['sub'];
+
+            // Tìm user theo email
+            $user = User::where('email', $email)->first();
+
+            if ($user) {
+                // Trường hợp user đã tồn tại *(vd là đã tạo tài khoản bằng email này)
+                // Cập nhật thêm provider để sau này nó có theerr đăng nhập
+                $user->update([
+                    'provider' => 'google',
+                    'provider_id' => $providerId,
+                ]);
+            } else {
+                // Tạo tài khoản mới nếu chưa tồn tại
+                $username = explode('@', $email)[0];
+
+                while (User::where('username', $username)->exists()) {
+                    $username .= '_' . Str::random(5);
+                }
+
                 $user = User::create([
-                    'name' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
-                    'google_id' => $googleUser->getId(),
-                    'password' => Hash::make(uniqid()), 
+                    'provider' => 'google',
+                    'provider_id' => $providerId,
+                    'email' => $email,
+                    'name' => $name,
+                    'username' => $username,
+                    'avatar' => $avatar,
+                    'email_verified_at' => now()
                 ]);
             }
 
-            // Đăng nhập user và tạo token API
-            $token = $user->createToken('google-auth')->plainTextToken;
+            // Tạo token đăng nhập
+            $accessToken = $user->createToken('authToken', ['*'], now()->addWeeks(1))->plainTextToken;
 
             return response()->json([
                 'message' => 'Đăng nhập thành công!',
+                'access_token' => $accessToken,
+                'token_type' => 'Bearer',
                 'user' => $user,
-                'token' => $token
-            ], 200);
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Lỗi khi xác thực Google!', 'error' => $e->getMessage()], 400);
+            return response()->json(['message' => 'Lỗi đăng nhập','errors'=>$e->getMessage()], 401);
         }
     }
 }
