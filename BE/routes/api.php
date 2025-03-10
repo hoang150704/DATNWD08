@@ -41,7 +41,7 @@ Route::get('/categories/{category_id}/products', [ShopController::class, 'getPro
 //Chi tiết sản phẩm 
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 // Lấy biến thể
-Route::get('/variation', [CartController::class, 'getVariation']);
+Route::post('/variation', [CartController::class, 'getVariation']);
 
 
 // ===============================================================================
@@ -54,7 +54,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Giỏ hàng 
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'addCart']);
-    Route::patch('/cart', [CartController::class, 'removeItem']);
+    Route::patch('/cart', [CartController::class, 'changeQuantity']);
+    Route::delete('/cart', [CartController::class, 'removeItem']);
 
     Route::post('/upload', [UploadController::class, 'uploadImage']);
     // Chức năng chỉ admin mới call được api
