@@ -20,9 +20,7 @@ class CartController extends Controller
             $data = $request->json()->all(); /// Lấy tất cả dữu liệu gửi lên
             //
             if (!is_array($data) || empty($data)) {
-                return response()->json([
-                    'message' => 'Dữ liệu gửi lên không hợp lệ hoặc rỗng'
-                ], 400);
+                return response()->json([], 400);
             }
             //Tạo mảng các id variant
             $variationIds = array_column($data, 'variant');
@@ -56,7 +54,7 @@ class CartController extends Controller
                 // Gán quantity và link ảnh vào kết quả trả về
                 $variation->quantity = $quantity;
                 $variation->image_url = $imageUrl;
-
+                                                   
                 return [
                     'id' => $variation->id,
                     'product_id' => $variation->product_id,
@@ -360,4 +358,6 @@ class CartController extends Controller
             ], 500);
         }
     }
+
+    
 }

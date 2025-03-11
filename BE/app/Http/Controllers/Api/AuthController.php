@@ -143,14 +143,14 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Kiểm tra vai trò và trả về đường dẫn phù hợp
-        $redirect_url = $user->role === 'admin' ? '/admin/dashboard' : '/shop/home';
+        // $redirect_url = $user->role === 'admin' ? '/admin/dashboard' : '/shop/home';
 
         return response()->json([
             'message' => 'Đăng nhập thành công!',
             'access_token' => $token,
             'token_type' => 'Bearer',
             'user' => $user,
-            'redirect_url' => $redirect_url,
+            // 'redirect_url' => $redirect_url,
         ]);
     }
 
