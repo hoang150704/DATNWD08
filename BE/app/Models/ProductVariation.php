@@ -19,6 +19,7 @@ class ProductVariation extends Model
         'weight',
         'stock_quantity',
     ];
+    
     public function values()
     {
         return $this->hasMany(ProductVariationValue::class, 'variation_id', 'id');
@@ -31,8 +32,9 @@ class ProductVariation extends Model
     {
         return $this->belongsTo(Library::class, 'variant_image', 'id');
     }
-    public function attributeValues()
+
+    public function scopeLatest($query)
     {
-        return $this->belongsToMany(AttributeValue::class, 'product_variation_values', 'variation_id', 'attribute_value_id');
+        return $query->orderByDesc('created_at')->limit(1);
     }
 }

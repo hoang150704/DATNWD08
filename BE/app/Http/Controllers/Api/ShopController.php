@@ -15,52 +15,51 @@ class ShopController extends Controller
         $sortBy     = $request->input('sort_by', 'default'); // Mặc định là 'default'
         $minPrice   = $request->input('min_price', null); // Giá tối thiểu
         $maxPrice   = $request->input('max_price', null); // Giá tối đa
-
+    
         // Bắt đầu xây dựng query cho products
         $query = Product::with(['library', 'variants']);
-
+    
         // 1. Xử lý lọc theo khoảng giá
         $query = $this->filterByPriceRange($query, $minPrice, $maxPrice);
-
-        // 2. Lọc và phân trang
-        $products = $this->getPaginatedProducts($query, 9, $request->input('page', 1));
-
-        // 3. Xử lý sắp xếp theo giá hoặc đánh giá (nếu có)
+    
+        // 2. Lấy tất cả sản phẩm
+        $products = $query->get();
+    
+        // 3. Xử lý sắp xếp
         $products = $this->sortByPrice($products, $sortBy);
-
+    
         if ($sortBy == 'top_rated') {
             $products = Product::withAvg('comments', 'rating')
                 ->orderByDesc('comments_avg_rating')
                 ->get();
         }
-
+    
+        // 4. Phân trang thủ công
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage();
+        $perPage = 9;
+        $pagedData = $products->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        $products = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pagedData,
+            $products->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+    
         // Xử lý hiển thị hình ảnh và giá sản phẩm
-        foreach ($products as $key => $value) {
-            // Kiểm tra nếu sản phẩm không có hình ảnh
-            if ($value->main_image == null) {
-                $products[$key]['url'] = null;  // Nếu không có hình ảnh chính
-            } else {
-                // Xử lý hình ảnh nếu có
-                $url = Product::getConvertImage($value->library->url, 100, 100, 'thumb');
-                $products[$key]['url'] = $url;
-            }
-
-            // Lấy giá từ biến thể gần đây nhất
-            $price = $this->getVariantPrice($value);
-            $products[$key]['price'] = $price;
-        }
-
+        $products->getCollection()->transform(function ($product) {
+            $product->url = $product->main_image ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb') : null;
+    
+            $price = $this->getVariantPrice($product);
+            $product->regular_price = $price['regular_price'];
+            $product->sale_price = $price['sale_price'];
+    
+            return $product;
+        });
+    
         return response()->json($products, 200);
     }
 
-    /**
-     * Lọc các sản phẩm theo khoảng giá (Price Range)
-     *
-     * @param $query
-     * @param $minPrice
-     * @param $maxPrice
-     * @return mixed
-     */
     private function filterByPriceRange($query, $minPrice, $maxPrice)
     {
         // Trường hợp có cả minPrice và maxPrice, lọc các sản phẩm có giá trong khoảng này
@@ -80,66 +79,44 @@ class ShopController extends Controller
                 $q->whereRaw('IFNULL(sale_price, regular_price) <= ?', [$maxPrice]);
             });
         }
-    
-        return $query;
-    }    
 
-    /**
-     * Lọc và phân trang kết quả
-     *
-     * @param $query
-     * @param $perPage
-     * @param $page
-     * @return mixed
-     */
-    private function getPaginatedProducts($query, $perPage, $page)
-    {
-        return $query->paginate($perPage, ['*'], 'page', $page);  // Phân trang với số sản phẩm mỗi trang
+        return $query;
     }
 
-    /**
-     * Sắp xếp sản phẩm theo giá
-     *
-     * @param $query
-     * @param $sortBy
-     * @return mixed
-     */
     private function sortByPrice($products, $sortBy)
     {
         if ($sortBy == 'high_to_low') {
-            // Sắp xếp theo giá từ cao đến thấp
             return $products->sortByDesc(function ($product) {
-                return $this->getVariantPrice($product);
+                $priceData = $this->getVariantPrice($product);
+                return $priceData['sale_price'] ?? $priceData['regular_price']; // Ưu tiên sale_price
             });
         } elseif ($sortBy == 'low_to_high') {
-            // Sắp xếp theo giá từ thấp đến cao
             return $products->sortBy(function ($product) {
-                return $this->getVariantPrice($product);
+                $priceData = $this->getVariantPrice($product);
+                return $priceData['sale_price'] ?? $priceData['regular_price']; // Ưu tiên sale_price
             });
         }
 
         return $products;
     }
 
-    /**
-     * Lấy giá từ biến thể gần đây nhất của sản phẩm.
-     *
-     * @param Product $product
-     * @return mixed
-     */
     private function getVariantPrice($product)
     {
         if ($product->variants->isNotEmpty()) {
-            $latestVariant = $product->variants->sortByDesc('created_at')->first();
+            $latestVariant = $product->variants()->latest()->first();
 
-            if ($latestVariant->sale_price) {
-                return $latestVariant->sale_price;
-            } else {
-                return $latestVariant->regular_price;
-            }
+            return [
+                'regular_price' => $latestVariant->regular_price,
+                'sale_price' => $latestVariant->sale_price ?? null,
+            ];
         }
-        return null;
+
+        return [
+            'regular_price' => null,
+            'sale_price' => null,
+        ];
     }
+
 
     public function getAllCategories()
     {
@@ -153,7 +130,7 @@ class ShopController extends Controller
         // Kiểm tra danh mục có tồn tại không
         $category = Category::find($category_id);
         if (!$category) {
-            return response()->json(['message' => 'Category not found'], 404);
+            return response()->json(['message' => 'Danh mục không tồn tại!'], 404);
         }
 
         // Lấy danh sách sản phẩm thuộc danh mục đó
@@ -162,24 +139,16 @@ class ShopController extends Controller
             ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo
             ->paginate(9);
 
-        // Xử lý dữ liệu hiển thị
-        foreach ($products as $key => $product) {
-            if ($product->main_image == null) {
-                $products[$key]['url'] = null;
-            } else {
-                $url = Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb');
-                $products[$key]['url'] = $url;
-            }
+        // Xử lý hiển thị hình ảnh và giá sản phẩm
+        $products->getCollection()->transform(function ($product) {
+            $product->url = $product->main_image ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb') : null;
 
-            // Thêm giá từ biến thể sản phẩm
-            if ($product->variants->isNotEmpty()) {
-                $products[$key]['regular_price'] = $product->variants->first()->regular_price;
-                $products[$key]['sale_price'] = $product->variants->first()->sale_price;
-            } else {
-                $products[$key]['regular_price'] = null;
-                $products[$key]['sale_price'] = null;
-            }
-        }
+            $price = $this->getVariantPrice($product);
+            $product->regular_price = $price['regular_price'];
+            $product->sale_price = $price['sale_price'];
+
+            return $product;
+        });
 
         return response()->json($products, 200);
     }
