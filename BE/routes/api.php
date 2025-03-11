@@ -5,7 +5,7 @@ use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
-use App\Http\Controllers\Api\VoucherController as ClientVoucherController;
+use App\Http\Controllers\Api\Client\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\Client\CartController;
 use App\Http\Controllers\Api\GhnTrackingController;
 use App\Http\Controllers\Api\HomeController;
@@ -42,7 +42,7 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
-//Chi tiết sản phẩm 
+//Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 // Lấy biến thể
 Route::post('/variation', [CartController::class, 'getVariation']);
@@ -61,11 +61,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [ClientVoucherController::class, 'index']); // Lấy danh sách voucher
         Route::get('/{id}', [ClientVoucherController::class, 'show']); // Lấy chi tiết voucher
         Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
+        Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Tính toán khi áp dụng voucher
     });
 
     // ===============================================================================
 
-    // Giỏ hàng 
+    // Giỏ hàng
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'addCart']);
     Route::post('/cart/sync', [CartController::class, 'syncCart']);
