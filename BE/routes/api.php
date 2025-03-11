@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Client\CartController;
 use App\Http\Controllers\Api\GhnTrackingController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\ShopController;
+use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\User\ProductDetailController;
 use App\Http\Middleware\CheckOrderStatus;
@@ -41,6 +42,9 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
+
+// Đánh giá
+Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
 
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);

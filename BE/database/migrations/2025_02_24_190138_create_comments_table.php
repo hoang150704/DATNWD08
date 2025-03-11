@@ -16,8 +16,9 @@ return new class extends Migration {
             $table->foreign('product_id')->references('id')->on('products')->cascadeOnDelete()->noActionOnUpdate();
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete()->noActionOnUpdate();
-            $table->float('rating');
+            $table->decimal('rating', 2, 1);
             $table->text('content');
+            $table->json('images')->nullable();
             $table->text('reply')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
