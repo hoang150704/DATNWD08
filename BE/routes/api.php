@@ -16,8 +16,8 @@ use App\Http\Middleware\CheckOrderStatus;
 use App\Models\ProductVariation;
 use Illuminate\Support\Facades\Route;
 
-// ===============================================================================
-// Các chức năng KHÔNG cần LOGIN
+// ================================================================================================================================
+// Các chức năng KHÔNG phải LOGIN
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -41,19 +41,20 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
+
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+
 // Lấy biến thể
 Route::post('/variation', [CartController::class, 'getVariation']);
 
 
-// ===============================================================================
-// Chức năng cần LOGIN
+// ================================================================================================================================
+// Chức năng phải LOGIN
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
-
 
     // Voucher
     Route::prefix('voucher')->group(function () {
@@ -63,7 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Tính toán khi áp dụng voucher
     });
 
-    // ===============================================================================
+    // ===================================================================================================================
 
     // Giỏ hàng
     Route::get('/cart', [CartController::class, 'index']);
