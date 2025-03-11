@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\Client\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\Client\CartController;
 use App\Http\Controllers\Api\GhnTrackingController;
 use App\Http\Controllers\Api\HomeController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\User\ProductDetailController;
 use App\Http\Middleware\CheckOrderStatus;
+use App\Models\ProductVariation;
 use Illuminate\Support\Facades\Route;
 
 // ===============================================================================
@@ -19,8 +21,11 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+
 Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
@@ -41,8 +46,10 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
-//Chi tiết sản phẩm 
+//Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+// Lấy biến thể
+Route::post('/variation', [CartController::class, 'getVariation']);
 
 
 // ===============================================================================
@@ -52,7 +59,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
 
+
+    // Voucher
+    Route::prefix('voucher')->group(function () {
+        Route::get('/', [ClientVoucherController::class, 'index']); // Lấy danh sách voucher
+        Route::get('/{id}', [ClientVoucherController::class, 'show']); // Lấy chi tiết voucher
+        Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
+        Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Tính toán khi áp dụng voucher
+    });
+
+    // ===============================================================================
+
+    // Giỏ hàng
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart', [CartController::class, 'addCart']);
+    Route::post('/cart/sync', [CartController::class, 'syncCart']);
+    Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
+    Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
+    Route::post('/cart/clear', [CartController::class, 'clearAll']);
+    // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
+
     // Chức năng chỉ admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
         // Dashborad
@@ -69,7 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/', [VoucherController::class, 'destroy']);
         });
 
-        // Đơn hàng 
+        // Đơn hàng
         Route::prefix('orders')->group(function () {
             Route::get('/', [OrderController::class, 'index']);
             Route::get('/search', [OrderController::class, 'search']);

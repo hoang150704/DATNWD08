@@ -19,7 +19,7 @@ return new class extends Migration {
             $table->string('email')->unique()->index();
             $table->string('avatar',255)->nullable();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password',255);
+            $table->string('password',255)->nullable();
             $table->string('role')->default(User::ROLE_MEMBER);
             $table->boolean('is_active')->default(true);
             $table->string('reason',255)->nullable();
