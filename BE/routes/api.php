@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
     Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
     Route::post('/cart/clear', [CartController::class, 'clearAll']);
+    // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
 
     // Chức năng chỉ admin mới call được api
