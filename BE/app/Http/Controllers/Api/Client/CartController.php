@@ -54,7 +54,7 @@ class CartController extends Controller
                 // Gán quantity và link ảnh vào kết quả trả về
                 $variation->quantity = $quantity;
                 $variation->image_url = $imageUrl;
-
+                                                   
                 return [
                     'id' => $variation->id,
                     'product_id' => $variation->product_id,

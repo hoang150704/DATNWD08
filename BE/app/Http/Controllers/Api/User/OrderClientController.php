@@ -23,13 +23,23 @@ class OrderClientController extends Controller
         $this->paymentVnpay = $paymentVnpay;
     }
     //
-    private function generateOrderCode()
+    private function generateUniqueOrderCode()
     {
-        $prefix = 'ORD';
-        $timestamp = time();
-        $randomString = strtoupper(substr(md5(uniqid(mt_rand(), true)), 1, 5));
+        do {
+            // Lấy ngày hiện tại
+            $date = now()->format('Ymd');
 
-        return $prefix . $timestamp . $randomString;
+            // Tạo mã số ngẫu nhiên (6 ký tự)
+            $randomCode = strtoupper(Str::random(6));
+
+            // Tạo mã đơn hàng
+            $codeOrder = "ORD-{$date}-{$randomCode}";
+
+            // Kiểm tra xem mã có tồn tại trong database không
+            $exists = Order::where('code', $codeOrder)->exists();
+        } while ($exists); // Nếu trùng, tạo lại
+
+        return $codeOrder;
     }
     //
     public function store(OrderClientRequest $request)
@@ -37,21 +47,21 @@ class OrderClientController extends Controller
         try {
             DB::beginTransaction();
             $validatedData = $request->validated();
-    
+
             // Kiểm tra nếu không có sản phẩm trong đơn hàng
             if (empty($validatedData['products'])) {
                 return response()->json([
                     'message' => 'Không có sản phẩm nào trong đơn hàng!'
                 ], 400);
             }
-    
+
             // Kiểm tra người dùng đăng nhập
             $userId = auth()->check() ? auth()->id() : null;
-    
+            $orderCode = $this->generateUniqueOrderCode();
             // Tạo đơn hàng
             $order = Order::create([
                 'user_id' => $userId, // Lưu ID người dùng nếu có đăng nhập
-                'code' => 'DH_' . Str::uuid(),
+                'code' => $orderCode,
                 'total_amount' => $validatedData['total_amount'],
                 'discount_amount' => $validatedData['discount_amount'] ?? 0,
                 'final_amount' => $validatedData['final_amount'],
@@ -65,21 +75,21 @@ class OrderClientController extends Controller
                 'stt_payment' => 1,
                 'stt_track' => 1
             ]);
-    
+
             if (!$order) {
                 DB::rollBack();
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
-    
+
             $orderItems = [];
-    
+
             foreach ($validatedData['products'] as $product) {
                 $variant = ProductVariation::find($product['variation_id']);
                 if (!$variant) {
                     DB::rollBack();
                     return response()->json(['message' => 'Sản phẩm không tồn tại!'], 400);
                 }
-    
+
                 // Kiểm tra tồn kho trước khi trừ
                 if ($variant->stock_quantity < $product['quantity']) {
                     DB::rollBack();
@@ -87,7 +97,7 @@ class OrderClientController extends Controller
                         'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
                     ], 400);
                 }
-    
+
                 $orderItems[] = [
                     'order_id' => $order->id,
                     'product_id' => $product['product_id'],
@@ -101,15 +111,15 @@ class OrderClientController extends Controller
                 ];
                 $variant->decrement('stock_quantity', (int) $product['quantity']);
             }
-    
+
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
-    
+
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
-    
+
             DB::commit();
-    
+
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
                 $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
@@ -119,12 +129,11 @@ class OrderClientController extends Controller
                     'code' => 200
                 ], 201);
             }
-    
+
             return response()->json([
                 'message' => 'Bạn đã thêm đơn hàng thành công!',
                 'order_code' => $order->code
             ], 201);
-    
         } catch (\Throwable $th) {
             DB::rollBack();
             return response()->json([
@@ -133,8 +142,32 @@ class OrderClientController extends Controller
             ], 500);
         }
     }
-    
-    public function callbackPayment(){
 
+    public function callbackPayment(Request $request)
+    {
+        $vnp_HashSecret = env('VNP_HASH_SECRET'); // Khóa bảo mật
+        $data = $request->all();
+
+        // Tạo chuỗi kiểm tra chữ ký
+        $vnp_SecureHash = $data['vnp_SecureHash'];
+        unset($data['vnp_SecureHash']);
+        ksort($data);
+        $hashData = urldecode(http_build_query($data));
+        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+
+        if ($secureHash === $vnp_SecureHash) {
+            if ($request->get('vnp_ResponseCode') === '00') {
+                // Giao dịch thành công, cập nhật trạng thái đơn hàng
+                $order = Order::where('code', $request->get('vnp_TxnRef'))->first();
+                if ($order) {
+                    $order->update(['stt_payment' => 2]);
+                    return response()->json(['success' => true, 'message' => 'Thanh toán thành công']);
+                }
+            } else {
+                return response()->json(['success' => false, 'message' => 'Thanh toán thất bại']);
+            }
+        } else {
+            return response()->json(['success' => false, 'message' => 'Chữ ký không hợp lệ']);
+        }
     }
 }

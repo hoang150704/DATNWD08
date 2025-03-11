@@ -14,18 +14,18 @@ class PaymentVnpay
 
     public function __construct()
     {
-        $this->vnp_TmnCode = env('VNP_TMN_CODE', 'YOUR_TMN_CODE');
-        $this->vnp_HashSecret = env('VNP_HASH_SECRET', 'YOUR_HASH_SECRET');
-        $this->vnp_Url = env('VNP_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
-        $this->vnp_ReturnUrl = env('VNP_RETURN_URL', 'http://localhost:5173/paymentresult');
+        $this->vnp_TmnCode = env('VNP_TMN_CODE');
+        $this->vnp_HashSecret = env('VNP_HASH_SECRET');
+        $this->vnp_Url = env('VNP_URL');
+        $this->vnp_ReturnUrl = env('VNP_RETURN_URL');
     }
 
     public function createPaymentUrl($order)
     {
-        $vnp_TxnRef = $order->order_code;
+        $vnp_TxnRef = $order->code;
         $vnp_OrderInfo = "Thanh toán hóa đơn " . $order->order_code;
         $vnp_OrderType = "100002";
-        $vnp_Amount = $order->totalAfterDiscount * 100;
+        $vnp_Amount = ($order->total_amount - $order->discount_amount) * 100;
         $vnp_Locale = "VN";
         $vnp_IpAddr = request()->ip();
 
@@ -39,7 +39,7 @@ class PaymentVnpay
             "vnp_IpAddr" => $vnp_IpAddr,
             "vnp_Locale" => $vnp_Locale,
             "vnp_OrderInfo" => $vnp_OrderInfo,
-            "vnp_OrderType" => $vnp_OrderType,
+            "vnp_OrderType" => 'other',
             "vnp_ReturnUrl" => $this->vnp_ReturnUrl,
             "vnp_TxnRef" => $vnp_TxnRef
         ];

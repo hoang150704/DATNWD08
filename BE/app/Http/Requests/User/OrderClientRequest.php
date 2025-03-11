@@ -38,7 +38,7 @@ class OrderClientRequest extends FormRequest
             'products.*.product_id' => 'required|exists:products,id',
             'products.*.variation_id' => 'nullable|exists:product_variations,id', 
             'products.*.image' => 'nullable|url', 
-            'products.*.variation' => 'nullable|json', // Kiểm tra JSON hợp lệ
+            'products.*.variation' => 'nullable', // Kiểm tra JSON hợp lệ
             'products.*.name' => 'required|string|max:255',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.quantity' => 'required|integer|min:1',

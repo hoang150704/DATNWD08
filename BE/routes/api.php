@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\GhnTrackingController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\ShopController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\User\OrderClientController;
 use App\Http\Controllers\Api\User\ProductDetailController;
 use App\Http\Middleware\CheckOrderStatus;
 use App\Models\ProductVariation;
@@ -41,7 +42,8 @@ Route::get('/parent-categories', [HomeController::class, 'getParentCategories'])
 Route::get('/top-comments', [HomeController::class, 'getTopComments']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
-
+//
+Route::post('/checkout', [OrderClientController::class, 'store']);
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
