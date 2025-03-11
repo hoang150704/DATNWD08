@@ -63,68 +63,56 @@ class VoucherController extends Controller
         }
     }
     public function applyVoucher(Request $request)
-{
-    try {
-        // Xác nhận dữ liệu đầu vào
-        $validatedData = $request->validate([
-            'voucher_code' => 'required|string|exists:vouchers,code', // Mã voucher
-            'order_id' => 'required|exists:orders,id', // ID của đơn hàng
-        ]);
+    {
+        try {
+            // Xác nhận dữ liệu đầu vào
+            $validatedData = $request->validate([
+                'voucher_code' => 'required|string|exists:vouchers,code', // Mã voucher
+                'total_amount' => 'required|numeric|min:0', // Giá trị đơn hàng dự kiến
+            ]);
 
-        // Lấy thông tin đơn hàng và voucher
-        $order = Order::findOrFail($validatedData['order_id']);
-        $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+            // Lấy thông tin voucher
+            $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
-        // Kiểm tra hạn sử dụng của voucher
-        if ($voucher->expiry_date->isBefore(now())) {
-            return response()->json(['message' => 'Voucher đã hết hạn'], 400);
+            // Kiểm tra hạn sử dụng
+            if (!$voucher->expiry_date || $voucher->expiry_date->isBefore(now())) {
+                return response()->json(['message' => 'Voucher đã hết hạn'], 400);
+            }
+
+            // Kiểm tra số lượt sử dụng còn lại
+            if ($voucher->usage_limit && $voucher->times_used >= $voucher->usage_limit) {
+                return response()->json(['message' => 'Voucher đã hết lượt sử dụng'], 400);
+            }
+
+            // Kiểm tra giá trị tối thiểu
+            if ($voucher->min_product_price && $validatedData['total_amount'] < $voucher->min_product_price) {
+                return response()->json(['message' => 'Giá trị đơn hàng không đủ điều kiện áp dụng voucher'], 400);
+            }
+
+            // Tính giảm giá
+            $discount = $voucher->type == 1
+                ? min(($validatedData['total_amount'] * $voucher->discount_percent) / 100, $voucher->max_discount_amount ?? PHP_INT_MAX)
+                : $voucher->amount;
+
+            // Tính tổng giá trị sau giảm
+            $finalAmount = max(0, $validatedData['total_amount'] - $discount);
+
+            // Trả về kết quả
+            return response()->json([
+                'message' => 'Voucher áp dụng thành công',
+                'discount' => $discount,
+                'final_total' => $finalAmount,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Dữ liệu không hợp lệ',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Đã xảy ra lỗi khi áp dụng voucher',
+                'error' => $th->getMessage(),
+            ], 500);
         }
-
-        // Kiểm tra số lượt sử dụng còn lại
-        if ($voucher->times_used >= $voucher->usage_limit) {
-            return response()->json(['message' => 'Voucher đã hết lượt sử dụng'], 400);
-        }
-
-        // Kiểm tra giá trị tối thiểu của đơn hàng
-        if ($voucher->min_product_price && $order->total_amount < $voucher->min_product_price) {
-            return response()->json(['message' => 'Giá trị đơn hàng không đủ điều kiện áp dụng voucher'], 400);
-        }
-
-        // Tính toán giảm giá
-        $discount = $voucher->type == 1
-            ? min(($order->total_amount * $voucher->discount_percent) / 100, $voucher->max_discount_amount ?? PHP_INT_MAX)
-            : $voucher->amount;
-
-        // Cập nhật giá trị cuối cùng sau khi áp dụng voucher
-        $finalAmount = max(0, $order->total_amount - $discount);
-
-        // Lưu thông tin đơn hàng
-        $order->update([
-            'discount_amount' => $discount,
-            'final_amount' => $finalAmount,
-            'voucher_id' => $voucher->id,
-        ]);
-
-        // Tăng số lần sử dụng voucher
-        $voucher->increment('times_used');
-
-        // Trả về phản hồi
-        return response()->json([
-            'message' => 'Voucher áp dụng thành công',
-            'discount' => $discount,
-            'final_amount' => $finalAmount,
-        ], 200);
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        return response()->json([
-            'message' => 'Dữ liệu không hợp lệ',
-            'errors' => $e->errors(),
-        ], 422);
-    } catch (\Throwable $th) {
-        return response()->json([
-            'message' => 'Đã xảy ra lỗi khi áp dụng voucher',
-            'error' => $th->getMessage(),
-        ], 500);
     }
-}
-
 }
