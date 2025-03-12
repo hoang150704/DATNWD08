@@ -72,12 +72,16 @@ class VoucherController extends Controller
             'total_amount' => 'required|numeric|min:0', // Giá trị đơn hàng dự kiến
         ]);
 
+        // Kiểm tra token xác thực
+        $user = auth('sanctum')->user(); // Lấy người dùng thông qua Sanctum token
+        $isLoggedIn = $user !== null; // Xác định người dùng đã đăng nhập hay chưa
+
         // Lấy thông tin voucher
         $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
         // Kiểm tra loại voucher
-        if ($voucher->for_logged_in_users && !auth()->check()) {
-            return response()->json(['message' => 'Voucher này chỉ dành cho người dùng đăng nhập'], 403);
+        if ($voucher->for_logged_in_users == 1 && !$isLoggedIn) {
+            return response()->json(['message' => 'Voucher này chỉ dành cho người dùng đã đăng nhập'], 403);
         }
 
         // Kiểm tra hạn sử dụng
@@ -121,5 +125,6 @@ class VoucherController extends Controller
         ], 500);
     }
 }
+
 
 }
