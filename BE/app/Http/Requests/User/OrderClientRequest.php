@@ -36,11 +36,11 @@ class OrderClientRequest extends FormRequest
             // Validate danh sách sản phẩm trong đơn hàng
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
-            'products.*.variation_id' => 'nullable|exists:product_variations,id', 
-            'products.*.image' => 'nullable|url', 
-            'products.*.variation' => 'nullable', // Kiểm tra JSON hợp lệ
+            'products.*.id' => 'nullable|exists:product_variations,id',  // variation id
+            'products.*.image_url' => 'nullable|url', 
             'products.*.name' => 'required|string|max:255',
-            'products.*.price' => 'required|numeric|min:0',
+            'products.*.sale_price' => 'nullable|numeric',
+            'products.*.regular_price' => 'nullable|numeric',
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.weight' => 'required|numeric|min:0', // Cải thiện kiểm tra trọng lượng
         ];

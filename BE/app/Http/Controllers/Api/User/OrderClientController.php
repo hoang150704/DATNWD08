@@ -47,20 +47,30 @@ class OrderClientController extends Controller
         try {
             DB::beginTransaction();
             $validatedData = $request->validated();
-
+    
             // Kiểm tra nếu không có sản phẩm trong đơn hàng
             if (empty($validatedData['products'])) {
                 return response()->json([
                     'message' => 'Không có sản phẩm nào trong đơn hàng!'
                 ], 400);
             }
-
-            // Kiểm tra người dùng đăng nhập
-            $userId = auth()->check() ? auth()->id() : null;
+    
+            //
+            $user = auth('sanctum')->user();
+            $userId = $user ? $user->id : null;
+            // Kiểm tra phương thức thanh toán
+            if ($validatedData['payment_method'] == 'vnpay' && $validatedData['final_amount'] == 0) {
+                return response()->json([
+                    'message' => 'Thanh toán VNPay không hợp lệ (số tiền phải lớn hơn 0)!'
+                ], 400);
+            }
+    
+            // Tạo mã đơn hàng
             $orderCode = $this->generateUniqueOrderCode();
+    
             // Tạo đơn hàng
             $order = Order::create([
-                'user_id' => $userId, // Lưu ID người dùng nếu có đăng nhập
+                'user_id' => $userId,
                 'code' => $orderCode,
                 'total_amount' => $validatedData['total_amount'],
                 'discount_amount' => $validatedData['discount_amount'] ?? 0,
@@ -73,23 +83,27 @@ class OrderClientController extends Controller
                 'o_mail' => $validatedData['o_mail'] ?? null,
                 'note' => strip_tags($validatedData['note'] ?? ''),
                 'stt_payment' => 1,
-                'stt_track' => 1
+                'stt_track' => 1,
+                // Lưu thông tin thời gian giao hàng nếu có
+                // 'from_estimate_date' => $validatedData['time']['from_estimate_date'] ?? null,
+                // 'to_estimate_date' => $validatedData['time']['to_estimate_date'] ?? null,
             ]);
-
+    
             if (!$order) {
                 DB::rollBack();
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
-
+    
             $orderItems = [];
-
+    
             foreach ($validatedData['products'] as $product) {
-                $variant = ProductVariation::find($product['variation_id']);
+                $variant = ProductVariation::find($product['id']);
+    
                 if (!$variant) {
                     DB::rollBack();
                     return response()->json(['message' => 'Sản phẩm không tồn tại!'], 400);
                 }
-
+                $variation =  $variant->getFormattedVariation();
                 // Kiểm tra tồn kho trước khi trừ
                 if ($variant->stock_quantity < $product['quantity']) {
                     DB::rollBack();
@@ -97,29 +111,32 @@ class OrderClientController extends Controller
                         'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
                     ], 400);
                 }
-
+    
+                // Lưu sản phẩm vào order_itemss
                 $orderItems[] = [
                     'order_id' => $order->id,
                     'product_id' => $product['product_id'],
-                    'variation_id' => $product['variation_id'],
+                    'variation_id' => $product['id'] ?? null,
                     'weight' => $product['weight'],
-                    'image' => $product['image'],
-                    'variation' => json_encode($product['variation']),
+                    'image' => $product['image_url'] ?? null, 
+                    'variation' => json_encode($variation), 
                     'product_name' => strip_tags($product['name']),
-                    'price' => $product['price'],
+                    'price' => $product['sale_price'] ?? $product['regular_price'], // Lấy giá khuyến mãi nếu có
                     'quantity' => $product['quantity'],
                 ];
+    
+                // Giảm số lượng tồn kho
                 $variant->decrement('stock_quantity', (int) $product['quantity']);
             }
-
+    
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
-
+    
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
-
+    
             DB::commit();
-
+    
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
                 $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
@@ -129,7 +146,7 @@ class OrderClientController extends Controller
                     'code' => 200
                 ], 201);
             }
-
+    
             return response()->json([
                 'message' => 'Bạn đã thêm đơn hàng thành công!',
                 'order_code' => $order->code
@@ -142,6 +159,7 @@ class OrderClientController extends Controller
             ], 500);
         }
     }
+    
 
     public function callbackPayment(Request $request)
     {

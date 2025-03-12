@@ -22,7 +22,7 @@ class OrderSeeder extends Seeder
                 'total_amount' => rand(1000, 1000000),
                 'discount_amount' => rand(500, 500000),
                 'final_amount' => rand(800, 800000),
-                'payment_method' => collect(['ship_cod', 'bank_transfer', 'e-wallets'])->random(),
+                'payment_method' => collect(['ship_cod', 'vnpay'])->random(),
                 'shipping' => rand(1000, 200000),
                 'o_name' => fake()->userName,
                 'o_address' => fake()->address,
