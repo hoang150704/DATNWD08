@@ -47,8 +47,8 @@ class GhnTrackingController extends Controller
             $responseFee = $this->ApiService->post('/shiip/public-api/v2/shipping-order/fee', $dataGetFee, ['ShopId' => 195780]);
             //
             if ($responseTime['code'] == 200 && isset($responseTime['data']['leadtime_order'])) {
-                $fromDate = Carbon::parse($responseTime['data']['leadtime_order']['from_estimate_date'])->format('Y-m-d');
-                $toDate = Carbon::parse($responseTime['data']['leadtime_order']['to_estimate_date'])->format('Y-m-d');
+                $fromDate = Carbon::parse($responseTime['data']['leadtime_order']['from_estimate_date'])->format('d-m-y');
+                $toDate = Carbon::parse($responseTime['data']['leadtime_order']['to_estimate_date'])->format('d-m-y');
             } else {
                 $fromDate = null;
                 $toDate = null;

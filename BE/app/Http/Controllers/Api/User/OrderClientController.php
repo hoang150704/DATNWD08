@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
 use App\Jobs\SendMailSuccessOrderJob;
+use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\OrderItem;
@@ -13,6 +14,7 @@ use App\Models\ProductVariation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\PaymentVnpay;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class OrderClientController extends Controller
@@ -95,10 +97,14 @@ class OrderClientController extends Controller
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
             // Lưu lịch sử trạng thái
-            $orderHistoryTrack = OrderHistory::create(
+            $orderHistoryTrack = OrderHistory::insert(
                 [
                     'order_id'=>$order->id,
                     'type'=>'paid',
+                    'status'=>1
+                ],[
+                    'order_id'=>$order->id,
+                    'type'=>'tracking',
                     'status'=>1
                 ]
             );
@@ -145,7 +151,16 @@ class OrderClientController extends Controller
             SendMailSuccessOrderJob::dispatch($order);
     
             DB::commit();
-    
+            //
+            if ($userId) {
+                try {
+                    Cart::where('user_id', $userId)
+                        ->whereIn('product_id', array_column($orderItems, 'product_id'))
+                        ->delete();
+                } catch (\Throwable $th) {
+                    Log::error("Lỗi khi xóa giỏ hàng cho user_id {$userId}: " . $th->getMessage());
+                }
+            }
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
                 $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
@@ -158,8 +173,9 @@ class OrderClientController extends Controller
     
             return response()->json([
                 'message' => 'Bạn đã thêm đơn hàng thành công!',
-                'order_code' => $order->code
-            ], 201);
+                'order_code' => $order->code,
+                'code'=>201
+            ], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             return response()->json([
