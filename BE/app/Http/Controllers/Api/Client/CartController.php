@@ -143,7 +143,12 @@ class CartController extends Controller
     {
         try {
             $user = auth('sanctum')->user();
-            $cart = Cart::where('user_id', $user->id)->first();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Bạn chưa đăng nhập!'
+                ], 401);
+            }
+            $cart = Cart::firstOrCreate(['user_id' => $user->id]);
 
             $validated = request()->validate([
                 'quantity' => 'required|integer|min:1',

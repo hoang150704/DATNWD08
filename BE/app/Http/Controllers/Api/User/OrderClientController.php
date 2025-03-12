@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
+use App\Models\OrderHistory;
 use App\Models\OrderItem;
 use App\Models\ProductVariation;
 use Illuminate\Http\Request;
@@ -93,7 +94,20 @@ class OrderClientController extends Controller
                 DB::rollBack();
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
-    
+            // Lưu lịch sử trạng thái
+            $orderHistoryTrack = OrderHistory::create(
+                [
+                    'order_id'=>$order->id,
+                    'type'=>'paid',
+                    'status'=>1
+                ],
+                [
+                    'order_id'=>$order->id,
+                    'type'=>'tracking',
+                    'status'=>1
+                ]
+            );
+            //
             $orderItems = [];
     
             foreach ($validatedData['products'] as $product) {
@@ -131,7 +145,7 @@ class OrderClientController extends Controller
     
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
-    
+            //
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
     
@@ -179,6 +193,13 @@ class OrderClientController extends Controller
                 $order = Order::where('code', $request->get('vnp_TxnRef'))->first();
                 if ($order) {
                     $order->update(['stt_payment' => 2]);
+                    $orderHistoryTrack = OrderHistory::create(
+                        [
+                            'order_id'=>$order->id,
+                            'type'=>'paid',
+                            'status'=>2
+                        ]
+                    );
                     return response()->json(['success' => true, 'message' => 'Thanh toán thành công']);
                 }
             } else {

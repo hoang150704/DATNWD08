@@ -22,27 +22,30 @@ class OrderClientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'total_amount' => 'required|numeric|min:0',
-            'discount_amount' => 'nullable|numeric|min:0',
-            'final_amount' => 'required|numeric|min:0',
-            'shipping' => 'required|numeric|min:0',
-            'payment_method'=>'required|in:vnpay,cod',
-            'o_name' => 'required|string|max:255',
-            'o_address' => 'required|string|max:500',
-            'o_phone' => ['required', 'regex:/^(0[1-9])[0-9]{8}$/'], // Số điện thoại VN hợp lệ
-            'o_mail' => 'nullable|email|max:255',
-            'note' => 'nullable|string|max:1000', // Giới hạn độ dài tránh lạm dụng
-    
-            // Validate danh sách sản phẩm trong đơn hàng
-            'products' => 'required|array|min:1',
-            'products.*.product_id' => 'required|exists:products,id',
-            'products.*.id' => 'nullable|exists:product_variations,id',  // variation id
-            'products.*.image_url' => 'nullable|url', 
-            'products.*.name' => 'required|string|max:255',
-            'products.*.sale_price' => 'nullable|numeric',
-            'products.*.regular_price' => 'nullable|numeric',
-            'products.*.quantity' => 'required|integer|min:1',
-            'products.*.weight' => 'required|numeric|min:0', // Cải thiện kiểm tra trọng lượng
+          // Thông tin khách hàng
+          'o_name' => 'required|string|max:255',
+          'o_mail' => 'nullable|email|max:255',
+          'o_phone' => ['required', 'regex:/^(0[1-9]{1}[0-9]{8})$/'], 
+          'o_address' => 'required|string|max:500',
+
+          // Thông tin đơn hàng
+          'payment_method' => 'required|in:vnpay,ship_cod',
+          'discount_amount' => 'nullable|numeric|min:0',
+          'final_amount' => 'required|numeric|min:0',
+          'shipping' => 'required|numeric|min:0',
+          'note' => 'nullable|string|max:1000',
+
+          // Danh sách sản phẩm
+          'products' => 'required|array|min:1',
+          'products.*.id' => 'required|exists:product_variations,id',
+          'products.*.product_id' => 'required|exists:products,id',
+          'products.*.name' => 'required|string|max:255',
+          'products.*.weight' => 'required|numeric|min:0',
+          'products.*.image_url' => 'nullable|url',
+          'products.*.quantity' => 'required|integer|min:1',
+          'products.*.regular_price' => 'required|numeric|min:0',
+          'products.*.sale_price' => 'nullable|numeric|min:0',
+          'products.*.value' => 'nullable|string|max:255',
         ];
     }
     
