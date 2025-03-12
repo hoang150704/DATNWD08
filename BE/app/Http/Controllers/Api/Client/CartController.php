@@ -20,7 +20,7 @@ class CartController extends Controller
             $data = $request->json()->all(); /// Lấy tất cả dữu liệu gửi lên
             //
             if (!is_array($data) || empty($data)) {
-                return response()->json([], 400);
+                return response()->json([], 200);
             }
             //Tạo mảng các id variant
             $variationIds = array_column($data, 'variant');
@@ -33,7 +33,8 @@ class CartController extends Controller
             if ($variations->isEmpty()) {
                 return response()->json([
                     'message' => 'Không tìm thấy sản phẩm nào!',
-                ], 404);
+                    'code'=>404
+                ], 200);
             }
             // Duyệt qua từng variation và thêm hình ảnh + quantity  vào mảng
             $variations->transform(function ($variation) use ($data) {
@@ -93,7 +94,7 @@ class CartController extends Controller
 
             $cart = Cart::where('user_id', $user->id)->first();
             if (!$cart) {
-                return response()->json(['message' => 'Giỏ hàng trống!'], 404);
+                return response()->json([], 200);
             }
 
 
