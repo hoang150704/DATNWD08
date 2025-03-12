@@ -45,7 +45,6 @@ class OrderClientRequest extends FormRequest
           'products.*.quantity' => 'required|integer|min:1',
           'products.*.regular_price' => 'required|numeric|min:0',
           'products.*.sale_price' => 'nullable|numeric|min:0',
-          'products.*.value' => 'nullable|string|max:255',
         ];
     }
     

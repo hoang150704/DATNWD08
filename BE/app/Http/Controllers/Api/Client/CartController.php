@@ -156,7 +156,7 @@ class CartController extends Controller
                 'quantity.min' => 'Số lượng không được nhỏ hơn 1'
             ]);
 
-            $variation = request('variation_id');
+            $variation = request('variant_id');
             $quantity = request('quantity');
 
             $cartItem = CartItem::where('cart_id', $cart->id)
