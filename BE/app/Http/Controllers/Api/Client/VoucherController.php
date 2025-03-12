@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Voucher;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -75,9 +76,10 @@ class VoucherController extends Controller
             $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
             // Kiểm tra hạn sử dụng
-            if (!$voucher->expiry_date || $voucher->expiry_date->isBefore(now())) {
+            if (!$voucher->expiry_date || Carbon::parse($voucher->expiry_date)->isBefore(now())) {
                 return response()->json(['message' => 'Voucher đã hết hạn'], 400);
             }
+
 
             // Kiểm tra số lượt sử dụng còn lại
             if ($voucher->usage_limit && $voucher->times_used >= $voucher->usage_limit) {

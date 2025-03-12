@@ -60,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [ClientVoucherController::class, 'index']); // Lấy danh sách voucher
         Route::get('/{id}', [ClientVoucherController::class, 'show']); // Lấy chi tiết voucher
         Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
+        Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
     });
 
     // ===============================================================================
