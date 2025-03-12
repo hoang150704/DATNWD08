@@ -100,11 +100,6 @@ class OrderClientController extends Controller
                     'order_id'=>$order->id,
                     'type'=>'paid',
                     'status'=>1
-                ],
-                [
-                    'order_id'=>$order->id,
-                    'type'=>'tracking',
-                    'status'=>1
                 ]
             );
             //

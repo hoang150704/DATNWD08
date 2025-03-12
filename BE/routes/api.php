@@ -1,16 +1,16 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
-use App\Http\Controllers\Api\Client\VoucherController as ClientVoucherController;
-use App\Http\Controllers\Api\Client\CartController;
-use App\Http\Controllers\Api\GhnTrackingController;
-use App\Http\Controllers\Api\HomeController;
-use App\Http\Controllers\Api\ShopController;
-use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
+use App\Http\Controllers\Api\User\CartController;
+use App\Http\Controllers\Api\Services\GhnTrackingController;
+use App\Http\Controllers\Api\User\HomeController;
+use App\Http\Controllers\Api\User\ShopController;
+use App\Http\Controllers\Api\Services\UploadController;
 use App\Http\Controllers\Api\User\OrderClientController;
 use App\Http\Controllers\Api\User\ProductDetailController;
 use App\Http\Middleware\CheckOrderStatus;

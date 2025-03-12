@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 
 class StatisticalController extends Controller
 {
-    public function order()
+    public function OrderStatistics()
     {
-
+    
     }
 }
