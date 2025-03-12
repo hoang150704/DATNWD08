@@ -20,7 +20,7 @@ class CartController extends Controller
             $data = $request->json()->all(); /// Lấy tất cả dữu liệu gửi lên
             //
             if (!is_array($data) || empty($data)) {
-                return response()->json([], 400);
+                return response()->json([], 200);
             }
             //Tạo mảng các id variant
             $variationIds = array_column($data, 'variant');
@@ -33,7 +33,8 @@ class CartController extends Controller
             if ($variations->isEmpty()) {
                 return response()->json([
                     'message' => 'Không tìm thấy sản phẩm nào!',
-                ], 404);
+                    'code'=>404
+                ], 200);
             }
             // Duyệt qua từng variation và thêm hình ảnh + quantity  vào mảng
             $variations->transform(function ($variation) use ($data) {
@@ -86,14 +87,14 @@ class CartController extends Controller
     {
         try {
             // Kiểm tra xem người dùng đã đăng nhập chưa
-            $user = Auth::user();
+            $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
 
             $cart = Cart::where('user_id', $user->id)->first();
             if (!$cart) {
-                return response()->json(['message' => 'Giỏ hàng trống!'], 404);
+                return response()->json([], 200);
             }
 
 
@@ -141,7 +142,13 @@ class CartController extends Controller
     public function addCart()
     {
         try {
-            $cart = Cart::where('user_id', Auth::id())->first();
+            $user = auth('sanctum')->user();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Bạn chưa đăng nhập!'
+                ], 401);
+            }
+            $cart = Cart::firstOrCreate(['user_id' => $user->id]);
 
             $validated = request()->validate([
                 'quantity' => 'required|integer|min:1',
@@ -149,7 +156,7 @@ class CartController extends Controller
                 'quantity.min' => 'Số lượng không được nhỏ hơn 1'
             ]);
 
-            $variation = request('variation_id');
+            $variation = request('variant_id');
             $quantity = request('quantity');
 
             $cartItem = CartItem::where('cart_id', $cart->id)
@@ -182,7 +189,7 @@ class CartController extends Controller
     public function removeItem($id)
     {
         try {
-            $user = Auth::user();
+            $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
@@ -221,7 +228,7 @@ class CartController extends Controller
     public function changeQuantity($id)
     {
         try {
-            $user = Auth::user();
+            $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
@@ -269,7 +276,7 @@ class CartController extends Controller
     public function syncCart(Request $request)
     {
         try {
-            $user = Auth::user(); // lấy ra user
+            $user = auth('sanctum')->user(); // lấy ra user
             if (!$user) {
                 return response()->json(['error' => 'Chưa đăng nhập'], 401);
             }
@@ -337,7 +344,8 @@ class CartController extends Controller
     public function clearAll()
     {
         try {
-            $cart = Cart::where('user_id', Auth::id())->first();
+            $user = auth('sanctum')->user();
+            $cart = Cart::where('user_id', $user->id)->first();
 
             if (!$cart) {
                 return response()->json([

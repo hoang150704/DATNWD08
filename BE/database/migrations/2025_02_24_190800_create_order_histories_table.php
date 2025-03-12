@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('order_histories', function (Blueprint $table) {
             $table->id();
-            $table->integer('orders_id');
+            $table->integer('order_id');
             $table->enum('type',['tracking','paid']);
             $table->integer('status_id');
             $table->timestamps();
