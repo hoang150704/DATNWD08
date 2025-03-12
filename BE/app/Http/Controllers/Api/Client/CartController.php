@@ -86,7 +86,7 @@ class CartController extends Controller
     {
         try {
             // Kiểm tra xem người dùng đã đăng nhập chưa
-            $user = Auth::user();
+            $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
@@ -141,7 +141,8 @@ class CartController extends Controller
     public function addCart()
     {
         try {
-            $cart = Cart::where('user_id', Auth::id())->first();
+            $user = auth('sanctum')->user();
+            $cart = Cart::where('user_id', $user->id)->first();
 
             $validated = request()->validate([
                 'quantity' => 'required|integer|min:1',
@@ -182,7 +183,7 @@ class CartController extends Controller
     public function removeItem($id)
     {
         try {
-            $user = Auth::user();
+            $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
@@ -221,7 +222,7 @@ class CartController extends Controller
     public function changeQuantity($id)
     {
         try {
-            $user = Auth::user();
+            $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
@@ -269,7 +270,7 @@ class CartController extends Controller
     public function syncCart(Request $request)
     {
         try {
-            $user = Auth::user(); // lấy ra user
+            $user = auth('sanctum')->user(); // lấy ra user
             if (!$user) {
                 return response()->json(['error' => 'Chưa đăng nhập'], 401);
             }
@@ -337,7 +338,8 @@ class CartController extends Controller
     public function clearAll()
     {
         try {
-            $cart = Cart::where('user_id', Auth::id())->first();
+            $user = auth('sanctum')->user();
+            $cart = Cart::where('user_id', $user->id)->first();
 
             if (!$cart) {
                 return response()->json([
