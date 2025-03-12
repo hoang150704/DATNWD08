@@ -20,6 +20,7 @@ class CreateVouchersTable extends Migration
             $table->integer('min_product_price')->nullable();
             $table->integer('usage_limit');
             $table->integer('type');
+            $table->boolean('for_logged_in_users')->default(false);
             $table->integer('times_used')->default(0);
             $table->datetime('expiry_date')->nullable();
             $table->datetime('start_date');

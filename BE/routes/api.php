@@ -46,7 +46,13 @@ Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 // Lấy biến thể
 Route::post('/variation', [CartController::class, 'getVariation']);
 
-
+// Voucher
+Route::prefix('voucher')->group(function () {
+    Route::get('/', [ClientVoucherController::class, 'index']); // Lấy danh sách voucher
+    Route::get('/{id}', [ClientVoucherController::class, 'show']); // Lấy chi tiết voucher
+    Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
+    Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
+});
 // ===============================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
@@ -55,13 +61,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
 
 
-    // Voucher
-    Route::prefix('voucher')->group(function () {
-        Route::get('/', [ClientVoucherController::class, 'index']); // Lấy danh sách voucher
-        Route::get('/{id}', [ClientVoucherController::class, 'show']); // Lấy chi tiết voucher
-        Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
-        Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
-    });
+
+
 
     // ===============================================================================
 
