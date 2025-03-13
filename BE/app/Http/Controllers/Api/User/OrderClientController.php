@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\OrderItem;
@@ -97,18 +98,22 @@ class OrderClientController extends Controller
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
             // Lưu lịch sử trạng thái
-            $orderHistoryTrack = OrderHistory::insert(
+            $orderHistoryTrack = OrderHistory::insert([
                 [
                     'order_id' => $order->id,
                     'type' => 'paid',
-                    'status_id' => 1
+                    'status_id' => 1,
+                    'created_at' => now(), 
+                    'updated_at' => now()
                 ],
                 [
                     'order_id' => $order->id,
                     'type' => 'tracking',
-                    'status_id' => 1
+                    'status_id' => 1,
+                    'created_at' => now(), 
+                    'updated_at' => now()
                 ]
-            );
+            ]);
             //
             $orderItems = [];
 
@@ -152,16 +157,23 @@ class OrderClientController extends Controller
             SendMailSuccessOrderJob::dispatch($order);
 
             DB::commit();
-            //
+            //Xóa giỏ hhangf
             if ($userId) {
                 try {
-                    Cart::where('user_id', $userId)
-                        ->whereIn('product_id', array_column($orderItems, 'product_id'))
-                        ->delete();
+                    // Lấy danh sách cart_id của user
+                    $cart = Cart::where('user_id', $userId)->first();
+                    
+                    if ($cart) {
+                        // Xóa các cart_items có trong đơn hàng
+                        CartItem::where('cart_id', $cart->id)
+                            ->whereIn('variation_id', array_column($orderItems, 'variation_id'))
+                            ->delete();
+                    }
                 } catch (\Throwable $th) {
-                    Log::error("Lỗi khi xóa giỏ hàng cho user_id {$userId}: " . $th->getMessage());
+                    Log::error("Lỗi khi xóa cart_items cho user_id {$userId}: " . $th->getMessage());
                 }
             }
+            
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
                 $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
@@ -190,7 +202,7 @@ class OrderClientController extends Controller
     public function callbackPayment(Request $request)
     {
 
-        $vnp_HashSecret = "NVJLXIPOK1XVZDL50B946129SBPLQBXE";
+        $vnp_HashSecret = env('VNP_HASH_SECRET');
         $vnp_SecureHash = $request['vnp_SecureHash'];
         $data = array();
         foreach ($_GET as $key => $value) {
@@ -221,7 +233,13 @@ class OrderClientController extends Controller
                 if ($order) {
                     $order->update(['stt_payment' => 2]);
                 }
-
+                OrderHistory::create([
+                    
+                        'order_id' => $order->id,
+                        'type' => 'paid',
+                        'status_id' => 2
+                    
+                ]);
                 return response()->json([
                     'success' => true,
                     'message' => 'Thanh toán thành công',
