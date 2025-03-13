@@ -82,7 +82,8 @@ class OrderController extends Controller
                         'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
                     ], 400);
                 }
-
+                 //
+                 $variation =  $variant->getFormattedVariation();
                 // Thêm sản phẩm vào danh sách orderItems
                 $orderItems[] = [
                     'order_id' => $order->id,
@@ -90,7 +91,7 @@ class OrderController extends Controller
                     'variation_id' => $product['variation_id'],
                     'weight' => $product['weight'],
                     'image' => $product['image'],
-                    'variation' => json_encode($product['variation']),
+                    'variation' => json_encode($variation),
                     'product_name' => $product['name'],
                     'price' => $product['price'],
                     'quantity' => $product['quantity'],
@@ -147,7 +148,7 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         try {
-            $order = Order::findOrFail($order->id);
+            $order = Order::with('items')->findOrFail($order->id);
 
             return response()->json([
                 'message' => 'Success',
@@ -156,6 +157,7 @@ class OrderController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
+                'error' => $th->getMessage()
             ], 500);
         }
     }
