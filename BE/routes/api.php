@@ -1,23 +1,26 @@
 <?php
-
+// ADMIN
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
+// USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\User\CartController;
-use App\Http\Controllers\Api\Services\GhnTrackingController;
 use App\Http\Controllers\Api\User\HomeController;
 use App\Http\Controllers\Api\User\ShopController;
+use App\Http\Controllers\Api\User\ReviewController;
 use App\Http\Controllers\Api\Services\UploadController;
 use App\Http\Controllers\Api\User\OrderClientController;
 use App\Http\Controllers\Api\User\ProductDetailController;
-use App\Http\Middleware\CheckOrderStatus;
-use App\Models\ProductVariation;
-use Illuminate\Support\Facades\Route;
 
-// ================================================================================================================================
+use App\Http\Controllers\Api\Services\GhnTrackingController;
+use App\Http\Middleware\CheckOrderStatus;
+use Illuminate\Support\Facades\Route;
+use App\Models\ProductVariation;
+
+// =======================================================================================================================================
 // Các chức năng KHÔNG phải LOGIN
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
@@ -31,22 +34,26 @@ Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
 });
+
 // Đăng nhập bằng google
 // Route::get('/auth/google', [AuthController::class, 'redirect']);
 Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
-
 
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
-//
 Route::post('/checkout', [OrderClientController::class, 'store']);
+
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
+
+// Đánh giá
+Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
+Route::post('/reviews', [ReviewController::class, 'store']);
 
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
@@ -61,14 +68,15 @@ Route::prefix('voucher')->group(function () {
     Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
     Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
 });
-// ===============================================================================
+
+// =======================================================================================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
 
-    // ===================================================================================================================
+    // =========================================================================
 
     // Giỏ hàng
     Route::get('/cart', [CartController::class, 'index']);
@@ -77,10 +85,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
     Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
     Route::post('/cart/clear', [CartController::class, 'clearAll']);
+    
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
 
-    // Chức năng chỉ admin mới call được api
+    // Chức năng chỉ Admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
         // Dashborad
         Route::get('/dashboard', function () {
@@ -105,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{order}/edit', [OrderController::class, 'update']);
             Route::get('/{order}', [OrderController::class, 'show']);
         });
+        
         //Xử lí api giao hàng nhanh
         // User
         Route::apiResource('users', UserController::class);
