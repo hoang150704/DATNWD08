@@ -32,7 +32,6 @@ Route::prefix('ghn')->group(function () {
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
 });
 // Đăng nhập bằng google
-// Route::get('/auth/google', [AuthController::class, 'redirect']);
 Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 
 
@@ -41,8 +40,9 @@ Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
-//
+//Thanh toán
 Route::post('/checkout', [OrderClientController::class, 'store']);
+Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
