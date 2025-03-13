@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\OrderItem;
 use App\Models\ProductVariation;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\PaymentVnpay;
@@ -147,7 +148,24 @@ class OrderClientController extends Controller
 
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
-            //
+
+            // Sau khi hoàn tất việc tạo đơn hàng và trước khi commit transaction
+            if (isset($validatedData['voucher_code'])) {
+                $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+
+                if ($voucher) {
+                    // Tăng số lượt sử dụng của voucher
+                    if ($voucher->usage_limit && $voucher->times_used < $voucher->usage_limit) {
+                        $voucher->increment('times_used');
+                    } else {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
+                        ], 400);
+                    }
+                }
+            }
+
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
 
@@ -232,7 +250,7 @@ class OrderClientController extends Controller
                     'message' => 'Thanh toán thất bại',
                 ]);
             }
-        }else{
+        } else {
             return response()->json([
                 'success' => false,
                 'message' => 'Sai chữ kí',
