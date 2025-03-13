@@ -107,6 +107,8 @@ class VoucherController extends Controller
         // Tính tổng giá trị sau giảm
         $finalAmount = max(0, $validatedData['total_amount'] - $discount);
 
+        // Tăng số lượt sử dụng voucher
+        $voucher->increment('times_used');
         // Trả về kết quả
         return response()->json([
             'message' => 'Voucher áp dụng thành công',
