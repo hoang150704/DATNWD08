@@ -45,6 +45,7 @@ Route::get('/categories/{category_id}/products', [ShopController::class, 'getPro
 
 // Đánh giá
 Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
+Route::post('/reviews', [ReviewController::class, 'store']);
 
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
@@ -59,6 +60,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
+
+    // Bình luận
+    // Route::post('/comments', [CommentController::class, 'store']);
 
     // Voucher
     Route::prefix('voucher')->group(function () {
@@ -77,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
     Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
     Route::post('/cart/clear', [CartController::class, 'clearAll']);
+
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
 
@@ -105,6 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{order}/edit', [OrderController::class, 'update']);
             Route::get('/{order}', [OrderController::class, 'show']);
         });
+
         //Xử lí api giao hàng nhanh
         // User
         Route::apiResource('users', UserController::class);
