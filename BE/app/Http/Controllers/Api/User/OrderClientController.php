@@ -50,14 +50,14 @@ class OrderClientController extends Controller
         try {
             DB::beginTransaction();
             $validatedData = $request->validated();
-    
+
             // Kiểm tra nếu không có sản phẩm trong đơn hàng
             if (empty($validatedData['products'])) {
                 return response()->json([
                     'message' => 'Không có sản phẩm nào trong đơn hàng!'
                 ], 400);
             }
-    
+
             //
             $user = auth('sanctum')->user();
             $userId = $user ? $user->id : null;
@@ -67,10 +67,10 @@ class OrderClientController extends Controller
                     'message' => 'Thanh toán VNPay không hợp lệ (số tiền phải lớn hơn 0)!'
                 ], 400);
             }
-    
+
             // Tạo mã đơn hàng
             $orderCode = $this->generateUniqueOrderCode();
-    
+
             // Tạo đơn hàng
             $order = Order::create([
                 'user_id' => $userId,
@@ -91,7 +91,7 @@ class OrderClientController extends Controller
                 // 'from_estimate_date' => $validatedData['time']['from_estimate_date'] ?? null,
                 // 'to_estimate_date' => $validatedData['time']['to_estimate_date'] ?? null,
             ]);
-    
+
             if (!$order) {
                 DB::rollBack();
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
@@ -99,21 +99,22 @@ class OrderClientController extends Controller
             // Lưu lịch sử trạng thái
             $orderHistoryTrack = OrderHistory::insert(
                 [
-                    'order_id'=>$order->id,
-                    'type'=>'paid',
-                    'status'=>1
-                ],[
-                    'order_id'=>$order->id,
-                    'type'=>'tracking',
-                    'status'=>1
+                    'order_id' => $order->id,
+                    'type' => 'paid',
+                    'status_id' => 1
+                ],
+                [
+                    'order_id' => $order->id,
+                    'type' => 'tracking',
+                    'status_id' => 1
                 ]
             );
             //
             $orderItems = [];
-    
+
             foreach ($validatedData['products'] as $product) {
                 $variant = ProductVariation::find($product['id']);
-    
+
                 if (!$variant) {
                     DB::rollBack();
                     return response()->json(['message' => 'Sản phẩm không tồn tại!'], 400);
@@ -126,30 +127,30 @@ class OrderClientController extends Controller
                         'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
                     ], 400);
                 }
-    
+
                 // Lưu sản phẩm vào order_itemss
                 $orderItems[] = [
                     'order_id' => $order->id,
                     'product_id' => $product['product_id'],
                     'variation_id' => $product['id'] ?? null,
                     'weight' => $product['weight'],
-                    'image' => $product['image_url'] ?? null, 
-                    'variation' => json_encode($variation), 
+                    'image' => $product['image_url'] ?? null,
+                    'variation' => json_encode($variation),
                     'product_name' => strip_tags($product['name']),
                     'price' => $product['sale_price'] ?? $product['regular_price'], // Lấy giá khuyến mãi nếu có
                     'quantity' => $product['quantity'],
                 ];
-    
+
                 // Giảm số lượng tồn kho
                 $variant->decrement('stock_quantity', (int) $product['quantity']);
             }
-    
+
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
             //
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
-    
+
             DB::commit();
             //
             if ($userId) {
@@ -170,11 +171,11 @@ class OrderClientController extends Controller
                     'code' => 200
                 ], 201);
             }
-    
+
             return response()->json([
                 'message' => 'Bạn đã thêm đơn hàng thành công!',
                 'order_code' => $order->code,
-                'code'=>201
+                'code' => 201
             ], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -184,40 +185,58 @@ class OrderClientController extends Controller
             ], 500);
         }
     }
-    
+
 
     public function callbackPayment(Request $request)
     {
-        $vnp_HashSecret = env('VNP_HASH_SECRET'); // Khóa bảo mật
-        $data = $request->all();
 
-        // Tạo chuỗi kiểm tra chữ ký
-        $vnp_SecureHash = $data['vnp_SecureHash'];
+        $vnp_HashSecret = "NVJLXIPOK1XVZDL50B946129SBPLQBXE";
+        $vnp_SecureHash = $request['vnp_SecureHash'];
+        $data = array();
+        foreach ($_GET as $key => $value) {
+            if (substr($key, 0, 4) == "vnp_") {
+                $data[$key] = $value;
+            }
+        }
+
         unset($data['vnp_SecureHash']);
         ksort($data);
-        $hashData = urldecode(http_build_query($data));
+        $i = 0;
+        $hashData = "";
+        foreach ($data as $key => $value) {
+            if ($i == 1) {
+                $hashData = $hashData . '&' . urlencode($key) . "=" . urlencode($value);
+            } else {
+                $hashData = $hashData . urlencode($key) . "=" . urlencode($value);
+                $i = 1;
+            }
+        }
+
         $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
         if ($secureHash === $vnp_SecureHash) {
-            if ($request->get('vnp_ResponseCode') === '00') {
+            if ($request['vnp_ResponseCode'] == '00') {
                 // Giao dịch thành công, cập nhật trạng thái đơn hàng
-                $order = Order::where('code', $request->get('vnp_TxnRef'))->first();
+                $order = Order::where('code', $request['vnp_TxnRef'])->first();
                 if ($order) {
                     $order->update(['stt_payment' => 2]);
-                    $orderHistoryTrack = OrderHistory::create(
-                        [
-                            'order_id'=>$order->id,
-                            'type'=>'paid',
-                            'status'=>2
-                        ]
-                    );
-                    return response()->json(['success' => true, 'message' => 'Thanh toán thành công']);
                 }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Thanh toán thành công',
+                ]);
             } else {
-                return response()->json(['success' => false, 'message' => 'Thanh toán thất bại']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thanh toán thất bại',
+                ]);
             }
-        } else {
-            return response()->json(['success' => false, 'message' => 'Chữ ký không hợp lệ']);
+        }else{
+            return response()->json([
+                'success' => false,
+                'message' => 'Sai chữ kí',
+            ]);
         }
     }
 }

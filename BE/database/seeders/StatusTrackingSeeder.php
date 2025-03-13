@@ -16,7 +16,6 @@ class StatusTrackingSeeder extends Seeder
         DB::table('status_trackings')->insert([
             ['name' => 'Chờ xác nhận', 'next_status_allowed' => json_encode(['2', '7'])],
             ['name' => 'Đã xác nhận', 'next_status_allowed' => json_encode(['3', '7'])],
-            ['name' => 'Đã lên đơn', 'next_status_allowed' => json_encode(['3', '7'])],
             ['name' => 'Đang giao hàng', 'next_status_allowed' => json_encode(['5', '6', '7'])],
             ['name' => 'Đã giao hàng', 'next_status_allowed' => json_encode(['4'])],
             ['name' => 'Hoàn thành', 'next_status_allowed' => json_encode([])],
