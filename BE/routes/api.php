@@ -1,26 +1,28 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
-use App\Http\Controllers\Api\Client\VoucherController as ClientVoucherController;
-use App\Http\Controllers\Api\Client\CartController;
-use App\Http\Controllers\Api\GhnTrackingController;
-use App\Http\Controllers\Api\HomeController;
-use App\Http\Controllers\Api\ShopController;
-use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
+use App\Http\Controllers\Api\User\CartController;
+use App\Http\Controllers\Api\Services\GhnTrackingController;
+use App\Http\Controllers\Api\User\HomeController;
+use App\Http\Controllers\Api\User\ShopController;
+use App\Http\Controllers\Api\Services\UploadController;
+use App\Http\Controllers\Api\User\OrderClientController;
 use App\Http\Controllers\Api\User\ProductDetailController;
 use App\Http\Middleware\CheckOrderStatus;
 use App\Models\ProductVariation;
 use Illuminate\Support\Facades\Route;
 
-// ===============================================================================
-// Các chức năng KHÔNG cần LOGIN
+// ================================================================================================================================
+// Các chức năng KHÔNG phải LOGIN
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
@@ -29,20 +31,26 @@ Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
 });
+// Đăng nhập bằng google
+Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
+
 
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
-Route::get('/top-comments', [HomeController::class, 'getTopComments']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
-
+//Thanh toán
+Route::post('/checkout', [OrderClientController::class, 'store']);
+Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
+
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+
 // Lấy biến thể
 Route::post('/variation', [CartController::class, 'getVariation']);
 
@@ -60,18 +68,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
 
-
-
-
-
-    // ===============================================================================
+    // ===================================================================================================================
 
     // Giỏ hàng
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'addCart']);
-    Route::patch('/cart', [CartController::class, 'changeQuantity']);
-    Route::delete('/cart', [CartController::class, 'removeItem']);
-
+    Route::post('/cart/sync', [CartController::class, 'syncCart']);
+    Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
+    Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
+    Route::post('/cart/clear', [CartController::class, 'clearAll']);
+    // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
 
     // Chức năng chỉ admin mới call được api

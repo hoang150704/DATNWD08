@@ -10,8 +10,9 @@ class OrderHistory extends Model
     use HasFactory;
 
     protected $fillable = [
-        'oders_id',
+        'order_id',
         'type',
         'status_id',
     ];
+    
 }

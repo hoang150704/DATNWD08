@@ -19,6 +19,7 @@ class ProductVariation extends Model
         'weight',
         'stock_quantity',
     ];
+
     public function values()
     {
         return $this->hasMany(ProductVariationValue::class, 'variation_id', 'id');
@@ -31,8 +32,26 @@ class ProductVariation extends Model
     {
         return $this->belongsTo(Library::class, 'variant_image', 'id');
     }
+
+    public function scopeLatest($query)
+    {
+        return $query->orderByDesc('created_at')->limit(1);
+    }
     public function attributeValues()
     {
         return $this->belongsToMany(AttributeValue::class, 'product_variation_values', 'variation_id', 'attribute_value_id');
+    }
+    public function getFormattedVariation()
+    {
+        $attributes = $this->attributeValues()->with('attribute')->get();
+
+        // Nếu không có giá trị thuộc tính, trả về null
+        if ($attributes->isEmpty()) {
+            return null;
+        }
+
+        return $attributes->mapWithKeys(function ($value) {
+            return [$value->attribute->name => $value->name];
+        });
     }
 }

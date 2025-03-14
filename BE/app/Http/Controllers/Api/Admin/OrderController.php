@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\Admin\Order\UpdateOrderRequest;
+use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\ProductVariation;
 use App\Models\StatusTracking;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,9 +38,6 @@ class OrderController extends Controller
         }
     }
 
-    // call api lấy phí vận chuyển và thời gián duqwj kiến giao
-
-       
 
     public function store(StoreOrderRequest $request)
     {
@@ -46,79 +45,110 @@ class OrderController extends Controller
             DB::beginTransaction();
             $validatedData = $request->validated();
 
-            // Xử lý tạo đơn hàng
-            $order = Order::create([
-                'code' => 'DH!' . time(),
-                'total_amount' => $validatedData['total_amount'], // tổng tiền đơn hàng
-                'discount_amount' => $validatedData['discount_amount'] ?? 0, // số tiền được giảm
-                'final_amount' => $validatedData['final_amount'], // tổng tiền sau khi trừ giảm giá + phí ship
-                'payment_method' => 'ship_cod', // phương thức thanh toán
-                'shipping' => $validatedData['shipping'], // phí shipp
-                'o_name' => $validatedData['o_name'],  // tên người nhận
-                'o_address' => $validatedData['o_address'], // địa chỉ
-                'o_phone' => $validatedData['o_phone'], // số điện thoại
-                'o_mail' => $validatedData['o_mail'] ?? null, // email
-                'note'  => $validatedData['note'] ?? null,
-                'stt_payment'=>1, // Trạng thái thanh toán
-                'stt_track' => 1
-            ]);
-
-            // Thêm sản phẩm vào đơn hàng
-            foreach ($validatedData['products'] as $product) {
-                $order_items = OrderItem::create([
-                    'order_id'=>$order->id,
-                    'product_id' => $product['product_id'],
-                    'variation_id' => $product['variation_id'],
-                    'weight'=>$product['weight'],
-                    'image'=>$product['image'],
-                    'variation' => json_encode($product['variation']),
-                    'product_name'=>$product['name'],
-                    'price'=>$product['price'],  
-                    'quantity'=>$product['quantity']
-                ]);
+            // Kiểm tra nếu không có sản phẩm trong đơn hàng
+            if (empty($validatedData['products'])) {
+                return response()->json([
+                    'message' => 'Không có sản phẩm nào trong đơn hàng!'
+                ], 400);
             }
-            DB::commit();
-            return response()->json([
-                'message' => 'Bạn đã thêm đơn hàng thành công'
-            ], 201);
-        } catch (\Throwable $th) {
-            DB::rollBack();    
-            return response()->json([
-                'message' => 'Failed',
-                'errors'=>$th->getMessage(),
-            ], 500);
-        }
-    }
-       
-    public function update(UpdateOrderRequest $request, Order $order)
-    {
-        try {
-            $validatedData = $request->validated();
 
-            $order->update([
+            // Tạo đơn hàng
+            $order = Order::create([
+                'code' => 'DH_' . time(),
+                'total_amount' => $validatedData['total_amount'],
+                'discount_amount' => $validatedData['discount_amount'] ?? 0,
+                'final_amount' => $validatedData['final_amount'],
+                'payment_method' => 'ship_cod',
+                'shipping' => $validatedData['shipping'],
                 'o_name' => $validatedData['o_name'],
                 'o_address' => $validatedData['o_address'],
                 'o_phone' => $validatedData['o_phone'],
-                'o_mail' => $validatedData['o_mail'],
+                'o_mail' => $validatedData['o_mail'] ?? null,
+                'note'  => $validatedData['note'] ?? null,
+                'stt_payment' => 1,
+                'stt_track' => 1
             ]);
 
+            // Danh sách các sản phẩm trong đơn hàng
+            $orderItems = [];
+
+            foreach ($validatedData['products'] as $product) {
+                $variant = ProductVariation::findOrFail($product['variation_id']);
+
+                // Kiểm tra tồn kho trước khi trừ
+                if ($variant->stock_quantity < $product['quantity']) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
+                    ], 400);
+                }
+                 //
+                 $variation =  $variant->getFormattedVariation();
+                // Thêm sản phẩm vào danh sách orderItems
+                $orderItems[] = [
+                    'order_id' => $order->id,
+                    'product_id' => $product['product_id'],
+                    'variation_id' => $product['variation_id'],
+                    'weight' => $product['weight'],
+                    'image' => $product['image'],
+                    'variation' => json_encode($variation),
+                    'product_name' => $product['name'],
+                    'price' => $product['price'],
+                    'quantity' => $product['quantity'],
+                ];
+
+                // Cập nhật lại số lượng tồn kho
+                $variant->updateOrFail([
+                    'stock_quantity' => (int) $variant->stock_quantity - (int) $product['quantity']
+                ]);
+            }
+            // Thêm nhiều sản phẩm 
+            OrderItem::insert($orderItems);
+            SendMailSuccessOrderJob::dispatch($order);
+            DB::commit();
             return response()->json([
-                'message' => 'Success',
-                'order' => $order
-            ], 200);
+                'message' => 'Bạn đã thêm đơn hàng thành công!',
+                'order_code' => $order->code
+            ], 201);
         } catch (\Throwable $th) {
+            DB::rollBack();
             return response()->json([
                 'message' => 'Failed',
-                'errors'=>$th->getMessage(),
+                'errors' => $th->getMessage(),
             ], 500);
         }
     }
+
+
+    // public function update(UpdateOrderRequest $request, Order $order)
+    // {
+    //     try {
+    //         $validatedData = $request->validated();
+
+    //         $order->update([
+    //             'o_name' => $validatedData['o_name'],
+    //             'o_address' => $validatedData['o_address'],
+    //             'o_phone' => $validatedData['o_phone'],
+    //             'o_mail' => $validatedData['o_mail'],
+    //         ]);
+
+    //         return response()->json([
+    //             'message' => 'Success',
+    //             'order' => $order
+    //         ], 200);
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'message' => 'Failed',
+    //             'errors' => $th->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 
 
     public function show(Order $order)
     {
         try {
-            $order = Order::findOrFail($order->id);
+            $order = Order::with('items')->findOrFail($order->id);
 
             return response()->json([
                 'message' => 'Success',
@@ -127,6 +157,7 @@ class OrderController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
+                'error' => $th->getMessage()
             ], 500);
         }
     }
@@ -158,8 +189,7 @@ class OrderController extends Controller
                 }
             }
 
-            $orders = $query->
-                select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'stt_payment', 'stt_track', 'created_at')
+            $orders = $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'stt_payment', 'stt_track', 'created_at')
                 ->with([
                     'stt_track:id,name,next_status_allowed',
                     'stt_payment:id,name'
@@ -171,7 +201,6 @@ class OrderController extends Controller
                 'message' => 'Success',
                 'data' => $orders
             ], 200);
-
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
@@ -222,7 +251,6 @@ class OrderController extends Controller
                                 'message' => 'Khách hàng chưa thanh toán',
                             ], 400);
                         }
-
                     } elseif ($order->stt_payment == 2) {
 
                         if ($newTrackStatus == 7) {
@@ -232,7 +260,6 @@ class OrderController extends Controller
                                 return response()->json([
                                     'message' => 'Chỉ có thể huỷ đơn khi đơn hàng ở trạng thái chờ xử lý hoặc đã xử lý',
                                 ], 400);
-
                             }
                         } else {
                             if (!in_array($newTrackStatus, $allowedStatuses)) {
@@ -261,7 +288,6 @@ class OrderController extends Controller
             return response()->json([
                 'message' => 'Success',
             ], 200);
-
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',

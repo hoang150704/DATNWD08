@@ -18,7 +18,7 @@ return new class extends Migration
             $table->bigInteger('total_amount');
             $table->bigInteger('discount_amount');
             $table->bigInteger('final_amount');
-            $table->enum('payment_method',['ship_cod','bank_transfer','e-wallets']);
+            $table->enum('payment_method',['ship_cod','vnpay']);
             $table->bigInteger('shipping')->nullable();
             $table->text('o_name');
             $table->text('o_address');

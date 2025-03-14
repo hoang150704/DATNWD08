@@ -35,7 +35,7 @@ class VoucherController extends Controller
                 'for_logged_in_users' => 'required|boolean',
                 'max_discount_amount' => 'nullable',
                 'min_product_price' => 'nullable',
-                'usage_limit' => 'required|integer',
+                'usage_limit' => 'nullable|integer',
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
             ]);
