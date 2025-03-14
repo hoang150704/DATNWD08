@@ -15,22 +15,58 @@ class CategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    protected function search($parent = null, $children = null)
+    {
+        try {
+            return Category::query()
+                ->when($children, function ($query) use ($children) {
+                    $query->where('name', 'like', "%{$children}%")
+                        ->whereNotNull('parent_id');
+                })
+                ->when(!$children && $parent, function ($query) use ($parent) {
+                    $query->where('name', 'like', "%{$parent}%")
+                        ->whereNull('parent_id')
+                        ->with('children');
+                })
+                ->when(!$parent && !$children, function ($query) {
+                    $query->whereNull('parent_id')->with('children');
+                })
+                ->paginate(15);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed',
+                'error' => $th->getMessage()
+            ], 404);
+        }
+    }
+
+
     public function index()
     {
         try {
-            //code...
-            $categories = Category::whereNull('parent_id')->with('children')->paginate(15); //phân trang theo danh mục gốc(Không phải con của danh mục khác)
-            $this->convertChildren($categories); // gọi hàm để convert lại dữ liệu
-            return response()->json($categories, 200); // trả về res
+            $parent = request('parent');
+            $children = request('children');
+
+            // Nếu có $children, chỉ tìm theo $children
+            if ($children) {
+                $categories = $this->search(null, $children); // Truyền đúng vị trí tham số
+                return response()->json($categories, 200);
+            }
+
+            // Nếu có $parent hoặc không có request nào, tìm theo $parent
+            $categories = $this->search($parent, null);
+            $this->convertChildren($categories); // Gọi hàm để convert dữ liệu
+
+            return response()->json($categories, 200);
         } catch (\Throwable $th) {
-            //throw $th;
             return response()->json([
                 'message' => 'Lỗi hệ thống',
                 'error' => $th->getMessage()
-
             ], 500);
         }
     }
+
     private function convertChildren($categories)
     {
         foreach ($categories as $category) {
