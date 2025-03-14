@@ -20,7 +20,7 @@ use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Support\Facades\Route;
 use App\Models\ProductVariation;
 
-// =======================================================================================================================================
+// ===================================================================================================================
 // Các chức năng KHÔNG phải LOGIN
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
@@ -43,13 +43,16 @@ Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
+
 //Thanh toán
 Route::post('/checkout', [OrderClientController::class, 'store']);
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
+
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
+Route::get('/products', [ShopController::class, 'getProductsByCategoryAndPrice']);
 
 // Đánh giá
 Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
@@ -69,7 +72,7 @@ Route::prefix('voucher')->group(function () {
     Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
 });
 
-// =======================================================================================================================================
+// ===================================================================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

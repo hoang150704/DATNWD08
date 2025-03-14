@@ -46,7 +46,6 @@ class Product extends Model
     {
         return $this->hasMany(Comment::class, 'product_id');
     }
-
     public function box()
     {
         return $this->belongsTo(Box::class, 'box_id', 'id');
