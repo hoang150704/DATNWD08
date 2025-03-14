@@ -10,7 +10,7 @@ Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi. Dưới �
 - **Địa chỉ giao hàng:** {{ $order->o_address }}
 - **Số điện thoại:** {{ $order->o_phone }}
 - **Phương thức thanh toán:** {{ $order->payment_method }}
-- **Tổng tiền:** **{{ number_format($order->final_amount, 0, ',', '.') }} VNĐ**
+- **Tổng tiền:** **{{ number_format($order->final_amount, 0, ',', '.') }}   VNĐ**
 
 ## Danh sách sản phẩm:
 @component('mail::table')
@@ -24,5 +24,5 @@ Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi. Dưới �
 Chúng tôi sẽ sớm liên hệ để xác nhận đơn hàng và tiến hành giao hàng.
 
 Trân trọng,  
-**Đội ngũ Shine Light Việt Nam**
+**SevenStyle**
 @endcomponent
