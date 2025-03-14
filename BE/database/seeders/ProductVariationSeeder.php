@@ -36,7 +36,6 @@ class ProductVariationSeeder extends Seeder
                 'variant_image' => null,
                 'weight'=>$variation['weight'],
                 'regular_price' => $variation['regular_price'],
-                'weight' => $variation['weight'],
                 'sale_price' => $variation['sale_price'],
                 'stock_quantity' => $variation['stock_quantity'],
             ]);

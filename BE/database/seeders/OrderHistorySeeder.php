@@ -15,7 +15,7 @@ class OrderHistorySeeder extends Seeder
     {
         for ($i = 0; $i < 10; $i++) {
             DB::table('order_histories')->insert([
-                'orders_id' => rand(1, 10),
+                'order_id' => rand(1, 10),
                 'type' => collect(['tracking', 'paid'])->random(),
                 'status_id' => rand(1, 8),
             ]);
