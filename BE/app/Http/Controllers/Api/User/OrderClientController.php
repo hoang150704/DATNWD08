@@ -159,7 +159,9 @@ class OrderClientController extends Controller
                 $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
                 if ($voucher) {
-                    if (!$voucher->usage_limit || $voucher->times_used < $voucher->usage_limit) {
+                    // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
+                    if ($voucher->usage_limit && $voucher->times_used < $voucher->usage_limit) {
+                        // Tăng số lần sử dụng ngay trước khi commit
                         $voucher->increment('times_used');
                     } else {
                         DB::rollBack();
@@ -169,6 +171,8 @@ class OrderClientController extends Controller
                     }
                 }
             }
+
+            DB::commit(); // Đặt sau khi cập nhật voucher
 
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
