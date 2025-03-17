@@ -159,8 +159,7 @@ class OrderClientController extends Controller
                 $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
                 if ($voucher) {
-                    // Tăng số lượt sử dụng của voucher
-                    if ($voucher->usage_limit && $voucher->times_used < $voucher->usage_limit) {
+                    if (!$voucher->usage_limit || $voucher->times_used < $voucher->usage_limit) {
                         $voucher->increment('times_used');
                     } else {
                         DB::rollBack();
@@ -253,9 +252,9 @@ class OrderClientController extends Controller
                 }
                 OrderHistory::create([
 
-                        'order_id' => $order->id,
-                        'type' => 'paid',
-                        'status_id' => 2
+                    'order_id' => $order->id,
+                    'type' => 'paid',
+                    'status_id' => 2
 
                 ]);
                 return response()->json([
