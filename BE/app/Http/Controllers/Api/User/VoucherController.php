@@ -17,6 +17,7 @@ class VoucherController extends Controller
             $vouchers = Voucher::where('expiry_date', '>', now()) // Lấy voucher chưa hết hạn
                 ->whereColumn('usage_limit', '>', 'times_used') // Lấy voucher chưa hết lượt sử dụng
                 ->orderBy('start_date', 'asc') // Sắp xếp theo ngày bắt đầu
+                ->take(3) // Giới hạn số lượng voucher
                 ->get();
 
 
@@ -118,7 +119,7 @@ class VoucherController extends Controller
             'discount' => $discount,
             'final_total' => $finalAmount,
         ]));
-        
+
         // Trả về kết quả
         return response()->json([
             'message' => 'Voucher áp dụng thành công',
