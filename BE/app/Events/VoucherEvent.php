@@ -1,34 +1,35 @@
 <?php
+
 namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 
 class VoucherEvent implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use InteractsWithSockets, SerializesModels;
 
     public $action;
-    public $voucher;
+    public $data;
 
-    public function __construct($action, $voucher)
+    public function __construct($action, $data)
     {
-        $this->action = $action;
-        $this->voucher = $voucher;
+        $this->action = $action; // Hành động: created, updated, deleted
+        $this->data = $data; // Dữ liệu liên quan (voucher hoặc ID)
     }
 
     public function broadcastOn()
     {
-        return new Channel('vouchers');
+        return new Channel('voucher-channel');
     }
 
-    public function broadcastAs()
+    public function broadcastWith()
     {
-        return 'voucher.' . $this->action;
+        return [
+            'action' => $this->action,
+            'data' => $this->data,
+        ];
     }
 }
