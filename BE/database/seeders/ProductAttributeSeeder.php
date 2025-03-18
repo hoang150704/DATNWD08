@@ -24,12 +24,7 @@ class ProductAttributeSeeder extends Seeder
                 'product_id' => 1,
                 'attribute_id' => 2,
                 'attribute_value_id' => 7
-            ],
-            [
-                'product_id' => 1,
-                'attribute_id' => 2,
-                'attribute_value_id' => 8
-            ],
+            ]
         ]);
     }
 }

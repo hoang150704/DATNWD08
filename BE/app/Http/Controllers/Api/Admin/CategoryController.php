@@ -234,6 +234,7 @@ class CategoryController extends Controller
                 $count++;
             }
 
+            // NEED UPDATE 
             Category::where('id', $id)->update([
                 'name' => $data['name'],
                 'parent_id' => $data['parent_id'],
@@ -257,21 +258,33 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy()
     {
         try {
-            $category = Category::findOrFail($id);
+            // $category = Category::findOrFail($id);
 
-            if ($category->trashed()) {
-                return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
-            }
+            // if ($category->trashed()) {
+            //     return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
+            // }
 
             // Cập nhật parent_id của các danh mục con thành null
-            Category::where('parent_id', $id)->update(['parent_id' => null]);
+            // Category::where('parent_id', $id)->update(['parent_id' => null]);
 
-            $category->delete();
+            // $category->delete();
 
-            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'], 200);
+            $ids = request('ids');
+
+            $categories = Category::whereIn('id', $ids)->get();
+
+            $deletedCategories = $categories->filter(function ($category) {
+                return $category->trashed(); // Kiểm tra từng model có bị xóa mềm hay không
+            });
+            
+            if ($deletedCategories->isNotEmpty()) {
+                return response()->json(['message' => 'Có danh mục đã bị xóa mềm'], 400);
+            }
+
+            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'/*,'data' => $categories]*/], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Danh mục không tồn tại'], 404);
         } catch (\Throwable $th) {
