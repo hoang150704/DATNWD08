@@ -26,11 +26,8 @@ class DashboardController extends Controller
         $this->vouchers = new Voucher();
     }
 
-    /**
-     * API: Lấy dữ liệu tổng quan của dashboard
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+    //  API: Lấy dữ liệu tổng quan của dashboard
+
     public function dashboard(Request $request)
     {
         $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
@@ -52,9 +49,7 @@ class DashboardController extends Controller
         ], 200);
     }
 
-    /**
-     * Lấy danh sách sản phẩm bán chạy nhất (top 5)
-     */
+    //  * Lấy danh sách sản phẩm bán chạy nhất (top 5)
     private function getTopSellingProducts()
     {
         return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
@@ -65,9 +60,7 @@ class DashboardController extends Controller
             ->get();
     }
 
-    /**
-     * Lấy thống kê doanh số bán hàng theo thời gian
-     */
+    //  * Lấy thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($period)
     {
         $query = OrderItem::select(
