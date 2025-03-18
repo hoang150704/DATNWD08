@@ -1,5 +1,7 @@
 <?php
 // ADMIN
+
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
@@ -92,9 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Chức năng chỉ Admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
         // Dashboard
-        Route::get('/dashboard', function () {
-            return response()->json(['message' => 'Trang quản trị Admin']);
-        });
+        Route::get('/dashboard', [DashboardController::class, 'getDashboardData'])->name('admin.dashboard');
 
         // Voucher
         Route::prefix('vouchers')->group(function () {
