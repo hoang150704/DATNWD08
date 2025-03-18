@@ -91,7 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Chức năng chỉ Admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
-        // Dashborad
+        // Dashboard
         Route::get('/dashboard', function () {
             return response()->json(['message' => 'Trang quản trị Admin']);
         });
