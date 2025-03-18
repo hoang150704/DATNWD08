@@ -85,7 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
     Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
     Route::post('/cart/clear', [CartController::class, 'clearAll']);
-    
+
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
 
@@ -114,7 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{order}/edit', [OrderController::class, 'update']);
             Route::get('/{order}', [OrderController::class, 'show']);
         });
-        
+
         //Xử lí api giao hàng nhanh
         // User
         Route::apiResource('users', UserController::class);

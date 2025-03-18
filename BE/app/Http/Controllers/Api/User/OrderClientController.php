@@ -104,14 +104,14 @@ class OrderClientController extends Controller
                     'order_id' => $order->id,
                     'type' => 'paid',
                     'status_id' => 1,
-                    'created_at' => now(), 
+                    'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'order_id' => $order->id,
                     'type' => 'tracking',
                     'status_id' => 1,
-                    'created_at' => now(), 
+                    'created_at' => now(),
                     'updated_at' => now()
                 ]
             ]);
@@ -154,23 +154,21 @@ class OrderClientController extends Controller
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
 
-            // Sau khi hoàn tất việc tạo đơn hàng và trước khi commit transaction
+            // Commit giao dịch trước khi tăng lượt sử dụng voucher
+            DB::commit();
+
+            // Tăng lượt sử dụng voucher sau khi giao dịch hoàn tất
             if (isset($validatedData['voucher_code'])) {
                 $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
                 if ($voucher) {
-                    // Tăng số lượt sử dụng của voucher
                     if ($voucher->usage_limit && $voucher->times_used < $voucher->usage_limit) {
                         $voucher->increment('times_used');
                     } else {
-                        DB::rollBack();
-                        return response()->json([
-                            'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
-                        ], 400);
+                        Log::warning("Voucher {$voucher->code} đã đạt giới hạn số lần sử dụng!");
                     }
                 }
             }
-
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
 
@@ -180,7 +178,7 @@ class OrderClientController extends Controller
                 try {
                     // Lấy danh sách cart_id của user
                     $cart = Cart::where('user_id', $userId)->first();
-                    
+
                     if ($cart) {
                         // Xóa các cart_items có trong đơn hàng
                         CartItem::where('cart_id', $cart->id)
@@ -191,7 +189,7 @@ class OrderClientController extends Controller
                     Log::error("Lỗi khi xóa cart_items cho user_id {$userId}: " . $th->getMessage());
                 }
             }
-            
+
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
                 $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
@@ -252,11 +250,11 @@ class OrderClientController extends Controller
                     $order->update(['stt_payment' => 2]);
                 }
                 OrderHistory::create([
-                    
-                        'order_id' => $order->id,
-                        'type' => 'paid',
-                        'status_id' => 2
-                    
+
+                    'order_id' => $order->id,
+                    'type' => 'paid',
+                    'status_id' => 2
+
                 ]);
                 return response()->json([
                     'success' => true,
