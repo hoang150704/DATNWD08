@@ -154,21 +154,27 @@ class OrderClientController extends Controller
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
 
-            // Commit giao dịch trước khi tăng lượt sử dụng voucher
-            DB::commit();
 
-            // Tăng lượt sử dụng voucher sau khi giao dịch hoàn tất
+            // Sau khi hoàn tất việc tạo đơn hàng và trước khi commit transaction
             if (isset($validatedData['voucher_code'])) {
                 $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
                 if ($voucher) {
+                    // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
                     if ($voucher->usage_limit && $voucher->times_used < $voucher->usage_limit) {
+                        // Tăng số lần sử dụng ngay trước khi commit
                         $voucher->increment('times_used');
                     } else {
-                        Log::warning("Voucher {$voucher->code} đã đạt giới hạn số lần sử dụng!");
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
+                        ], 400);
                     }
                 }
             }
+
+            // Đặt sau khi cập nhật voucher
+
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
 
