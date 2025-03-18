@@ -261,30 +261,17 @@ class CategoryController extends Controller
     public function destroy()
     {
         try {
-            // $category = Category::findOrFail($id);
-
-            // if ($category->trashed()) {
-            //     return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
-            // }
-
-            // Cập nhật parent_id của các danh mục con thành null
-            // Category::where('parent_id', $id)->update(['parent_id' => null]);
-
-            // $category->delete();
 
             $ids = request('ids');
 
             $categories = Category::whereIn('id', $ids)->get();
 
-            $deletedCategories = $categories->filter(function ($category) {
-                return $category->trashed(); // Kiểm tra từng model có bị xóa mềm hay không
-            });
-            
-            if ($deletedCategories->isNotEmpty()) {
-                return response()->json(['message' => 'Có danh mục đã bị xóa mềm'], 400);
-            }
+            // Cập nhật parent_id của các danh mục con thành null
+            Category::whereIn('parent_id', $ids)->update(['parent_id' => null]);
 
-            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'/*,'data' => $categories]*/], 200);
+            $delete=Category::whereIn('id',$ids)->delete();
+
+            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác', 'data' => $categories], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Danh mục không tồn tại'], 404);
         } catch (\Throwable $th) {
@@ -292,7 +279,6 @@ class CategoryController extends Controller
             return response()->json([
                 'message' => 'Lỗi hệ thống',
                 'error' => $th->getMessage()
-
             ], 500);
         }
     }
