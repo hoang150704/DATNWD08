@@ -93,9 +93,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Chức năng chỉ Admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
-        // Dashboard
-        Route::get('/dashboard', [DashboardController::class, 'getDashboardData'])->name('admin.dashboard');
 
+        // Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'dashboard']);
         // Voucher
         Route::prefix('vouchers')->group(function () {
             Route::get('/', [VoucherController::class, 'index']);
