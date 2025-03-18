@@ -13,6 +13,7 @@ use App\Services\ApiService;
 use App\Traits\GhnTraits;
 use Carbon\Carbon;
 
+
 class GhnTrackingController extends Controller
 {
     use GhnTraits;
@@ -33,36 +34,44 @@ class GhnTrackingController extends Controller
                     'weight' => 'required',
                 ]
             );
-            $setting_ghn = GhnSetting::first();
+            // $setting_ghn = GhnSetting::first();
             $dataGetTime = [
                 'to_ward_code' => $data['to_ward_code'],
                 'to_district_id' => $data['to_district_id'],
-                'service_type_id' => $setting_ghn->service_type_id,
+                'service_type_id' => 2,
             ];
             //Lấy setiing của shoop
 
-            $weight = $data['weight'] + $setting_ghn->weight_box;
+            $weight = $data['weight'] + 10;
             $dataGetFee = array_merge($dataGetTime, ['weight' => $weight]);
-            $responseTime = $this->ApiService->post('/shiip/public-api/v2/shipping-order/leadtime', $dataGetTime, ['ShopId' => 195780]);
-            $responseFee = $this->ApiService->post('/shiip/public-api/v2/shipping-order/fee', $dataGetFee, ['ShopId' => 195780]);
+            $responses = $this->ApiService->postAsyncMultiple([
+                'time' => [
+                    'endpoint' => '/shiip/public-api/v2/shipping-order/leadtime',
+                    'data' => $dataGetTime,
+                    'headers' => ['ShopId' => 195780]
+                ],
+                'fee' => [
+                    'endpoint' => '/shiip/public-api/v2/shipping-order/fee',
+                    'data' => $dataGetFee,
+                    'headers' => ['ShopId' => 195780]
+                ]
+            ]);
+
+            $responseTime = $responses['time'];
+            $responseFee = $responses['fee'];
             //
             if ($responseTime['code'] == 200 && isset($responseTime['data']['leadtime_order'])) {
-                $fromDate = Carbon::parse($responseTime['data']['leadtime_order']['from_estimate_date'])->format('Y-m-d');
-                $toDate = Carbon::parse($responseTime['data']['leadtime_order']['to_estimate_date'])->format('Y-m-d');
+                $fromDate = Carbon::parse($responseTime['data']['leadtime_order']['from_estimate_date'])->format('d-m-y');
+                $toDate = Carbon::parse($responseTime['data']['leadtime_order']['to_estimate_date'])->format('d-m-y');
             } else {
                 $fromDate = null;
                 $toDate = null;
             }
-
-            // 
-
             if ($responseFee['code'] == 200 && isset($responseFee['data']['total'])) {
                 $totalFee = $responseFee['data']['total'];
             } else {
                 $totalFee = null;
             }
-            //
-
             return response()->json([
                 'time' => [
                     'from_estimate_date' => $fromDate,
@@ -89,12 +98,20 @@ class GhnTrackingController extends Controller
         $dataShop  = [
             'offset' => 1,
             'limit' => 200,
-            'client_phone'=>''
+            'client_phone' => ''
         ];
         // Lấy thông tin shop
-        $responseShop = $this->ApiService->post('/shiip/public-api/v2/shop/all',$dataShop,[]);
+        $responses = $this->ApiService->postAsyncMultiple([
+            'shop_info' => [
+                'endpoint' => '/shiip/public-api/v2/shop/all',
+                'data' => $dataShop,
+                'headers' => []
+            ]
+        ]);
+
+        $responseShop = $responses['shop_info'];
         // COnvert thông tin
-        $infoShop = $this->covertInfoShop($responseShop,$setting_ghn->shop_id);
+        $infoShop = $this->covertInfoShop($responseShop, $setting_ghn->shop_id);
         // convert địa chỉ
         $convertAddressShop = $this->convertAddress($infoShop['address']);
         // Lấy ra thông tin shop
@@ -106,8 +123,8 @@ class GhnTrackingController extends Controller
         $totalWeight = OrderItem::where('order_id', $id)
             ->selectRaw('SUM(weight * quantity) as total_weight')
             ->value('total_weight');
-        $finalWeight = (int) $totalWeight + $setting_ghn->weight_box; 
-        $dataValidated = $request->validate( 
+        $finalWeight = (int) $totalWeight + $setting_ghn->weight_box;
+        $dataValidated = $request->validate(
             [
                 'note' => 'nullable|string|max:5000',
                 'content' => 'nullable|string|max:2000',
@@ -117,16 +134,16 @@ class GhnTrackingController extends Controller
         );
 
         $data = [
-            "return_phone"=> $infoShop['phone'],
-            "return_address"=> $infoShop['address'],
-            "return_district_id"=> $infoShop['district_id'],
-            "return_ward_code"=> $infoShop['ward_code'],
-            "from_name"=> $infoShop['name'],
-            "from_phone"=> $infoShop['phone'],
-            "from_address"=> $infoShop['address'],
-            "from_ward_name"=> $convertAddressShop['ward'],
-            "from_district_name"=> $convertAddressShop['district'],
-            "from_province_name"=> $convertAddressShop['province'],
+            "return_phone" => $infoShop['phone'],
+            "return_address" => $infoShop['address'],
+            "return_district_id" => $infoShop['district_id'],
+            "return_ward_code" => $infoShop['ward_code'],
+            "from_name" => $infoShop['name'],
+            "from_phone" => $infoShop['phone'],
+            "from_address" => $infoShop['address'],
+            "from_ward_name" => $convertAddressShop['ward'],
+            "from_district_name" => $convertAddressShop['district'],
+            "from_province_name" => $convertAddressShop['province'],
             'note' => $dataValidated['note'] ?? "",
             'content' => $dataValidated['content'] ?? "",
             'payment_type_id' => $dataValidated['payment_type_id'],
@@ -154,9 +171,16 @@ class GhnTrackingController extends Controller
             ];
         }, $order_items);
         $data['items'] = $convertedItems;
-        $postOrder = $this->ApiService->post('/shiip/public-api/v2/shipping-order/create', $data, $customHeaders);
-        if($postOrder['code'] == 200){
-            
+        $responses = $this->ApiService->postAsyncMultiple([
+            'create_order' => [
+                'endpoint' => '/shiip/public-api/v2/shipping-order/create',
+                'data' => $data,
+                'headers' => $customHeaders
+            ]
+        ]);
+
+        $postOrder = $responses['create_order'];
+        if ($postOrder['code'] == 200) {
         }
         return response()->json($postOrder);
     }

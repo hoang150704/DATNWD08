@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Events\VoucherEvent;
+use Carbon\Carbon;
 
 class VoucherController extends Controller
 {
@@ -34,10 +35,14 @@ class VoucherController extends Controller
                 'for_logged_in_users' => 'required|boolean',
                 'max_discount_amount' => 'nullable',
                 'min_product_price' => 'nullable',
-                'usage_limit' => 'required|integer',
+                'usage_limit' => 'nullable|integer',
                 'expiry_date' => 'required|date',
                 'start_date' => 'required|date',
             ]);
+            // Kiểm tra ngày hết hạn và ngày bắt đầu
+            if (Carbon::parse($voucher['expiry_date'])->lte(Carbon::parse($voucher['start_date']))) {
+                return response()->json(['message' => 'Ngày hết hạn phải sau ngày bắt đầu.'], 422);
+            }
             $voucher = Voucher::create($voucher);
             // Phát sự kiện
 
@@ -82,6 +87,10 @@ class VoucherController extends Controller
                 'start_date' => 'required|date',
             ]);
 
+            // Kiểm tra ngày hết hạn và ngày bắt đầu
+            if (Carbon::parse($data['expiry_date'])->lte(Carbon::parse($data['start_date']))) {
+                return response()->json(['message' => 'Ngày hết hạn phải sau ngày bắt đầu.'], 422);
+            }
             // Kiểm tra và xử lý dữ liệu dựa trên type
             if ($data['type'] == 1) {
                 unset($data['amount']);

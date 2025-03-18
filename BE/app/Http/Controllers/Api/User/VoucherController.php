@@ -8,7 +8,7 @@ use App\Models\Voucher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-
+use App\Events\VoucherEvent;
 class VoucherController extends Controller
 {
     public function index()
@@ -17,6 +17,7 @@ class VoucherController extends Controller
             $vouchers = Voucher::where('expiry_date', '>', now()) // Lấy voucher chưa hết hạn
                 ->whereColumn('usage_limit', '>', 'times_used') // Lấy voucher chưa hết lượt sử dụng
                 ->orderBy('start_date', 'asc') // Sắp xếp theo ngày bắt đầu
+                ->take(3) // Giới hạn số lượng voucher
                 ->get();
 
 
@@ -73,15 +74,19 @@ class VoucherController extends Controller
         ]);
 
         // Kiểm tra token xác thực
-        $user = auth('sanctum')->user(); // Lấy người dùng thông qua Sanctum token
-        $isLoggedIn = $user !== null; // Xác định người dùng đã đăng nhập hay chưa
+        $user = auth('sanctum')->user();
+        $userId = $user ? $user->id : null; // Lấy ID của người dùng (nếu đã đăng nhập)
 
         // Lấy thông tin voucher
         $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
         // Kiểm tra loại voucher
-        if ($voucher->for_logged_in_users == 1 && !$isLoggedIn) {
-            return response()->json(['message' => 'Voucher này chỉ dành cho người dùng đã đăng nhập'], 403);
+        if ($voucher->for_logged_in_users == 1 && !$userId) {
+            return response()->json([
+                'message' => 'Voucher này chỉ dành cho người dùng đã đăng nhập',
+                'voucher' => $voucher,
+                'user' => $user,
+            ], 403); // Trả về lỗi nếu người dùng chưa đăng nhập
         }
 
         // Kiểm tra hạn sử dụng
@@ -107,6 +112,14 @@ class VoucherController extends Controller
         // Tính tổng giá trị sau giảm
         $finalAmount = max(0, $validatedData['total_amount'] - $discount);
 
+        // Phát sự kiện
+        event(new VoucherEvent('applied', [
+            'voucher' => $voucher,
+            'user' => $user,
+            'discount' => $discount,
+            'final_total' => $finalAmount,
+        ]));
+
         // Trả về kết quả
         return response()->json([
             'message' => 'Voucher áp dụng thành công',
@@ -125,6 +138,7 @@ class VoucherController extends Controller
         ], 500);
     }
 }
+
 
 
 }

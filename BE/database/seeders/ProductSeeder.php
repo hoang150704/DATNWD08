@@ -23,6 +23,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 1,
                 'slug' => 'ten-san-pham-1',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -31,6 +32,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 4,
                 'slug' => 'ten-san-pham-2',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -39,6 +41,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 3,
                 'slug' => 'ten-san-pham-3',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -47,6 +50,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 4,
                 'slug' => 'ten-san-pham-4',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -55,6 +59,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 5,
                 'slug' => 'ten-san-pham-5',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -63,6 +68,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 1,
                 'slug' => 'ten-san-pham-6',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -71,6 +77,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 2,
                 'slug' => 'ten-san-pham-7',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -79,6 +86,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 3,
                 'slug' => 'ten-san-pham-8',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -87,6 +95,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 4,
                 'slug' => 'ten-san-pham-9',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ],
             [
@@ -95,6 +104,7 @@ class ProductSeeder extends Seeder
                 'short_description' => "mô tả ngắn",
                 'main_image' => 5,
                 'slug' => 'ten-san-pham-10',
+                'rating' => rand(0, 50) / 10,
                 'created_at' => $this->getRandomDate()
             ]
         ]);

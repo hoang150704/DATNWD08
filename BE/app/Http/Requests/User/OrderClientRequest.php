@@ -32,6 +32,7 @@ class OrderClientRequest extends FormRequest
           'payment_method' => 'required|in:vnpay,ship_cod',
           'discount_amount' => 'nullable|numeric|min:0',
           'final_amount' => 'required|numeric|min:0',
+          'total_amount'=> 'required|numeric|min:0',
           'shipping' => 'required|numeric|min:0',
           'note' => 'nullable|string|max:1000',
 
