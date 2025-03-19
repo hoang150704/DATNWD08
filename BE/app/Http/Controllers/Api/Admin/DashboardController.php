@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\OrderItem;
 use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -58,6 +59,24 @@ class DashboardController extends Controller
         return Comment::select('rating', DB::raw('COUNT(*) as total_reviews'))
             ->groupBy('rating')
             ->orderByDesc('rating')
+            ->get();
+    }
+
+    // Lấy top 5 sản phẩm được đánh giá cao nhất
+    private function getTopRatedProducts()
+    {
+        return Product::select(
+                'products.id',
+                'products.name',
+                DB::raw('AVG(comments.rating) as avg_rating'),
+                DB::raw('COUNT(comments.id) as total_reviews')
+            )
+            ->join('comments', 'products.id', '=', 'comments.product_id')
+            ->where('comments.is_active', 1) // Chỉ lấy đánh giá đã duyệt
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('avg_rating')
+            ->orderByDesc('total_reviews')
+            ->take(5)
             ->get();
     }
 
