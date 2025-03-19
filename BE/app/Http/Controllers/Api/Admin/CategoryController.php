@@ -234,6 +234,7 @@ class CategoryController extends Controller
                 $count++;
             }
 
+            // NEED UPDATE 
             Category::where('id', $id)->update([
                 'name' => $data['name'],
                 'parent_id' => $data['parent_id'],
@@ -257,21 +258,20 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy()
     {
         try {
-            $category = Category::findOrFail($id);
 
-            if ($category->trashed()) {
-                return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
-            }
+            $ids = request('ids');
+
+            $categories = Category::whereIn('id', $ids)->get();
 
             // Cập nhật parent_id của các danh mục con thành null
-            Category::where('parent_id', $id)->update(['parent_id' => null]);
+            Category::whereIn('parent_id', $ids)->update(['parent_id' => null]);
 
-            $category->delete();
+            $delete=Category::whereIn('id',$ids)->delete();
 
-            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'], 200);
+            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác', 'data' => $categories], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Danh mục không tồn tại'], 404);
         } catch (\Throwable $th) {
@@ -279,7 +279,6 @@ class CategoryController extends Controller
             return response()->json([
                 'message' => 'Lỗi hệ thống',
                 'error' => $th->getMessage()
-
             ], 500);
         }
     }

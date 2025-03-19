@@ -14,18 +14,18 @@ class AttributeValueSeeder extends Seeder
     public function run(): void
     {
         DB::table('attribute_values')->insert([
-            ['name' => 'Màu xanh dương', 'attribute_id' => 2],
-            ['name' => 'Màu xanh lá', 'attribute_id' => 2],
             ['name' => 'Màu đỏ', 'attribute_id' => 1],
             ['name' => 'Màu tím', 'attribute_id' => 1],
             ['name' => 'Màu vàng', 'attribute_id' => 1],
             ['name' => 'Màu trắng', 'attribute_id' => 1],
             ['name' => 'Màu đen', 'attribute_id' => 1],
             ['name' => 'Màu hồng', 'attribute_id' => 1],
-            ['name' => 'Màu cam', 'attribute_id' => 2],
-            ['name' => 'Màu nâu', 'attribute_id' => 1],
-            ['name' => 'Màu bạc', 'attribute_id' => 2],
-            ['name' => 'Màu xám', 'attribute_id' => 2],
+            ['name' => 'S', 'attribute_id' => 2],
+            ['name' => 'M', 'attribute_id' => 2],
+            ['name' => 'L', 'attribute_id' => 2],
+            ['name' => 'XL', 'attribute_id' => 2],
+            ['name' => 'XXL', 'attribute_id' => 2],
+            ['name' => 'XXXL', 'attribute_id' => 2],
         ]);
     }
 }
