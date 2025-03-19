@@ -18,6 +18,7 @@ class DashboardController extends Controller
         $topSellingProducts = $this->getTopSellingProducts();
         $productByCategory = $this->getProductByCategory();
         $ratingStatistics = $this->getRatingStatistics();
+        $topRatedProducts = $this->getTopRatedProducts();
 
         return response()->json([
             "status" => "success",
