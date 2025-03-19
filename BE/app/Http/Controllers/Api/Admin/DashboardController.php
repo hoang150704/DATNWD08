@@ -66,22 +66,19 @@ class DashboardController extends Controller
     private function getTopRatedProducts()
     {
         return Product::select(
-            'products.id',
-            'products.name',
-            'products.rating as avg_rating', // Lấy rating từ bảng products
-            DB::raw('COUNT(comments.id) as total_reviews') // Lấy số lượng đánh giá từ bảng comments
-        )
-            ->leftJoin('comments', function ($join) {
-                $join->on('products.id', '=', 'comments.product_id')
-                    ->where('comments.is_active', 1); // Chỉ lấy đánh giá đã duyệt
-            })
-            ->groupBy('products.id', 'products.name', 'products.rating')
-            ->orderByDesc('products.rating') // Sắp xếp theo rating từ bảng products
-            ->orderByDesc(DB::raw('COUNT(comments.id)')) // Nếu rating giống nhau, ưu tiên sản phẩm có nhiều đánh giá hơn
+                'products.id',
+                'products.name',
+                DB::raw('AVG(comments.rating) as avg_rating'),
+                DB::raw('COUNT(comments.id) as total_reviews')
+            )
+            ->join('comments', 'products.id', '=', 'comments.product_id')
+            ->where('comments.is_active', 1) // Chỉ lấy đánh giá đã duyệt
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('avg_rating')
+            ->orderByDesc('total_reviews')
             ->take(5)
             ->get();
     }
-
 
     // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($period)
