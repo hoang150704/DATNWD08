@@ -95,7 +95,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('admin')->middleware(['admin'])->group(function () {
 
         // Dashboard
-        Route::get('/dashboard', [DashboardController::class, 'dashboard']);
+        Route::prefix('dashboard')->group(function () {
+            Route::get('/', [DashboardController::class, 'dashboard']);
+            Route::get('/sales-by-category', [DashboardController::class, 'getProductCountByCategory']);
+        });
+
         // Voucher
         Route::prefix('vouchers')->group(function () {
             Route::get('/', [VoucherController::class, 'index']);
