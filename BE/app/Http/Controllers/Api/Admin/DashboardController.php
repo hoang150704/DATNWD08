@@ -84,4 +84,21 @@ class DashboardController extends Controller
 
         return $query->get();
     }
+    public function getProductByCategory()
+    {
+        $data = Category::select(
+            'categories.id',
+            'categories.name',
+            DB::raw('COUNT(product_category_relations.product_id) as total_products')
+        )
+            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id')
+            ->groupBy('categories.id', 'categories.name')
+            ->orderByDesc('total_products')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
 }
