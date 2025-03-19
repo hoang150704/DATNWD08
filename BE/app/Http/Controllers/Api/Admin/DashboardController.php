@@ -32,6 +32,7 @@ class DashboardController extends Controller
                 "salesStatistics" => $salesData,
                 "ratingStatistics" => $ratingStatistics,
                 "productByCategory" => $productByCategory,
+                "topRatedProducts" => $topRatedProducts,
                 "statisticBy" => $statisticBy
             ]
         ], 200);
