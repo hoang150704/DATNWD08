@@ -3,64 +3,47 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
+use App\Models\Comment;
 use App\Models\OrderItem;
 use App\Models\Category;
-use App\Models\User;
-use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    private Category $categories;
-    private Product $products;
-    private User $users;
-    private Voucher $vouchers;
-
-    public function __construct()
-    {
-        $this->categories = new Category();
-        $this->products = new Product();
-        $this->users = new User();
-        $this->vouchers = new Voucher();
-    }
-
-    //  API: Lấy dữ liệu tổng quan của dashboard
-
     public function dashboard(Request $request)
     {
         $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
         $salesData = $this->getSalesStatistics($statisticBy);
         $topSellingProducts = $this->getTopSellingProducts();
+        $ratingStatistics = $this->getRatingStatistics();
 
         return response()->json([
             "status" => "success",
             "message" => "Lấy dữ liệu dashboard thành công!",
             "data" => [
-                "totalCategories" => $this->categories->count(),
-                "totalProducts" => $this->products->count(),
-                "totalUsers" => $this->users->count(),
-                "totalVouchers" => $this->vouchers->count(),
+                "totalCategories" => Category::count(),
+                "totalProducts" => DB::table('products')->count(),
+                "totalUsers" => DB::table('users')->count(),
+                "totalVouchers" => DB::table('vouchers')->count(),
                 "topSellingProducts" => $topSellingProducts,
                 "salesStatistics" => $salesData,
+                "ratingStatistics" => $ratingStatistics,
                 "statisticBy" => $statisticBy
             ]
         ], 200);
     }
 
-    //  * Lấy danh sách sản phẩm bán chạy nhất (top 5)
-    private function getTopSellingProducts()
+    // Thống kê số lượng đánh giá theo từng mức rating
+    private function getRatingStatistics()
     {
-        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
-            ->groupBy('product_id')
-            ->orderByDesc('total_sold')
-            ->take(5)
-            ->with('product:id,name,main_image')
+        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews'))
+            ->groupBy('rating')
+            ->orderByDesc('rating')
             ->get();
     }
 
-    //  * Lấy thống kê doanh số bán hàng theo thời gian
+    // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($period)
     {
         $query = OrderItem::select(
@@ -84,22 +67,15 @@ class DashboardController extends Controller
 
         return $query->get();
     }
-    public function getProductByCategory()
-    {
-        $data = Category::select(
-            'categories.id',
-            'categories.name',
-            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products') // Nếu NULL thì thay bằng 0
-        )
-            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id')
-            ->groupBy('categories.id', 'categories.name')
-            ->orderByDesc('total_products')
-            ->get();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Lấy thống kê sản phẩm theo danh mục thành công!',
-            'data' => $data
-        ], 200);
+    // Lấy danh sách sản phẩm bán chạy nhất (top 5)
+    private function getTopSellingProducts()
+    {
+        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
+            ->groupBy('product_id')
+            ->orderByDesc('total_sold')
+            ->take(5)
+            ->with('product:id,name,main_image')
+            ->get();
     }
 }
