@@ -16,6 +16,7 @@ class DashboardController extends Controller
         $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
         $salesData = $this->getSalesStatistics($statisticBy);
         $topSellingProducts = $this->getTopSellingProducts();
+        $productByCategory = $this->getProductByCategory();
         $ratingStatistics = $this->getRatingStatistics();
 
         return response()->json([
@@ -29,9 +30,24 @@ class DashboardController extends Controller
                 "topSellingProducts" => $topSellingProducts,
                 "salesStatistics" => $salesData,
                 "ratingStatistics" => $ratingStatistics,
+                "productByCategory" => $productByCategory,
                 "statisticBy" => $statisticBy
             ]
         ], 200);
+    }
+
+    // Thống kê số lượng sản phẩm theo danh mục
+    private function getProductByCategory()
+    {
+        return Category::select(
+            'categories.id',
+            'categories.name',
+            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products')
+        )
+            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id')
+            ->groupBy('categories.id', 'categories.name')
+            ->orderByDesc('total_products')
+            ->get();
     }
 
     // Thống kê số lượng đánh giá theo từng mức rating
