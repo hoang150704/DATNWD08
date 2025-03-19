@@ -89,7 +89,7 @@ class DashboardController extends Controller
         $data = Category::select(
             'categories.id',
             'categories.name',
-            DB::raw('COUNT(product_category_relations.product_id) as total_products')
+            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products') // Nếu NULL thì thay bằng 0
         )
             ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id')
             ->groupBy('categories.id', 'categories.name')
@@ -97,8 +97,9 @@ class DashboardController extends Controller
             ->get();
 
         return response()->json([
-            'success' => true,
+            'status' => 'success',
+            'message' => 'Lấy thống kê sản phẩm theo danh mục thành công!',
             'data' => $data
-        ]);
+        ], 200);
     }
 }
