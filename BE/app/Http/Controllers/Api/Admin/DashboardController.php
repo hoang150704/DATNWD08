@@ -102,8 +102,8 @@ class DashboardController extends Controller
             case '1month':
                 $query->where('created_at', '>=', now()->subMonth());
                 break;
-            case '6month':
-                $query->where('created_at', '>=', now()->subMonths(6));
+            case '12month':
+                $query->where('created_at', '>=', now()->subMonths(12));
                 break;
         }
 
