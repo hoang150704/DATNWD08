@@ -285,7 +285,6 @@ class CategoryController extends Controller
     public function hardDelete()
     {
         try {
-
             $ids = request('ids');
 
             Category::onlyTrashed()->whereIn('id', $ids)->forceDelete();
