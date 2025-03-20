@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\User;
 
+use App\Events\OrderEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
@@ -177,6 +178,8 @@ class OrderClientController extends Controller
 
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
+
+            event(new OrderEvent($order));
 
             DB::commit();
             //Xóa giỏ hhangf

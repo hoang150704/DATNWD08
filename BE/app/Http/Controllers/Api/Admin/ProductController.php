@@ -345,4 +345,38 @@ class ProductController extends Controller
             ], 500);
         }
     }
+
+    public function trash()
+    {
+        try {
+            $listSoftDeleteProducts = Product::onlyTrashed()->with(['variants'])->paginate(15);
+            return response()->json($listSoftDeleteProducts, 200); // trả về response
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
+        }
+    }
+
+    public function hardDelete()
+    {
+        try {
+            $ids = request('ids');
+
+            Product::onlyTrashed()->whereIn('id', $ids)->forceDelete();
+
+            return response()->json(['message' => 'Xóa sản phẩm thành công'], 200);
+
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
+        }
+    }
 }
