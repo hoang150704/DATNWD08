@@ -50,7 +50,7 @@ class CartController extends Controller
                 } elseif (!empty($variation->product->main_image) && !empty($variation->product->library)) {
                     $imageUrl = Product::getConvertImage($variation->product->library->url, 100, 100, 'thumb');
                 } else {
-                    $imageUrl = asset('images/default-product.jpg'); // Ảnh mặc định
+                    $imageUrl = 'https://thegioidensanvuon.com/wp-content/uploads/2021/06/den-SLCC22-1.jpg'; // Ảnh mặc định
                 }
     
                 // Xử lý biến thể
@@ -115,7 +115,7 @@ class CartController extends Controller
                 } elseif (!empty($variation->product->main_image) && !empty($variation->product->library)) {
                     $imageUrl = Product::getConvertImage($variation->product->library->url, 100, 100, 'thumb');
                 } else {
-                    $imageUrl = asset('images/default-product.jpg'); // Ảnh mặc định
+                    $imageUrl = 'https://thegioidensanvuon.com/wp-content/uploads/2021/06/den-SLCC22-1.jpg'; // Ảnh mặc định
                 }
     
                 return [
