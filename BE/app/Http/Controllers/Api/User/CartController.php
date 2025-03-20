@@ -16,46 +16,48 @@ class CartController extends Controller
     public function getVariation(Request $request)
     {
         try {
-
-            $data = $request->json()->all(); /// Lấy tất cả dữu liệu gửi lên
-            //
+            $data = $request->json()->all(); // Lấy tất cả dữ liệu gửi lên
+    
             if (!is_array($data) || empty($data)) {
                 return response()->json([], 200);
             }
-            //Tạo mảng các id variant
+    
+            // Tạo mảng các id variant
             $variationIds = array_column($data, 'variant');
-
+    
             // Đảm bảo là mảng hoặc một danh sách id
             $variations = ProductVariation::whereIn('id', $variationIds)
-                ->with('product:id,name,main_image')
+                ->with('product:id,name,main_image', 'library', 'attributeValues')
                 ->get();
-            //
+    
             if ($variations->isEmpty()) {
                 return response()->json([
                     'message' => 'Không tìm thấy sản phẩm nào!',
                     'code' => 404
                 ], 200);
             }
-            // Duyệt qua từng variation và thêm hình ảnh + quantity  vào mảng
+    
+            // Duyệt qua từng variation và thêm hình ảnh + quantity vào mảng
             $variations->transform(function ($variation) use ($data) {
                 // Thêm quantity
                 $matchedVariant = collect($data)->firstWhere('variant', $variation->id);
                 $quantity = $matchedVariant ? $matchedVariant['quantity'] : 1;
-
+    
                 // Xác định link ảnh
                 $imageUrl = null;
-                if ($variation->variant_image) {
+                if (!empty($variation->variant_image) && !empty($variation->library)) {
                     $imageUrl = Product::getConvertImage($variation->library->url, 100, 100, 'thumb');
-                } elseif ($variation->product->main_image) {
+                } elseif (!empty($variation->product->main_image) && !empty($variation->product->library)) {
                     $imageUrl = Product::getConvertImage($variation->product->library->url, 100, 100, 'thumb');
+                } else {
+                    $imageUrl = asset('images/default-product.jpg'); // Ảnh mặc định
                 }
-                // Xử lí biến thể 
+    
+                // Xử lý biến thể
                 $attributeValues = $variation->attributeValues->pluck('name')->toArray();
                 $attributeString = implode(' - ', $attributeValues);
+    
                 // Gán quantity và link ảnh vào kết quả trả về
-                $variation->quantity = $quantity;
-                $variation->image_url = $imageUrl;
-
                 return [
                     'id' => $variation->id,
                     'product_id' => $variation->product_id,
@@ -71,7 +73,7 @@ class CartController extends Controller
                     'value' => $attributeString
                 ];
             });
-
+    
             return response()->json([
                 'message' => 'Success',
                 'data' => $variations,
@@ -83,6 +85,7 @@ class CartController extends Controller
             ], 500);
         }
     }
+    
     public function index()
     {
         try {
@@ -91,40 +94,47 @@ class CartController extends Controller
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
-
+    
             $cart = Cart::where('user_id', $user->id)->first();
             if (!$cart) {
                 return response()->json([], 200);
             }
-
-
-            // Lấy danh sách các sản phẩm trong giỏ hàng, kèm theo thông tin về variation và product
+    
+            // Lấy danh sách sản phẩm trong giỏ hàng, kèm theo thông tin về variation và product
             $cartItems = CartItem::where('cart_id', $cart->id)
-                ->with(['variation.product:id,name,main_image'])
+                ->with(['variation.product:id,name,main_image', 'variation.library', 'variation.attributeValues'])
                 ->get();
-
+    
             $variations = $cartItems->map(function ($cartItem) {
-                $imageUrl = $cartItem->variation->variant_image
-                    ? Product::getConvertImage($cartItem->variation->library->url, 100, 100, 'thumb')
-                    : Product::getConvertImage($cartItem->variation->product->library->url, 100, 100, 'thumb');
-
+                $variation = $cartItem->variation;
+    
+                // Xác định link ảnh
+                $imageUrl = null;
+                if (!empty($variation->variant_image) && !empty($variation->library)) {
+                    $imageUrl = Product::getConvertImage($variation->library->url, 100, 100, 'thumb');
+                } elseif (!empty($variation->product->main_image) && !empty($variation->product->library)) {
+                    $imageUrl = Product::getConvertImage($variation->product->library->url, 100, 100, 'thumb');
+                } else {
+                    $imageUrl = asset('images/default-product.jpg'); // Ảnh mặc định
+                }
+    
                 return [
                     'cart_item_id' => $cartItem->id,
-                    'id' => $cartItem->variation->id,
-                    'product_id' => $cartItem->variation->product_id,
-                    'sku' => $cartItem->variation->sku,
-                    'weight' => $cartItem->variation->weight,
-                    'variant_image' => $cartItem->variation->variant_image,
-                    'regular_price' => $cartItem->variation->regular_price,
-                    'sale_price' => $cartItem->variation->sale_price,
-                    'stock_quantity' => $cartItem->variation->stock_quantity,
+                    'id' => $variation->id,
+                    'product_id' => $variation->product_id,
+                    'sku' => $variation->sku,
+                    'weight' => $variation->weight,
+                    'variant_image' => $variation->variant_image,
+                    'regular_price' => $variation->regular_price,
+                    'sale_price' => $variation->sale_price,
+                    'stock_quantity' => $variation->stock_quantity,
                     'quantity' => $cartItem->quantity,
                     'image_url' => $imageUrl,
-                    'name' => $cartItem->variation->product->name,
-                    'value' => implode(' - ', $cartItem->variation->attributeValues->pluck('name')->toArray()),
+                    'name' => $variation->product->name,
+                    'value' => implode(' - ', $variation->attributeValues->pluck('name')->toArray()),
                 ];
             });
-
+    
             return response()->json([
                 'message' => 'Success',
                 'data' => $variations,
@@ -136,6 +146,7 @@ class CartController extends Controller
             ], 500);
         }
     }
+    
 
 
 
