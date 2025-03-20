@@ -417,4 +417,26 @@ class AuthController extends Controller
             return response()->json(['message' => 'Lỗi đăng nhập','errors'=>$e->getMessage()], 401);
         }
     }
+
+    public function changePassword(Request $request)
+    {
+        // Xác thực
+        $request->validate([
+            'old_password' => 'required',
+            'new_password' => 'required|min:8|confirmed', 
+        ]);
+
+        $user = $request->user();
+        // Kiểm tra mật khẩu cũ
+        if (!Hash::check($request->old_password, $user->password)) {
+            return response()->json(['message' => 'Mật khẩu cũ không đúng'], 400);
+        }
+        // Cập nhật mật khẩu
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+        $user->currentAccessToken()->delete();
+    
+        return response()->json(['message' => 'Đổi mật khẩu thành công, vui lòng đăng nhập lại'], 200);
+    }
 }

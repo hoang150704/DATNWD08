@@ -11,6 +11,7 @@ use App\Models\OrderItem;
 use App\Models\ProductVariation;
 use App\Models\StatusTracking;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 
@@ -38,7 +39,24 @@ class OrderController extends Controller
         }
     }
 
+    private function generateUniqueOrderCode()
+    {
+        do {
+            // Lấy ngày hiện tại
+            $date = now()->format('Ymd');
 
+            // Tạo mã số ngẫu nhiên (6 ký tự)
+            $randomCode = strtoupper(Str::random(6));
+
+            // Tạo mã đơn hàng
+            $codeOrder = "ORD-{$date}-{$randomCode}";
+
+            // Kiểm tra xem mã có tồn tại trong database không
+            $exists = Order::where('code', $codeOrder)->exists();
+        } while ($exists); // Nếu trùng, tạo lại
+
+        return $codeOrder;
+    }
     public function store(StoreOrderRequest $request)
     {
         try {
@@ -54,7 +72,7 @@ class OrderController extends Controller
 
             // Tạo đơn hàng
             $order = Order::create([
-                'code' => 'DH_' . time(),
+                'code' => $this->generateUniqueOrderCode(),
                 'total_amount' => $validatedData['total_amount'],
                 'discount_amount' => $validatedData['discount_amount'] ?? 0,
                 'final_amount' => $validatedData['final_amount'],

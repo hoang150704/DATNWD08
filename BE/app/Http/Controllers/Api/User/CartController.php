@@ -100,13 +100,39 @@ class CartController extends Controller
                 return response()->json([], 200);
             }
     
-            // Lấy danh sách sản phẩm trong giỏ hàng, kèm theo thông tin về variation và product
+            // Lấy danh sách sản phẩm cả xóa mềm
             $cartItems = CartItem::where('cart_id', $cart->id)
-                ->with(['variation.product:id,name,main_image', 'variation.library', 'variation.attributeValues'])
+                ->with([
+                    'variation' => function ($query) {
+                        $query->withTrashed();
+                    },
+                    'variation.product' => function ($query) {
+                        $query->withTrashed();
+                    },
+                    'variation.library',
+                    'variation.attributeValues'
+                ])
                 ->get();
     
-            $variations = $cartItems->map(function ($cartItem) {
+            $validCartItems = [];
+    
+            foreach ($cartItems as $cartItem) {
                 $variation = $cartItem->variation;
+    
+                // Kiểm tra nếu biến thể hoặc sản phẩm đã bị xóa mềm
+                if (!$variation || !$variation->product || $variation->trashed() || $variation->product->trashed()) {
+                    // Xóa item khỏi giỏ hàng 
+                    $cartItem->delete();
+                    continue; 
+                    //TIếp tục 
+                }
+    
+                // check số lượng tồn kho 
+                
+                if ($variation->stock_quantity < $cartItem->quantity) {
+                    // cập nhật số lựng cho = với số lượng trong kho
+                    $cartItem->update(['quantity' => $variation->stock_quantity]);
+                }
     
                 // Xác định link ảnh
                 $imageUrl = null;
@@ -118,7 +144,7 @@ class CartController extends Controller
                     $imageUrl = 'https://thegioidensanvuon.com/wp-content/uploads/2021/06/den-SLCC22-1.jpg'; // Ảnh mặc định
                 }
     
-                return [
+                $validCartItems[] = [
                     'cart_item_id' => $cartItem->id,
                     'id' => $variation->id,
                     'product_id' => $variation->product_id,
@@ -133,11 +159,11 @@ class CartController extends Controller
                     'name' => $variation->product->name,
                     'value' => implode(' - ', $variation->attributeValues->pluck('name')->toArray()),
                 ];
-            });
+            }
     
             return response()->json([
                 'message' => 'Success',
-                'data' => $variations,
+                'data' => $validCartItems,
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
@@ -146,6 +172,7 @@ class CartController extends Controller
             ], 500);
         }
     }
+    
     
 
 
