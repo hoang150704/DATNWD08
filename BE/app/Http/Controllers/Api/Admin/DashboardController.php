@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\OrderItem;
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +34,7 @@ class DashboardController extends Controller
                 "salesStatistics" => $salesData,
                 "ratingStatistics" => $ratingStatistics,
                 "productByCategory" => $productByCategory,
+                "totalOrders" => Order::count(),
                 "topRatedProducts" => $topRatedProducts,
                 "statisticBy" => $statisticBy
             ]
