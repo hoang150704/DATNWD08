@@ -64,13 +64,10 @@ class LibraryController extends Controller
                      continue;
                  }
              
-                 if (count($images) === 1) {
-                    // Nếu chỉ có 1 ảnh, chạy Job ngay lập tức
-                    (new UploadImageJob($fullPath, $image->getClientOriginalName()))->handle();
-                } else {
+             
                     // Nếu có nhiều ảnh, đẩy vào queue
                     UploadImageJob::dispatch($fullPath, $image->getClientOriginalName())->onQueue('high');
-                }
+                
      
                  $uploadedImages[] = [
                      'file' => $image->getClientOriginalName(),
