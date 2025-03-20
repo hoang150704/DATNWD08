@@ -1,5 +1,7 @@
 <?php
 // ADMIN
+
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
@@ -87,16 +89,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
     Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
     Route::post('/cart/clear', [CartController::class, 'clearAll']);
-    
+
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
 
     // Chức năng chỉ Admin mới call được api
     Route::prefix('admin')->middleware(['admin'])->group(function () {
-        // Dashborad
-        Route::get('/dashboard', function () {
-            return response()->json(['message' => 'Trang quản trị Admin']);
-        });
+
+        // Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'dashboard']);
 
         // Voucher
         Route::prefix('vouchers')->group(function () {
@@ -116,7 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{order}/edit', [OrderController::class, 'update']);
             Route::get('/{order}', [OrderController::class, 'show']);
         });
-        
+
         //Xử lí api giao hàng nhanh
         // User
         Route::apiResource('users', UserController::class);

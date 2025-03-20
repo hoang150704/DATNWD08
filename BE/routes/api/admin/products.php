@@ -11,8 +11,7 @@ Route::prefix('products')->group(function () {
     Route::post('/', [ProductController::class, 'store']); // Thêm sản phẩm mới
     Route::get('/{id}', [ProductController::class, 'show']); // Xem chi tiết sản phẩm
     Route::put('/{id}', [ProductController::class, 'update']); // Cập nhật sản phẩm
-    Route::delete('/{id}', [ProductController::class, 'destroy']); // Xóa sản phẩm
-    Route::get('/search', [ProductController::class, 'search']); // Tìm kiếm sản phẩm
+    Route::delete('/', [ProductController::class, 'destroy']); // Xóa sản phẩm
 
     //Route danh sách sản phẩm dành cho đặt hàng (Tránh xung đột với {id})
     //Nhóm route cho biến thể sản phẩm (Variants)

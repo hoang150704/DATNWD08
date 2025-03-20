@@ -260,28 +260,26 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy()
     {
         try {
-            // Tìm sản phẩm (bao gồm cả đã xóa mềm)
-            $product = Product::withTrashed()->findOrFail($id);
 
-            // Nếu sản phẩm đã bị xóa mềm, báo lỗi
-            if ($product->trashed()) {
-                return response()->json(['message' => 'Sản phẩm đã bị xóa trước đó'], 400);
-            }
+            $ids = request('ids');
 
-            // Xóa tất cả giá trị thuộc tính của biến thể
-            $product->variants->each(function ($variant) {
-                $variant->values()->delete(); // Xóa các giá trị thuộc tính liên quan
+            $products = Product::whereIn('id', $ids)->get();
+
+            $products->each(function ($product) {
+                // Xóa tất cả giá trị thuộc tính của biến thể
+                $product->variants->each(function ($variant) {
+                    $variant->values()->delete(); // Xóa các giá trị thuộc tính liên quan
+                });
+
+                // Xóa tất cả biến thể
+                $product->variants()->delete();
+
+                // Xóa mềm sản phẩm
+                $product->delete();
             });
-
-            // Xóa tất cả biến thể
-            $product->variants()->delete();
-            $product->variants()->productAttributes();
-
-            // Xóa mềm sản phẩm
-            $product->delete();
 
             return response()->json(['message' => 'Sản phẩm đã được xóa'], 200);
         } catch (ModelNotFoundException $e) {

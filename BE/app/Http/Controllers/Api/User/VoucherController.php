@@ -8,7 +8,7 @@ use App\Models\Voucher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-
+use App\Events\VoucherEvent;
 class VoucherController extends Controller
 {
     public function index()
@@ -17,6 +17,7 @@ class VoucherController extends Controller
             $vouchers = Voucher::where('expiry_date', '>', now()) // Lấy voucher chưa hết hạn
                 ->whereColumn('usage_limit', '>', 'times_used') // Lấy voucher chưa hết lượt sử dụng
                 ->orderBy('start_date', 'asc') // Sắp xếp theo ngày bắt đầu
+                ->take(3) // Giới hạn số lượng voucher
                 ->get();
 
 
@@ -110,6 +111,14 @@ class VoucherController extends Controller
 
         // Tính tổng giá trị sau giảm
         $finalAmount = max(0, $validatedData['total_amount'] - $discount);
+
+        // Phát sự kiện
+        event(new VoucherEvent('applied', [
+            'voucher' => $voucher,
+            'user' => $user,
+            'discount' => $discount,
+            'final_total' => $finalAmount,
+        ]));
 
         // Trả về kết quả
         return response()->json([
