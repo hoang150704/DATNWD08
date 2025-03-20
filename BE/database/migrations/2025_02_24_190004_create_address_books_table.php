@@ -17,6 +17,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('phone', 15);
             $table->string('address');
+            $table->integer('province');
+            $table->integer('district');
+            $table->string('ward');
             $table->boolean('is_active');
             $table->timestamps();
         });

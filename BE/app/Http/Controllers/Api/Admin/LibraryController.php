@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\UploadImageJob;
 use App\Models\Library;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
@@ -41,62 +42,58 @@ class LibraryController extends Controller
      * Store a newly created resource in storage.
      */
     
-    public function store(Request $request)
-    {
-        try {
-            $request->validate([
-                'images' => 'required|array',
-                'images.*' => 'file|mimes:jpeg,png,jpg,webp|max:5120', // Kiểm tra tất cả ảnh
-            ]);
-    
-            $images = $request->file('images');
-            $validImages = [];
-            $invalidImages = [];
-    
-            foreach ($images as $image) {
-                try {
-                    // Upload lên Cloudinary
-                    $result = cloudinary()->upload($image->getRealPath());
-                  
-                    $url = $result->getSecurePath();
-    
-                    // Lưu vào Database
-                    Library::create([
-                        'public_id' => 1,
-                        'url' => $url
-                    ]);
-    
-                    $validImages[] = [
-                        'file' => $image->getClientOriginalName(),
-                        'message' => "Upload thành công",
-                        'url' => $url
-                    ];
-                } catch (\Exception $e) {
-                    // Ghi log lỗi
-                    Log::error("Upload thất bại: {$image->getClientOriginalName()} - Lỗi: " . $e->getMessage());
-    
-                    $invalidImages[] = [
-                        'file' => $image->getClientOriginalName(),
-                        'error' => "Upload thất bại: " . $e->getMessage()
-                    ];
+
+     public function store(Request $request)
+     {
+         try {
+             $request->validate([
+                 'images' => 'required|array',
+                 'images.*' => 'file|mimes:jpeg,png,jpg,webp|max:5120',
+             ]);
+     
+             $images = $request->file('images');
+             $uploadedImages = [];
+     
+             foreach ($images as $image) {
+                 // Lưu ảnh vào storage
+                 $storedPath = $image->store('temp_uploads');
+                 $fullPath = storage_path("app/$storedPath");
+             
+                 if (!file_exists($fullPath)) {
+                     Log::error("File không tồn tại trước khi xử lý: $fullPath");
+                     continue;
+                 }
+             
+                 if (count($images) === 1) {
+                    // Nếu chỉ có 1 ảnh, chạy Job ngay lập tức
+                    (new UploadImageJob($fullPath, $image->getClientOriginalName()))->handle();
+                } else {
+                    // Nếu có nhiều ảnh, đẩy vào queue
+                    UploadImageJob::dispatch($fullPath, $image->getClientOriginalName())->onQueue('high');
                 }
-            }
-    
-            return response()->json([
-                'success' => $validImages,
-                'errors' => $invalidImages
-            ]);
-    
-        } catch (\Throwable $th) {
-            Log::error("Lỗi hệ thống: " . $th->getMessage());
-    
-            return response()->json([
-                'message' => 'Lỗi hệ thống',
-                'error' => $th->getMessage()
-            ], 500);
-        }
-    }
-    
+     
+                 $uploadedImages[] = [
+                     'file' => $image->getClientOriginalName(),
+                     'message' => "Upload thành công"
+                 ];
+             }
+     
+             return response()->json([
+                 'message' => 'Upload thành công',
+                 'images' => $uploadedImages
+             ], 200);
+     
+         } catch (\Throwable $th) {
+             Log::error("Lỗi hệ thống: " . $th->getMessage());
+     
+             return response()->json([
+                 'message' => 'Lỗi hệ thống',
+                 'error' => $th->getMessage()
+             ], 500);
+         }
+     }
+     
+     
 
     /**
      * Display the specified resource.

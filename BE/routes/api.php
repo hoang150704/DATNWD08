@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\Auth\ProfileController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\User\CartController;
@@ -75,7 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
-
+    Route::get('/profile', [ProfileController::class, 'info']);
+    Route::post('/change_profile', [ProfileController::class, 'changeProfile']);
     // =========================================================================
 
     // Giỏ hàng
