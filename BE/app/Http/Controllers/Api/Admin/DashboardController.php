@@ -30,11 +30,11 @@ class DashboardController extends Controller
                 "totalProducts" => DB::table('products')->count(),
                 "totalUsers" => DB::table('users')->count(),
                 "totalVouchers" => DB::table('vouchers')->count(),
+                "totalOrders" => Order::count(),
                 "topSellingProducts" => $topSellingProducts,
                 "salesStatistics" => $salesData,
                 "ratingStatistics" => $ratingStatistics,
                 "productByCategory" => $productByCategory,
-                "totalOrders" => Order::count(),
                 "topRatedProducts" => $topRatedProducts,
                 "statisticBy" => $statisticBy
             ]
