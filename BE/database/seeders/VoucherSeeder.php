@@ -8,12 +8,8 @@ use Illuminate\Support\Str;
 
 class VoucherSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Tạo 10 voucher mẫu
         $vouchers = [
             [
                 'code' => 'VOUCHER1',
@@ -167,10 +163,8 @@ class VoucherSeeder extends Seeder
             ]
         ];
 
-        // Tạo voucher trong database
         foreach ($vouchers as $voucher) {
             Voucher::create($voucher);
         }
-
     }
 }
