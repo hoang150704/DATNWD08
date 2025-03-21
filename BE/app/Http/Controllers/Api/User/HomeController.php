@@ -80,7 +80,7 @@ class HomeController extends Controller
             ->get();
 
         if ($products->isEmpty()) {
-            return response()->json(['message' => 'Không tìm thấy sản phẩm!'], 404);
+            return response()->json(['message' => 'Không tìm thấy sản phẩm!'], 200);
         }
 
         // 4. Phân trang thủ công
