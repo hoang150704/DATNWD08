@@ -6,10 +6,12 @@
     },
     "devDependencies": {
         "axios": "^1.1.2",
-        "laravel-vite-plugin": "^0.7.2",
-        "vite": "^4.0.0"
+        "laravel-vite-plugin": "^1.2.0",
+        "vite": "^6.2.2"
     },
     "dependencies": {
-        "cloudinary": "^2.5.1"
+        "cloudinary": "^2.5.1",
+        "laravel-echo": "^2.0.2",
+        "pusher-js": "^8.4.0"
     }
 }
