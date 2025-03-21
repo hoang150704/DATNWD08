@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\OrderItem;
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,7 @@ class DashboardController extends Controller
                 "totalProducts" => DB::table('products')->count(),
                 "totalUsers" => DB::table('users')->count(),
                 "totalVouchers" => DB::table('vouchers')->count(),
+                "totalOrders" => Order::count(),
                 "topSellingProducts" => $topSellingProducts,
                 "salesStatistics" => $salesData,
                 "ratingStatistics" => $ratingStatistics,
@@ -100,8 +102,8 @@ class DashboardController extends Controller
             case '1month':
                 $query->where('created_at', '>=', now()->subMonth());
                 break;
-            case '6month':
-                $query->where('created_at', '>=', now()->subMonths(6));
+            case '12month':
+                $query->where('created_at', '>=', now()->subMonths(12));
                 break;
         }
 
