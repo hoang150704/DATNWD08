@@ -15,8 +15,10 @@ class AddressBook extends Model
         'phone',
         'address',
         'is_active',
+        'province',
+        'district',
+        'ward'
     ];
 
     public $attributes = ['is_active' => 0];
-
 }
