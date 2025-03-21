@@ -56,6 +56,7 @@ Route::get('/categories/{category_id}/products', [ShopController::class, 'getPro
 // Đánh giá
 Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
 Route::post('/reviews', [ReviewController::class, 'store']);
+Route::put('/reviews/{id}', [ReviewController::class, 'update']);
 
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
