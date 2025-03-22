@@ -123,18 +123,19 @@ class DashboardController extends Controller
             ->with('product:id,name,main_image')
             ->get();
     }
+
+    // Lấy top 5 user có số tiền chi tiêu nhiều nhất
     private function getTopUsersBySpending()
-{
-    return Order::select(
+    {
+        return Order::select(
             'user_id',
             DB::raw('SUM(final_amount) as total_spent')
         )
-        ->where('stt_payment', 1) // Chỉ tính đơn hàng đã thanh toán
-        ->groupBy('user_id')
-        ->orderByDesc('total_spent')
-        ->take(5)
-        ->with('user:id,name,email') // Lấy thông tin user
-        ->get();
-}
-
+            ->where('stt_payment', 1) // Chỉ tính đơn hàng đã thanh toán
+            ->groupBy('user_id')
+            ->orderByDesc('total_spent')
+            ->take(5)
+            ->with('user:id,name,email') // Lấy thông tin user
+            ->get();
+    }
 }
