@@ -21,6 +21,7 @@ class DashboardController extends Controller
         $productByCategory = $this->getProductByCategory(); // Số lượng sản phẩm theo danh mục
         $ratingStatistics = $this->getRatingStatistics(); // Số lượng đánh giá theo từng mức rating
         $topRatedProducts = $this->getTopRatedProducts(); // Top 5 sản phẩm được đánh giá cao nhất
+        $topUsersBySpending = $this->getTopUsersBySpending(); // Top 5 user có số tiền chi tiêu nhiều nhất
 
         return response()->json([
             "status" => "success",
@@ -36,6 +37,7 @@ class DashboardController extends Controller
                 "salesStatistics" => $salesData, // Thống kê doanh số bán hàng
                 "ratingStatistics" => $ratingStatistics, // Thống kê số lượng đánh giá theo từng mức rating
                 "productByCategory" => $productByCategory, // Thống kê số lượng sản phẩm theo danh mục
+                "topUsersBySpending" => $topUsersBySpending, // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
                 "statisticBy" => $statisticBy // Thời gian thống kê
             ]
@@ -119,6 +121,21 @@ class DashboardController extends Controller
             ->orderByDesc('total_sold')
             ->take(5)
             ->with('product:id,name,main_image')
+            ->get();
+    }
+
+    // Lấy top 5 user có số tiền chi tiêu nhiều nhất
+    private function getTopUsersBySpending()
+    {
+        return Order::select(
+            'user_id',
+            DB::raw('SUM(final_amount) as total_spent')
+        )
+            ->where('stt_payment', 1) // Chỉ tính đơn hàng đã thanh toán
+            ->groupBy('user_id')
+            ->orderByDesc('total_spent')
+            ->take(5)
+            ->with('user:id,name,email') // Lấy thông tin user
             ->get();
     }
 }
