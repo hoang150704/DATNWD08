@@ -21,6 +21,7 @@ class DashboardController extends Controller
         $productByCategory = $this->getProductByCategory(); // Số lượng sản phẩm theo danh mục
         $ratingStatistics = $this->getRatingStatistics(); // Số lượng đánh giá theo từng mức rating
         $topRatedProducts = $this->getTopRatedProducts(); // Top 5 sản phẩm được đánh giá cao nhất
+        $topUsersBySpending = $this->getTopUsersBySpending();
 
         return response()->json([
             "status" => "success",
@@ -36,6 +37,7 @@ class DashboardController extends Controller
                 "salesStatistics" => $salesData, // Thống kê doanh số bán hàng
                 "ratingStatistics" => $ratingStatistics, // Thống kê số lượng đánh giá theo từng mức rating
                 "productByCategory" => $productByCategory, // Thống kê số lượng sản phẩm theo danh mục
+                "topUsersBySpending" => $topUsersBySpending,
                 "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
                 "statisticBy" => $statisticBy // Thời gian thống kê
             ]
