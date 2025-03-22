@@ -37,7 +37,7 @@ class DashboardController extends Controller
                 "ratingStatistics" => $ratingStatistics, // Thống kê số lượng đánh giá theo từng mức rating
                 "productByCategory" => $productByCategory, // Thống kê số lượng sản phẩm theo danh mục
                 "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
-                "statisticBy" => $statisticBy
+                "statisticBy" => $statisticBy // Thời gian thống kê
             ]
         ], 200);
     }
