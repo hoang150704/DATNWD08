@@ -33,7 +33,7 @@ class DashboardController extends Controller
                 "totalOrders" => Order::count(), // Tổng số đơn hàng
                 "totalRevenue" => Order::where('stt_payment', 1)->sum('final_amount'), // Tổng doanh thu
                 "topSellingProducts" => $topSellingProducts, // Top 5 sản phẩm bán chạy nhất
-                "salesStatistics" => $salesData,
+                "salesStatistics" => $salesData, // Thống kê doanh số bán hàng
                 "ratingStatistics" => $ratingStatistics,
                 "productByCategory" => $productByCategory,
                 "topRatedProducts" => $topRatedProducts,
