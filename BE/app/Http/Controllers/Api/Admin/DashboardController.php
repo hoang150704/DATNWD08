@@ -20,7 +20,7 @@ class DashboardController extends Controller
         $topSellingProducts = $this->getTopSellingProducts(); // Top 5 sản phẩm bán chạy nhất
         $productByCategory = $this->getProductByCategory(); // Số lượng sản phẩm theo danh mục
         $ratingStatistics = $this->getRatingStatistics(); // Số lượng đánh giá theo từng mức rating
-        $topRatedProducts = $this->getTopRatedProducts();
+        $topRatedProducts = $this->getTopRatedProducts(); // Top 5 sản phẩm được đánh giá cao nhất
 
         return response()->json([
             "status" => "success",
