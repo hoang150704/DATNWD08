@@ -27,7 +27,7 @@ class DashboardController extends Controller
             "message" => "Lấy dữ liệu dashboard thành công!",
             "data" => [
                 "totalCategories" => Category::count(),
-                "totalProducts" => DB::table('products')->count(),
+                "totalProducts" => DB::table('products')->count(), // Tổng số sản phẩm
                 "totalUsers" => DB::table('users')->count(), // Tổng số người dùng
                 "totalVouchers" => DB::table('vouchers')->count(), // Tổng số voucher
                 "totalOrders" => Order::count(), // Tổng số đơn hàng
