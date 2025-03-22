@@ -119,7 +119,6 @@ class ProfileController extends Controller
                     $validated['is_active'] = 0;
                 }
             }
-
             // Tạo địa chỉ mới
             $address = AddressBook::create($validated);
 
@@ -160,7 +159,11 @@ class ProfileController extends Controller
 
             // Tìm địa chỉ cần cập nhật
             $address = AddressBook::findOrFail($id);
-
+            if ($address->is_active == 1 && $request->has('is_active') && !$request->boolean('is_active')) {
+                return response()->json([
+                    'message' => 'Phải có ít nhất một địa chỉ mặc định. Vui lòng chọn địa chỉ khác làm mặc định trước khi bỏ mặc định địa chỉ này.',
+                ], 422);
+            }
             // Validate
             $validated = $request->validate([
                 'name'     => 'sometimes|string|max:255',
