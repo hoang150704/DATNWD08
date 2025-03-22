@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\OrderItem;
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,25 +17,27 @@ class DashboardController extends Controller
     {
         $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
         $salesData = $this->getSalesStatistics($statisticBy);
-        $topSellingProducts = $this->getTopSellingProducts();
-        $productByCategory = $this->getProductByCategory();
-        $ratingStatistics = $this->getRatingStatistics();
-        $topRatedProducts = $this->getTopRatedProducts();
+        $topSellingProducts = $this->getTopSellingProducts(); // Top 5 sản phẩm bán chạy nhất
+        $productByCategory = $this->getProductByCategory(); // Số lượng sản phẩm theo danh mục
+        $ratingStatistics = $this->getRatingStatistics(); // Số lượng đánh giá theo từng mức rating
+        $topRatedProducts = $this->getTopRatedProducts(); // Top 5 sản phẩm được đánh giá cao nhất
 
         return response()->json([
             "status" => "success",
             "message" => "Lấy dữ liệu dashboard thành công!",
             "data" => [
-                "totalCategories" => Category::count(),
-                "totalProducts" => DB::table('products')->count(),
-                "totalUsers" => DB::table('users')->count(),
-                "totalVouchers" => DB::table('vouchers')->count(),
-                "topSellingProducts" => $topSellingProducts,
-                "salesStatistics" => $salesData,
-                "ratingStatistics" => $ratingStatistics,
-                "productByCategory" => $productByCategory,
-                "topRatedProducts" => $topRatedProducts,
-                "statisticBy" => $statisticBy
+                "totalCategories" => Category::count(), // Tổng số danh mục
+                "totalProducts" => DB::table('products')->count(), // Tổng số sản phẩm
+                "totalUsers" => DB::table('users')->count(), // Tổng số người dùng
+                "totalVouchers" => DB::table('vouchers')->count(), // Tổng số voucher
+                "totalOrders" => Order::count(), // Tổng số đơn hàng
+                "totalRevenue" => Order::where('stt_payment', 1)->sum('final_amount'), // Tổng doanh thu
+                "topSellingProducts" => $topSellingProducts, // Top 5 sản phẩm bán chạy nhất
+                "salesStatistics" => $salesData, // Thống kê doanh số bán hàng
+                "ratingStatistics" => $ratingStatistics, // Thống kê số lượng đánh giá theo từng mức rating
+                "productByCategory" => $productByCategory, // Thống kê số lượng sản phẩm theo danh mục
+                "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
+                "statisticBy" => $statisticBy // Thời gian thống kê
             ]
         ], 200);
     }
@@ -100,8 +103,8 @@ class DashboardController extends Controller
             case '1month':
                 $query->where('created_at', '>=', now()->subMonth());
                 break;
-            case '6month':
-                $query->where('created_at', '>=', now()->subMonths(6));
+            case '12month':
+                $query->where('created_at', '>=', now()->subMonths(12));
                 break;
         }
 
