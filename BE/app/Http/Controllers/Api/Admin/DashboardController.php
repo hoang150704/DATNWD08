@@ -123,4 +123,5 @@ class DashboardController extends Controller
             ->with('product:id,name,main_image')
             ->get();
     }
+    private function getTopUsersBySpending() {}
 }
