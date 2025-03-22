@@ -20,6 +20,8 @@ class OrderEvent implements ShouldBroadcast
      */
 
     public $order;
+    public $connection = 'sync';
+
     public function __construct(Order $order)
     {
         $this->order = $order;
@@ -37,6 +39,11 @@ class OrderEvent implements ShouldBroadcast
         ];
     }
 
+    public function broadcastAs(): string
+    {
+        return 'order-send';
+    }
+
     public function broadcastWith()
     {
         return [
@@ -44,11 +51,7 @@ class OrderEvent implements ShouldBroadcast
             'final_amount' => $this->order->final_amount,
             'payment_method' => $this->order->payment_method,
             'o_name' => $this->order->o_name,
-            'created_at' => $this->order->created_at,
+            'created_at' => $this->order->created_at->toDateTimeString(),
         ];
     }
 }
-
-
-
-
