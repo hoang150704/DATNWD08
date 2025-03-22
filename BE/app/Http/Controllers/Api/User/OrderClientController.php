@@ -99,6 +99,12 @@ class OrderClientController extends Controller
                 DB::rollBack();
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
+
+            // Thêm log trước khi broadcast
+            Log::info('Broadcasting order event for order: ' . $order->code);
+            broadcast(new OrderEvent($order));
+            Log::info('Broadcast completed');
+
             // Lưu lịch sử trạng thái
             $orderHistoryTrack = OrderHistory::insert([
                 [
@@ -126,7 +132,7 @@ class OrderClientController extends Controller
                     DB::rollBack();
                     return response()->json(['message' => 'Sản phẩm không tồn tại!'], 400);
                 }
-                $variation =  $variant->getFormattedVariation();
+                $variation = $variant->getFormattedVariation();
                 // Kiểm tra tồn kho trước khi trừ
                 if ($variant->stock_quantity < $product['quantity']) {
                     DB::rollBack();
@@ -178,8 +184,6 @@ class OrderClientController extends Controller
 
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
-
-            event(new OrderEvent($order));
 
             DB::commit();
             //Xóa giỏ hhangf
