@@ -16,7 +16,7 @@ class DashboardController extends Controller
     public function dashboard(Request $request)
     {
         $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
-        $salesData = $this->getSalesStatistics($statisticBy);
+        $salesData = $this->getSalesStatistics($statisticBy); // Thống kê doanh số bán hàng
         $topSellingProducts = $this->getTopSellingProducts(); // Top 5 sản phẩm bán chạy nhất
         $productByCategory = $this->getProductByCategory(); // Số lượng sản phẩm theo danh mục
         $ratingStatistics = $this->getRatingStatistics(); // Số lượng đánh giá theo từng mức rating
