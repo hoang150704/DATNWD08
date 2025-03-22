@@ -17,7 +17,7 @@ class DashboardController extends Controller
     {
         $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
         $salesData = $this->getSalesStatistics($statisticBy);
-        $topSellingProducts = $this->getTopSellingProducts();
+        $topSellingProducts = $this->getTopSellingProducts(); // Top 5 sản phẩm bán chạy nhất
         $productByCategory = $this->getProductByCategory();
         $ratingStatistics = $this->getRatingStatistics();
         $topRatedProducts = $this->getTopRatedProducts();
