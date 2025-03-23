@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
             StatusTrackingSeeder::class,
             StatusPaymentSeeder::class,
             SettingGhnSeeder::class,
-          
+            NotificationSeeder::class
         ]);
     }
 }

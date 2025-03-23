@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
+use App\Http\Controllers\Api\Admin\NotificationController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 // USER
@@ -143,6 +144,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('reply', [CommentController::class, 'reply']);
             Route::patch('status', [CommentController::class, 'statusToggle']);
             Route::get('{comment}', [CommentController::class, 'show']);
+        });
+
+        // Notification
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationController::class, 'index']);
+            Route::patch('/{notification}', [NotificationController::class, 'markAsRead']);
         });
 
         // Require
