@@ -76,10 +76,17 @@ class HomeController extends Controller
         // Chuẩn hóa từ khóa tìm kiếm (bỏ dấu)
         $normalizedKeyword = $this->normalizeVietnamese($keyword);
 
-        // Tìm kiếm sản phẩm với tên đã được chuẩn hóa
-        $products = Product::with(['library', 'variants'])
-            ->whereRaw('name LIKE ?', ['%'.$normalizedKeyword.'%'])
-            ->get();
+        // Tách từ khóa thành các từ riêng biệt
+        $keywords = explode(' ', $normalizedKeyword);
+
+        // Tìm kiếm sản phẩm với từng từ trong danh sách
+        $query = Product::with(['library', 'variants']);
+        
+        foreach ($keywords as $word) {
+            $query->orWhereRaw('name LIKE ?', ['%' . $word . '%']);
+        }
+
+        $products = $query->get();
     
         if ($products->isEmpty()) {
             return response()->json(['message' => 'Không tìm thấy sản phẩm!'], 200);
