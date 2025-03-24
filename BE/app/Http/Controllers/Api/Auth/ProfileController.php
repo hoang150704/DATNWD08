@@ -73,7 +73,7 @@ class ProfileController extends Controller
     public function index()
     {
         $userId = Auth::id();
-        $addresses = AddressBook::where('user_id', $userId)->orderByDesc('is_active')->get();
+        $addresses = AddressBook::where('user_id', $userId)->get();
 
         return response()->json([
             'message' => 'Danh sách địa chỉ',
