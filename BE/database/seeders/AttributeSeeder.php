@@ -15,8 +15,22 @@ class AttributeSeeder extends Seeder
     {
         //
         DB::table('attributes')->insert([
-            ['name' => 'Màu sắc', 'is_default' => 0],
-            ['name' => 'Kích thước', 'is_default' => 0],
+            [
+                "id" => 1,
+                "name" => "Màu sắc",
+                "is_default" => 1,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now()
+            ],
+            [
+                "id" => 2,
+                "name" => "Kích thước",
+                "is_default" => 1,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now()
+            ],
         ]);
     }
 }
