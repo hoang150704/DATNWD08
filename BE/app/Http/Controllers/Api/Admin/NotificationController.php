@@ -34,7 +34,6 @@ class NotificationController extends Controller
                     'message' => 'Trạng thái không hợp lệ'
                 ]);
             }
-
             return response()->json([
                 'message' => 'Success',
                 'data' => $notification
