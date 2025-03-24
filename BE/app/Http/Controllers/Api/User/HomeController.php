@@ -68,22 +68,24 @@ class HomeController extends Controller
     public function searchProducts(Request $request)
     {
         $keyword = $request->input('keyword');
-
+    
         if (empty($keyword)) {
-            return response()->json(['message' => 'Vui lòng nhập từ khóa tìm kiếm!'], 400);
+            return response()->json(['message' => 'Vui lòng nhập từ khóa!'], 400);
         }
+    
+        // Chuẩn hóa từ khóa tìm kiếm (bỏ dấu)
+        $normalizedKeyword = $this->normalizeVietnamese($keyword);
 
+        // Tìm kiếm sản phẩm với tên đã được chuẩn hóa
         $products = Product::with(['library', 'variants'])
-            ->where('name', 'like', '%' . $keyword . '%')
-            ->orWhere('slug', 'like', '%' . $keyword . '%')
-            ->orWhere('description', 'like', '%' . $keyword . '%')
+            ->whereRaw('name LIKE ?', ['%'.$normalizedKeyword.'%'])
             ->get();
-
+    
         if ($products->isEmpty()) {
             return response()->json(['message' => 'Không tìm thấy sản phẩm!'], 200);
         }
-
-        // 4. Phân trang thủ công
+    
+        // Phân trang thủ công
         $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage();
         $perPage = 9;
         $pagedData = $products->slice(($currentPage - 1) * $perPage, $perPage)->values();
@@ -94,22 +96,51 @@ class HomeController extends Controller
             $currentPage,
             ['path' => request()->url(), 'query' => request()->query()]
         );
-
+    
+        // Xử lý hình ảnh và giá
         $products->getCollection()->transform(function ($product) {
-            // Xử lý ảnh
             $product->url = $product->main_image && $product->library
-                ? Product::getConvertImage($product->library->url, 100, 100, 'thumb') : null;
-
-            // Xử lý giá
+                ? Product::getConvertImage($product->library->url, 100, 100, 'thumb')
+                : null;
+    
             $price = $this->getVariantPrice($product);
-            $product->regular_price = $price['regular_price'];
-            $product->sale_price = $price['sale_price'];
-
+            $product->regular_price = $price['regular_price'] ?? null;
+            $product->sale_price = $price['sale_price'] ?? null;
+    
             return $product;
         });
-
+    
         return response()->json($products, 200);
     }
+    
+    /**
+     * Chuẩn hóa chuỗi tiếng Việt (bỏ dấu)
+     */
+    public function normalizeVietnamese($string)
+    {
+        $unicode = array(
+            'a' => '/á|à|ả|ã|ạ|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ|á|à|ả|ã|ạ|ắ|ằ|ẳ|ẵ|ặ|ấ|ầ|ẩ|ẫ|ậ/iu',
+            'e' => '/é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ/iu',
+            'i' => '/í|ì|ỉ|ĩ|ị/iu',
+            'o' => '/ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ/iu',
+            'u' => '/ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự/iu',
+            'y' => '/ý|ỳ|ỷ|ỹ|ỵ/iu',
+            'd' => '/đ/iu',
+            'A' => '/Á|À|Ả|Ã|Ạ|Ă|Ắ|Ằ|Ẳ|Ẵ|Ặ|Â|Ấ|Ầ|Ẩ|Ẫ|Ậ|Á|À|Ả|Ã|Ạ|Ắ|Ằ|Ẳ|Ẵ|Ặ|Ấ|Ầ|Ẩ|Ẫ|Ậ/iu',
+            'E' => '/É|È|Ẻ|Ẽ|Ẹ|Ê|Ế|Ề|Ể|Ễ|Ệ/iu',
+            'I' => '/Í|Ì|Ỉ|Ĩ|Ị/iu',
+            'O' => '/Ó|Ò|Ỏ|Õ|Ọ|Ô|Ố|Ồ|Ổ|Ỗ|Ộ|Ơ|Ớ|Ờ|Ở|Ỡ|Ợ/iu',
+            'U' => '/Ú|Ù|Ủ|Ũ|Ụ|Ư|Ứ|Ừ|Ử|Ữ|Ự/iu',
+            'Y' => '/Ý|Ỳ|Ỷ|Ỹ|Ỵ/iu',
+            'D' => '/Đ/iu'
+        );
+    
+        foreach ($unicode as $nonUnicode => $pattern) {
+            $string = preg_replace($pattern, $nonUnicode, $string);
+        }
+    
+        return $string;
+    }    
 
     private function getVariantPrice($product)
     {

@@ -99,9 +99,9 @@ class ProductSeeder extends Seeder
                 'created_at' => $this->getRandomDate()
             ],
             [
-                'name' => "Áo dạ dài nữ",
-                'description' => "Áo dạ dài nữ giữ ấm tốt, thời trang.",
-                'short_description' => "Áo dạ dài nữ thời trang.",
+                'name' => "Áo dài nữ",
+                'description' => "Áo dài nữ giữ ấm tốt, thời trang.",
+                'short_description' => "Áo dài nữ thời trang.",
                 'main_image' => 5,
                 'slug' => 'ao-da-dai-nu',
                 'rating' => rand(0, 50) / 10,
