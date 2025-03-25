@@ -41,9 +41,10 @@ class DashboardController extends Controller
                 "topUsersBySpending" => $topUsersBySpending, // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
                 "revenueStatistics" => [
-                    "daily" => $this->getRevenueStatistics('daily', $year),
-                    "monthly" => $this->getRevenueStatistics('monthly', $year),
-                    "yearly" => $this->getRevenueStatistics('yearly', $year),
+                    "daily" => $this->getRevenueStatistics('daily', $year), // Thống kê doanh thu theo ngày
+                    "weekly" => $this->getRevenueStatistics('weekly', $year), // Thống kê doanh thu theo tuần
+                    "monthly" => $this->getRevenueStatistics('monthly', $year), // Thống kê doanh thu theo tháng
+                    "yearly" => $this->getRevenueStatistics('yearly', $year), // Thống kê doanh thu theo năm
                 ],
                 "statisticBy" => $statisticBy // Thời gian thống kê
             ]
@@ -56,9 +57,9 @@ class DashboardController extends Controller
         return Category::select(
             'categories.id',
             'categories.name',
-            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products')
+            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products') // Đếm số lượng sản phẩm
         )
-            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id')
+            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id') // Join bảng product_category_relations
             ->groupBy('categories.id', 'categories.name')
             ->orderByDesc('total_products')
             ->get();
@@ -67,7 +68,7 @@ class DashboardController extends Controller
     // Thống kê số lượng đánh giá theo từng mức rating
     private function getRatingStatistics()
     {
-        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews'))
+        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews')) // Đếm số lượng đánh giá
             ->groupBy('rating')
             ->orderByDesc('rating')
             ->get();
@@ -98,21 +99,21 @@ class DashboardController extends Controller
     private function getSalesStatistics($period)
     {
         $query = OrderItem::select(
-            DB::raw('DATE(created_at) as date'),
-            DB::raw('SUM(quantity) as totalSales')
+            DB::raw('DATE(created_at) as date'), // Lấy ngày từ trường created_at
+            DB::raw('SUM(quantity) as totalSales') // Tính tổng số lượng sản phẩm bán ra
         )
-            ->groupBy('date')
+            ->groupBy('date') // Nhóm theo ngày
             ->orderBy('date', 'ASC');
 
         switch ($period) {
             case '7day':
-                $query->where('created_at', '>=', now()->subDays(7));
+                $query->where('created_at', '>=', now()->subDays(7)); // Lấy dữ liệu trong 7 ngày gần nhất
                 break;
             case '1month':
-                $query->where('created_at', '>=', now()->subMonth());
+                $query->where('created_at', '>=', now()->subMonth()); // Lấy dữ liệu trong 1 tháng gần nhất
                 break;
             case '12month':
-                $query->where('created_at', '>=', now()->subMonths(12));
+                $query->where('created_at', '>=', now()->subMonths(12)); // Lấy dữ liệu trong 12 tháng gần nhất
                 break;
         }
 
@@ -122,9 +123,9 @@ class DashboardController extends Controller
     // Lấy danh sách sản phẩm bán chạy nhất (top 5)
     private function getTopSellingProducts()
     {
-        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
-            ->groupBy('product_id')
-            ->orderByDesc('total_sold')
+        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold')) // Tính tổng số lượng sản phẩm bán ra
+            ->groupBy('product_id') // Nhóm theo sản phẩm
+            ->orderByDesc('total_sold') // Sắp xếp theo số lượng bán được
             ->take(5)
             ->with('product:id,name,main_image')
             ->get();
@@ -135,15 +136,17 @@ class DashboardController extends Controller
     {
         return Order::select(
             'user_id',
-            DB::raw('SUM(final_amount) as total_spent')
+            DB::raw('SUM(final_amount) as total_spent') // Tính tổng số tiền đã chi tiêu
         )
             ->where('stt_payment', 1) // Chỉ tính đơn hàng đã thanh toán
-            ->groupBy('user_id')
-            ->orderByDesc('total_spent')
+            ->groupBy('user_id') // Nhóm theo user
+            ->orderByDesc('total_spent') // Sắp xếp theo số tiền đã chi tiêu
             ->take(5)
             ->with('user:id,name,email') // Lấy thông tin user
             ->get();
     }
+
+    // Lấy thống kê doanh thu theo thời gian
     private function getRevenueStatistics($period = 'daily', $year = null)
     {
         $year = $year ?? now()->year; // Nếu không truyền năm, mặc định lấy năm hiện tại
@@ -151,9 +154,10 @@ class DashboardController extends Controller
         $query = Order::select([
             DB::raw(
                 match ($period) {
-                    'daily' => "DATE(created_at) as period",
-                    'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period",
-                    'yearly' => "YEAR(created_at) as period",
+                    'daily' => "DATE(created_at) as period", // Lấy ngày
+                    'weekly' => "YEARWEEK(created_at, 1) as period", // Lấy tuần
+                    'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period", // Lấy tháng
+                    'yearly' => "YEAR(created_at) as period", // Lấy năm
                     default => "DATE(created_at) as period",
                 }
             ),
@@ -161,7 +165,7 @@ class DashboardController extends Controller
         ])
             ->whereYear('created_at', $year) // Lọc theo năm
             ->where('stt_payment', 1)   // Chỉ lấy đơn hàng đã thanh toán
-            ->groupBy('period')
+            ->groupBy('period') // Nhóm theo thời gian
             ->orderBy('period', 'ASC');
 
         return $query->get();
