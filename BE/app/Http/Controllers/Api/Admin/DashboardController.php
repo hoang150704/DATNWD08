@@ -152,6 +152,7 @@ class DashboardController extends Controller
             DB::raw(
                 match ($period) {
                     'daily' => "DATE(created_at) as period",
+                    'weekly' => "YEARWEEK(created_at, 1) as period",
                     'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period",
                     'yearly' => "YEAR(created_at) as period",
                     default => "DATE(created_at) as period",
