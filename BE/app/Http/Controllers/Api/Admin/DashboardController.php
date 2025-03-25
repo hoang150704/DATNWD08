@@ -138,4 +138,5 @@ class DashboardController extends Controller
             ->with('user:id,name,email') // Lấy thông tin user
             ->get();
     }
+    private function getRevenueStatistics() {}
 }
