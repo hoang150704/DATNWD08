@@ -57,9 +57,9 @@ class DashboardController extends Controller
         return Category::select(
             'categories.id',
             'categories.name',
-            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products')
+            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products') // Đếm số lượng sản phẩm
         )
-            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id')
+            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id') // Join bảng product_category_relations
             ->groupBy('categories.id', 'categories.name')
             ->orderByDesc('total_products')
             ->get();
@@ -68,7 +68,7 @@ class DashboardController extends Controller
     // Thống kê số lượng đánh giá theo từng mức rating
     private function getRatingStatistics()
     {
-        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews'))
+        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews')) // Đếm số lượng đánh giá
             ->groupBy('rating')
             ->orderByDesc('rating')
             ->get();
@@ -99,7 +99,7 @@ class DashboardController extends Controller
     private function getSalesStatistics($period)
     {
         $query = OrderItem::select(
-            DB::raw('DATE(created_at) as date'),
+            DB::raw('DATE(created_at) as date'), // Lấy ngày từ trường created_at
             DB::raw('SUM(quantity) as totalSales')
         )
             ->groupBy('date')
