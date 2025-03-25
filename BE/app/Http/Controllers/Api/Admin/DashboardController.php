@@ -152,9 +152,9 @@ class DashboardController extends Controller
         $query = Order::select([
             DB::raw(
                 match ($period) {
-                    'daily' => "DATE(created_at) as period",
-                    'weekly' => "YEARWEEK(created_at, 1) as period",
-                    'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period",
+                    'daily' => "DATE(created_at) as period", // Lấy ngày
+                    'weekly' => "YEARWEEK(created_at, 1) as period", // Lấy tuần
+                    'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period", // Lấy tháng
                     'yearly' => "YEAR(created_at) as period",
                     default => "DATE(created_at) as period",
                 }
