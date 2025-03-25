@@ -29,13 +29,5 @@ class SaveOrderNotification
             'message' => 'Khách hàng ' . $event->order->o_name . ' vừa đặt đơn hàng trị giá ' . $event->order->final_amount . 'đ' . ' bằng phương thức ' . $event->order->payment_method,
             'created_at' => $event->order->created_at
         ]);
-
-        if ($event->order->voucher_code) {
-            $voucher = Voucher::where('code', $event->order->voucher_code)->first();
-
-            if ($voucher) {
-                event(new VoucherEvent($voucher)); // Gửi sự kiện voucher
-            }
-        }
     }
 }

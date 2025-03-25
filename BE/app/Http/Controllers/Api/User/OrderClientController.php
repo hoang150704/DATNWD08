@@ -107,13 +107,26 @@ class OrderClientController extends Controller
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
 
-            // Broadcast Order và Voucher
             $voucher = null;
-            if (!empty($validatedData['voucher_code'])) {
-                $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+            if ($request->voucher_code) {
+                $voucher = Voucher::where('code', $request->voucher_code)->first();
+
+                // Kiểm tra nếu voucher tồn tại và còn lượt sử dụng
+                if ($voucher && $voucher->usage_limit > 0) {
+                    // Giảm số lần sử dụng ngay trước khi commit
+                    $voucher->decrement('usage_limit');
+                } else {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
+                    ], 400);
+                }
             }
 
+            // Chỉ broadcast khi voucher hợp lệ hoặc không có voucher
             broadcast(new OrderEvent($order, $voucher));
+
+            // Sau khi hoàn tất việc tạo đơn hàng và trước khi commit transaction
 
             // Lưu lịch sử trạng thái
             // $orderHistoryTrack = OrderHistory::insert(
@@ -175,23 +188,7 @@ class OrderClientController extends Controller
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
 
-            // Sau khi hoàn tất việc tạo đơn hàng và trước khi commit transaction
-            if (isset($validatedData['voucher_code'])) {
-                $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
-                if ($voucher) {
-                    // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
-                    if ($voucher->usage_limit && $voucher->usage_limit > 0) {
-                        // Giảm số lần sử dụng ngay trước khi commit
-                        $voucher->decrement('usage_limit');
-                    } else {
-                        DB::rollBack();
-                        return response()->json([
-                            'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
-                        ], 400);
-                    }
-                }
-            }
 
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);

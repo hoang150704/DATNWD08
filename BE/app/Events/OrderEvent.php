@@ -24,7 +24,7 @@ class OrderEvent implements ShouldBroadcast
     public $voucher;
     public $connection = 'sync';
 
-    public function __construct($order, $voucher = null)
+    public function __construct($order, $voucher)
     {
         $this->order = $order;
         $this->voucher = $voucher;
@@ -54,11 +54,11 @@ class OrderEvent implements ShouldBroadcast
             'o_name' => $this->order->o_name,
             'final_amount' => $this->order->final_amount,
             'payment_method' => $this->order->payment_method,
-            'created_at' => $this->order->created_at->toDateTimeString(),
+            'created_at' => $this->order->created_at,
             'voucher' => $this->voucher ? [
                 'code' => $this->voucher->code,
                 'discount' => $this->voucher->discount_amount,
-                'expiry_date' => $this->voucher->expiry_date->toDateTimeString()
+                'expiry_date' => $this->voucher->expiry_date
             ] : null, // Kiểm tra và lấy thông tin voucher nếu có
         ];
     }
