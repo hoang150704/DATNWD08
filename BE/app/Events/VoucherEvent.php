@@ -14,6 +14,8 @@ class VoucherEvent implements ShouldBroadcast
     public $action;
     public $data;
 
+    public $connection = 'sync';
+    
     public function __construct($action, $data)
     {
         $this->action = $action; // Hành động: created, updated, deleted
@@ -23,6 +25,11 @@ class VoucherEvent implements ShouldBroadcast
     public function broadcastOn()
     {
         return new Channel('voucher-channel');
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'order-send';
     }
 
     public function broadcastWith()

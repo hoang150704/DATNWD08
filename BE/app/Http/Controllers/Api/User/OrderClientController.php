@@ -106,8 +106,8 @@ class OrderClientController extends Controller
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
 
-            // Thêm log trước khi broadcast
-            Log::info('Broadcasting order event for order: ' . $order->code);
+            // Broadcast và Event
+            event(new OrderEvent($order));
             broadcast(new OrderEvent($order));
             Log::info('Broadcast completed');
             // Lưu bảng trạng thái đơn hàng orderstatus

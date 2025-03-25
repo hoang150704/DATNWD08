@@ -48,10 +48,11 @@ class OrderEvent implements ShouldBroadcast
     {
         return [
             'order_code' => $this->order->code,
+            'o_name' => $this->order->o_name,
             'final_amount' => $this->order->final_amount,
             'payment_method' => $this->order->payment_method,
-            'o_name' => $this->order->o_name,
             'created_at' => $this->order->created_at->toDateTimeString(),
+            'type' => 1,
         ];
     }
 }
