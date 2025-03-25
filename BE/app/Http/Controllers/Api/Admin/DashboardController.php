@@ -138,5 +138,27 @@ class DashboardController extends Controller
             ->with('user:id,name,email') // Lấy thông tin user
             ->get();
     }
-    private function getRevenueStatistics() {}
+    private function getRevenueStatistics($period = 'daily', $year = null)
+{
+    $year = $year ?? now()->year;
+
+    $query = Order::select([
+        DB::raw(
+            match ($period) {
+                'daily' => "DATE(created_at) as period",
+                'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period",
+                'yearly' => "YEAR(created_at) as period",
+                default => "DATE(created_at) as period",
+            }
+        ),
+        DB::raw('SUM(final_amount) as totalRevenue')
+    ])
+    ->whereYear('created_at', $year)
+    ->where('stt_payment', 1)
+    ->groupBy('period')
+    ->orderBy('period', 'ASC');
+
+    return $query->get();
+}
+
 }
