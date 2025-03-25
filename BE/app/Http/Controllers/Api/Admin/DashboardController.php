@@ -16,12 +16,13 @@ class DashboardController extends Controller
     public function dashboard(Request $request)
     {
         $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
-        $salesData = $this->getSalesStatistics($statisticBy);
+        $salesData = $this->getSalesStatistics($statisticBy); // Thống kê doanh số bán hàng
         $topSellingProducts = $this->getTopSellingProducts(); // Top 5 sản phẩm bán chạy nhất
         $productByCategory = $this->getProductByCategory(); // Số lượng sản phẩm theo danh mục
         $ratingStatistics = $this->getRatingStatistics(); // Số lượng đánh giá theo từng mức rating
         $topRatedProducts = $this->getTopRatedProducts(); // Top 5 sản phẩm được đánh giá cao nhất
         $topUsersBySpending = $this->getTopUsersBySpending(); // Top 5 user có số tiền chi tiêu nhiều nhất
+        $year = $request->query('year', now()->year); // Năm thống kê
 
         return response()->json([
             "status" => "success",
@@ -39,6 +40,11 @@ class DashboardController extends Controller
                 "productByCategory" => $productByCategory, // Thống kê số lượng sản phẩm theo danh mục
                 "topUsersBySpending" => $topUsersBySpending, // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
+                "revenueStatistics" => [
+                    "daily" => $this->getRevenueStatistics('daily', $year),
+                    "monthly" => $this->getRevenueStatistics('monthly', $year),
+                    "yearly" => $this->getRevenueStatistics('yearly', $year),
+                ],
                 "statisticBy" => $statisticBy // Thời gian thống kê
             ]
         ], 200);
@@ -137,5 +143,27 @@ class DashboardController extends Controller
             ->take(5)
             ->with('user:id,name,email') // Lấy thông tin user
             ->get();
+    }
+    private function getRevenueStatistics($period = 'daily', $year = null)
+    {
+        $year = $year ?? now()->year; // Nếu không truyền năm, mặc định lấy năm hiện tại
+
+        $query = Order::select([
+            DB::raw(
+                match ($period) {
+                    'daily' => "DATE(created_at) as period",
+                    'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period",
+                    'yearly' => "YEAR(created_at) as period",
+                    default => "DATE(created_at) as period",
+                }
+            ),
+            DB::raw('SUM(final_amount) as totalRevenue') // Tính tổng doanh thu
+        ])
+            ->whereYear('created_at', $year) // Lọc theo năm
+            ->where('stt_payment', 1)   // Chỉ lấy đơn hàng đã thanh toán
+            ->groupBy('period')
+            ->orderBy('period', 'ASC');
+
+        return $query->get();
     }
 }
