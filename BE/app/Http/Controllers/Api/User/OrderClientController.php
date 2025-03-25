@@ -99,7 +99,7 @@ class OrderClientController extends Controller
                 'shipping_status_id' => ShippingStatus::idByCode('not_created'),
             ];
             //
-            $order = Order::create( $dataOrder);
+            $order = Order::create($dataOrder);
             //
 
             if (!$order) {
@@ -107,21 +107,24 @@ class OrderClientController extends Controller
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
 
-            // Broadcast và Event
-            // $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
-            $voucher = Voucher::where('code', 'VOUCHER3')->first();
+            // Broadcast Order và Voucher
+            $voucher = null;
+            if (!empty($validatedData['voucher_code'])) {
+                $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+            }
+
             broadcast(new OrderEvent($order, $voucher));
 
             // Lưu lịch sử trạng thái
-            $orderHistoryTrack = OrderHistory::insert(
-                [
-                    'order_id' => $order->id,
-                    'from_status_id' => null,
-                    'to_status_id' => 1,
-                    'changed_by' => 'system',
-                    'changed_at' => now(),
-                ]
-            );
+            // $orderHistoryTrack = OrderHistory::insert(
+            //     [
+            //         'order_id' => $order->id,
+            //         'from_status_id' => null,
+            //         'to_status_id' => 1,
+            //         'changed_by' => 'system',
+            //         'changed_at' => now(),
+            //     ]
+            // );
             // Lưu trạng thái đơn hàng shipping
             Shipment::create(
                 [
@@ -172,25 +175,23 @@ class OrderClientController extends Controller
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
 
-            // $voucher->decrement('usage_limit');
-
             // Sau khi hoàn tất việc tạo đơn hàng và trước khi commit transaction
-            // if (isset($validatedData['voucher_code'])) {
-            //     $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+            if (isset($validatedData['voucher_code'])) {
+                $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
-            //     if ($voucher) {
-            //         // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
-            //         if ($voucher->usage_limit && $voucher->usage_limit > 0) {
-            //             // Tăng số lần sử dụng ngay trước khi commit
-            //             $voucher->decrement('usage_limit');
-            //         } else {
-            //             DB::rollBack();
-            //             return response()->json([
-            //                 'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
-            //             ], 400);
-            //         }
-            //     }
-            // }
+                if ($voucher) {
+                    // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
+                    if ($voucher->usage_limit && $voucher->usage_limit > 0) {
+                        // Giảm số lần sử dụng ngay trước khi commit
+                        $voucher->decrement('usage_limit');
+                    } else {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
+                        ], 400);
+                    }
+                }
+            }
 
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
@@ -227,7 +228,7 @@ class OrderClientController extends Controller
             return response()->json([
                 'message' => 'Bạn đã thêm đơn hàng thành công!',
                 'order_code' => $order->code,
-                'user'=> $user,
+                'user' => $user,
                 'code' => 201
             ], 200);
         } catch (\Throwable $th) {
@@ -235,7 +236,7 @@ class OrderClientController extends Controller
             return response()->json([
                 'message' => 'Lỗi trong quá trình tạo đơn hàng!',
                 'errors' => $th->getMessage(),
-                'data'=> $dataOrder
+                'data' => $dataOrder
             ], 500);
         }
     }

@@ -24,7 +24,7 @@ class OrderEvent implements ShouldBroadcast
     public $voucher;
     public $connection = 'sync';
 
-    public function __construct($order, $voucher)
+    public function __construct($order, $voucher = null)
     {
         $this->order = $order;
         $this->voucher = $voucher;
