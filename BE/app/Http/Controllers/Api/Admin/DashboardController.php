@@ -102,18 +102,18 @@ class DashboardController extends Controller
             DB::raw('DATE(created_at) as date'), // Lấy ngày từ trường created_at
             DB::raw('SUM(quantity) as totalSales') // Tính tổng số lượng sản phẩm bán ra
         )
-            ->groupBy('date')
+            ->groupBy('date') // Nhóm theo ngày
             ->orderBy('date', 'ASC');
 
         switch ($period) {
             case '7day':
-                $query->where('created_at', '>=', now()->subDays(7));
+                $query->where('created_at', '>=', now()->subDays(7)); // Lấy dữ liệu trong 7 ngày gần nhất
                 break;
             case '1month':
-                $query->where('created_at', '>=', now()->subMonth());
+                $query->where('created_at', '>=', now()->subMonth()); // Lấy dữ liệu trong 1 tháng gần nhất
                 break;
             case '12month':
-                $query->where('created_at', '>=', now()->subMonths(12));
+                $query->where('created_at', '>=', now()->subMonths(12)); // Lấy dữ liệu trong 12 tháng gần nhất
                 break;
         }
 
