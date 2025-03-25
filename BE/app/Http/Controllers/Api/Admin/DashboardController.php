@@ -22,6 +22,7 @@ class DashboardController extends Controller
         $ratingStatistics = $this->getRatingStatistics(); // Số lượng đánh giá theo từng mức rating
         $topRatedProducts = $this->getTopRatedProducts(); // Top 5 sản phẩm được đánh giá cao nhất
         $topUsersBySpending = $this->getTopUsersBySpending(); // Top 5 user có số tiền chi tiêu nhiều nhất
+        $year = $request->query('year', now()->year);
 
         return response()->json([
             "status" => "success",
