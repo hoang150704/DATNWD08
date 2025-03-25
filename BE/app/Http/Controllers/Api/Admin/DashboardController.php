@@ -123,9 +123,9 @@ class DashboardController extends Controller
     // Lấy danh sách sản phẩm bán chạy nhất (top 5)
     private function getTopSellingProducts()
     {
-        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
-            ->groupBy('product_id')
-            ->orderByDesc('total_sold')
+        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold')) // Tính tổng số lượng sản phẩm bán ra
+            ->groupBy('product_id') // Nhóm theo sản phẩm
+            ->orderByDesc('total_sold') // Sắp xếp theo số lượng bán được
             ->take(5)
             ->with('product:id,name,main_image')
             ->get();
