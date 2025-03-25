@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Events\OrderEvent;
+use App\Events\VoucherEvent;
 use App\Listeners\SaveOrderNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -23,7 +24,6 @@ class EventServiceProvider extends ServiceProvider
         OrderEvent::class => [
             SaveOrderNotification::class
         ]
-
     ];
 
     /**

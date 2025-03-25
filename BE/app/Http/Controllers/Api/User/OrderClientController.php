@@ -10,6 +10,7 @@ use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\OrderHistory;
 use App\Models\OrderItem;
 use App\Models\OrderStatus;
 use App\Models\OrderStatusLog;
@@ -107,11 +108,12 @@ class OrderClientController extends Controller
             }
 
             // Broadcast và Event
-            event(new OrderEvent($order));
-            broadcast(new OrderEvent($order));
-            Log::info('Broadcast completed');
-            // Lưu bảng trạng thái đơn hàng orderstatus
-            OrderStatusLog::create(
+            // $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+            $voucher = Voucher::where('code', 'VOUCHER3')->first();
+            broadcast(new OrderEvent($order, $voucher));
+
+            // Lưu lịch sử trạng thái
+            $orderHistoryTrack = OrderHistory::insert(
                 [
                     'order_id' => $order->id,
                     'from_status_id' => null,
@@ -170,24 +172,25 @@ class OrderClientController extends Controller
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
 
+            // $voucher->decrement('usage_limit');
 
             // Sau khi hoàn tất việc tạo đơn hàng và trước khi commit transaction
-            if (isset($validatedData['voucher_code'])) {
-                $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+            // if (isset($validatedData['voucher_code'])) {
+            //     $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
-                if ($voucher) {
-                    // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
-                    if ($voucher->usage_limit && $voucher->times_used < $voucher->usage_limit) {
-                        // Tăng số lần sử dụng ngay trước khi commit
-                        $voucher->increment('times_used');
-                    } else {
-                        DB::rollBack();
-                        return response()->json([
-                            'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
-                        ], 400);
-                    }
-                }
-            }
+            //     if ($voucher) {
+            //         // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
+            //         if ($voucher->usage_limit && $voucher->usage_limit > 0) {
+            //             // Tăng số lần sử dụng ngay trước khi commit
+            //             $voucher->decrement('usage_limit');
+            //         } else {
+            //             DB::rollBack();
+            //             return response()->json([
+            //                 'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
+            //             ], 400);
+            //         }
+            //     }
+            // }
 
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);

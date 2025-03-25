@@ -11,15 +11,13 @@ class VoucherEvent implements ShouldBroadcast
 {
     use InteractsWithSockets, SerializesModels;
 
-    public $action;
-    public $data;
+    public $voucher;
 
     public $connection = 'sync';
     
-    public function __construct($action, $data)
+    public function __construct($voucher)
     {
-        $this->action = $action; // Hành động: created, updated, deleted
-        $this->data = $data; // Dữ liệu liên quan (voucher hoặc ID)
+        $this->voucher = $voucher;
     }
 
     public function broadcastOn()
@@ -29,14 +27,15 @@ class VoucherEvent implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'order-send';
+        return 'voucher-event';
     }
 
     public function broadcastWith()
     {
         return [
-            'action' => $this->action,
-            'data' => $this->data,
+            'voucher_code' => $this->voucher->code,
+            'discount' => $this->voucher->discount,
+            'expiry_date' => $this->voucher->expiry_date->toDateTimeString(),
         ];
     }
 }
