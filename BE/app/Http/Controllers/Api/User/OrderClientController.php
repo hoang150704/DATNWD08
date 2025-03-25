@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\User;
 
 use App\Events\OrderEvent;
 use App\Http\Controllers\Controller;
+
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
 use App\Jobs\SendMailSuccessOrderJob;
@@ -18,6 +19,7 @@ use App\Models\ProductVariation;
 use App\Models\Shipment;
 use App\Models\ShippingLog;
 use App\Models\ShippingStatus;
+use App\Models\Transaction;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -98,7 +100,7 @@ class OrderClientController extends Controller
                 'shipping_status_id' => ShippingStatus::idByCode('not_created'),
             ];
             //
-            $order = Order::create( $dataOrder);
+            $order = Order::create($dataOrder);
             //
 
             if (!$order) {
@@ -120,6 +122,15 @@ class OrderClientController extends Controller
                     'changed_at' => now(),
                 ]
             );
+            // Lưu bảng thanh toán
+            Transaction::create([
+                'order_id' => $order->id,
+                'method' => $order->payment_method,
+                'type' => 'payment',
+                'amount' => $order->final_amount,
+                'status' => 'pending',
+                'created_at' => now(),
+            ]);
             // Lưu trạng thái đơn hàng shipping
             Shipment::create(
                 [
@@ -224,7 +235,7 @@ class OrderClientController extends Controller
             return response()->json([
                 'message' => 'Bạn đã thêm đơn hàng thành công!',
                 'order_code' => $order->code,
-                'user'=> $user,
+                'user' => $user,
                 'code' => 201
             ], 200);
         } catch (\Throwable $th) {
@@ -232,18 +243,18 @@ class OrderClientController extends Controller
             return response()->json([
                 'message' => 'Lỗi trong quá trình tạo đơn hàng!',
                 'errors' => $th->getMessage(),
-                'data'=> $dataOrder
+                'data' => $dataOrder
             ], 500);
         }
     }
 
-
+    // Xử lí dữ liệu nhận về khi thanh toán online
     public function callbackPayment(Request $request)
     {
-
         $vnp_HashSecret = env('VNP_HASH_SECRET');
         $vnp_SecureHash = $request['vnp_SecureHash'];
-        $data = array();
+
+        $data = [];
         foreach ($_GET as $key => $value) {
             if (substr($key, 0, 4) == "vnp_") {
                 $data[$key] = $value;
@@ -252,37 +263,226 @@ class OrderClientController extends Controller
 
         unset($data['vnp_SecureHash']);
         ksort($data);
-        $i = 0;
-        $hashData = "";
-        foreach ($data as $key => $value) {
-            if ($i == 1) {
-                $hashData = $hashData . '&' . urlencode($key) . "=" . urlencode($value);
-            } else {
-                $hashData = $hashData . urlencode($key) . "=" . urlencode($value);
-                $i = 1;
-            }
-        }
-
+        $hashData = urldecode(http_build_query($data));
         $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
-        if ($secureHash === $vnp_SecureHash) {
-            if ($request['vnp_ResponseCode'] == '00') {
-                // Giao dịch thành công, cập nhật trạng thái đơn hàng
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Thanh toán thành công',
-                ]);
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Thanh toán thất bại',
-                ]);
-            }
-        } else {
+        $order = Order::where('code', $request['vnp_TxnRef'])->first();
+
+        if (!$order) {
             return response()->json([
                 'success' => false,
-                'message' => 'Sai chữ kí',
+                'message' => 'Không tìm thấy đơn hàng!',
             ]);
         }
+
+        $isSuccess = ($secureHash === $vnp_SecureHash && $request['vnp_ResponseCode'] == '00');
+
+        // Cập nhật giao dịch
+        $transaction = Transaction::create([
+            'order_id'           => $order->id,
+            'method'             => 'vnpay',
+            'type'               => 'payment',
+            'amount'             => ($request['vnp_Amount'] ?? 0) / 100,
+            'transaction_code'   => $request['vnp_TxnRef'],
+            'vnp_transaction_no' => $request['vnp_TransactionNo'] ?? null,
+            'vnp_bank_code'      => $request['vnp_BankCode'] ?? null,
+            'vnp_pay_date'       => now(),
+            'status'             => $isSuccess ? 'success' : 'failed',
+            'note'               => $isSuccess ? 'Thanh toán thành công từ VNPAY' : 'Thanh toán thất bại hoặc sai chữ ký',
+        ]);
+
+        // Nếu thanh toán thành công thì cập nhật order
+        if ($isSuccess) {
+            $order->update([
+                'payment_status_id' => PaymentStatus::idByCode('paid'),
+            ]);
+        }
+
+        return response()->json([
+            'success' => $isSuccess,
+            'message' => $isSuccess ? 'Thanh toán thành công' : 'Thanh toán thất bại hoặc sai chữ ký',
+            'transaction_id' => $transaction->id,
+        ]);
+    }
+    //Lấy ra danh sách sản phẩm
+    public function getOrdersForUser(Request $request)
+    {
+        try {
+            $status = $request->get('status'); // query param
+            $userId = auth()->id();
+
+            $query = Order::with(['items', 'status', 'paymentStatus'])
+                ->where('user_id', $userId);
+
+            switch ($status) {
+                case 'waiting_payment':
+                    $query->where('payment_method', 'vnpay')
+                        ->whereHas('paymentStatus', fn($q) => $q->where('code', 'unpaid'));
+                    break;
+
+                case 'pending':
+                    $query->whereHas('status', fn($q) => $q->where('code', 'pending'));
+                    break;
+
+                case 'confirmed':
+                    $query->whereHas('status', fn($q) => $q->where('code', 'confirmed'));
+                    break;
+
+                case 'shipping':
+                    $query->whereHas('status', fn($q) => $q->where('code', 'shipping'));
+                    break;
+
+                case 'completed':
+                    $query->whereHas('status', fn($q) => $q->where('code', 'completed'));
+                    break;
+
+                case 'closed':
+                    $query->whereHas('status', fn($q) => $q->where('code', 'closed'));
+                    break;
+
+                case 'cancelled':
+                    $query->whereHas('status', fn($q) => $q->where('code', 'cancelled'));
+                    break;
+
+                case 'refund':
+                    $query->whereHas(
+                        'status',
+                        fn($q) =>
+                        $q->whereIn('code', ['return_requested', 'return_approved', 'refunded'])
+                    );
+                    break;
+
+                default:
+                    // Không lọc
+                    break;
+            }
+
+            $orders = $query->latest()->paginate(10);
+
+            $data = $orders->map(function ($order) {
+                return [
+                    'code' => $order->code,
+                    'status' => $order->status->name ?? '',
+                    'status_code' => $order->status->code ?? '',
+                    'payment_status' => $order->paymentStatus->name ?? '',
+                    'payment_code' => $order->paymentStatus->code ?? '',
+                    'created_at' => $order->created_at->format('d-m-Y H:i'),
+                    'final_amount' => $order->final_amount,
+                    'products' => $order->items->map(function ($item) {
+                        return [
+                            'name' => $item->product_name,
+                            'image' => $item->image,
+                            'price' => $item->price,
+                            'quantity' => $item->quantity,
+                            'variation' => json_decode($item->variation, true),
+                        ];
+                    }),
+                ];
+            });
+
+            return response()->json([
+                'message' => 'Success',
+                'data' => [
+                    'orders' => $data,
+                    'pagination' => [
+                        'current_page' => $orders->currentPage(),
+                        'last_page' => $orders->lastPage(),
+                        'per_page' => $orders->perPage(),
+                        'total' => $orders->total(),
+                    ],
+                ]
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Lỗi khi lấy danh sách đơn hàng!',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
+    //
+    public function getOrderDetail($orderCode)
+    {
+        try {
+            //
+            $order = Order::with('items', 'status', 'paymentStatus', 'refundRequests')
+                ->where('code', $orderCode)
+                ->firstOrFail();
+
+            // COnvert lại dữ liệu
+            $orderDetails = [
+                'order_id' => $order->id,
+                'order_code' => $order->code,
+                'status' => $order->status->name,
+                'items' => $order->items->map(function ($item) {
+                    return [
+                        'product_name' => $item->product_name,
+                        'quantity' => $item->quantity,
+                        'price' => $item->price,
+                        'image_url' => $item->image
+                    ];
+                }),
+                'total_amount' => $order->total_amount,
+                'final_amount' => $order->final_amount,
+                'discount_amount' => $order->discount_amount,
+                'shipping_fee' => $order->shipping, // phí ship
+                'refund_requests' => $order->refundRequests->map(function ($refundRequest) { // Hoàn đơn
+                    return [
+                        'request_id' => $refundRequest->id,
+                        'status' => $refundRequest->status,
+                        'reason' => $refundRequest->reason,
+                        'requested_amount' => $refundRequest->amount,
+                        'approved_by' => $refundRequest->approved_by,
+                        'approved_at' => $refundRequest->approved_at ? $refundRequest->approved_at->toDateTimeString() : null
+                    ];
+                })
+            ];
+
+            return response()->json([
+                'message' => 'Success',
+                'data' => $orderDetails
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Không tìm thấy đơn hàng',
+                'error' => $th->getMessage()
+            ], 404);
+        }
+    }
+
+
+    // Helper method to determine what actions are available based on order status
+    private function determineAvailableActions($order)
+    {
+        $actions = [];
+        switch ($order->status->code) {
+            case 'pending':
+                $actions = ['cancel'];
+                break;
+            case 'confirmed':
+                $actions = ['cancel'];
+                break;
+            case 'shipping':
+                $actions = [];
+                break;
+            case 'completed':
+                $actions = ['return', 'close'];
+                break;
+            case 'closed':
+                $actions = [];
+                break;
+            case 'return_requested':
+                $actions = ['cancel_return'];
+                break;
+            case 'return_approved':
+                $actions = [];
+                break;
+            case 'refunded':
+                $actions = [];
+                break;
+            case 'cancelled':
+                $actions = [];
+                break;
+        }
+        return $actions;
     }
 }

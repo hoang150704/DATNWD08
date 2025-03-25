@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductVariation;
 use App\Models\StatusTracking;
+use App\Traits\MaskableTraits;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -17,17 +18,28 @@ use Illuminate\Support\Facades\Request;
 
 class OrderController extends Controller
 {
+    use MaskableTraits;
     public function index()
     {
         try {
-            $orders = Order::select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'stt_payment', 'stt_track', 'created_at')
-                ->with([
-                    'stt_track:id,name,next_status_allowed',
-                    'stt_payment:id,name'
-                ])
-                ->orderByDesc('orders.created_at')
-                ->paginate(40);
-
+            $orders = Order::select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
+                ->with('status:id,code,name', 'paymentStatus:id,code,name', 'shippingStatus:id,code,name')
+                ->orderByDesc('created_at')
+                ->paginate(30);
+            $orders = $orders->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'code' => $order->code,
+                    'o_name' => $order->o_name,
+                    'phone' => $order->o_phone,
+                    'final_amount' => $order->final_amount,
+                    'payment_method' => $order->payment_method,
+                    'order_status' => $order->status->name ?? '',
+                    'payment_status' => $order->paymentStatus->name ?? '',
+                    'shipping_status' => $order->shippingStatus->name ?? '',
+                    'created_at' => $order->created_at->format('d/m/Y H:i'),
+                ];
+            });
             return response()->json([
                 'message' => 'Success',
                 'data' => $orders
@@ -35,9 +47,11 @@ class OrderController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Failed',
+                'error' => $th->getMessage()
             ], 500);
         }
     }
+
 
     private function generateUniqueOrderCode()
     {
@@ -100,8 +114,8 @@ class OrderController extends Controller
                         'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
                     ], 400);
                 }
-                 //
-                 $variation =  $variant->getFormattedVariation();
+                //
+                $variation =  $variant->getFormattedVariation();
                 // Thêm sản phẩm vào danh sách orderItems
                 $orderItems[] = [
                     'order_id' => $order->id,
@@ -163,22 +177,30 @@ class OrderController extends Controller
     // }
 
 
-    public function show(Order $order)
+    public function show($id)
     {
         try {
-            $order = Order::with('items')->findOrFail($order->id);
-
+            $order = Order::with(
+                'items', 
+                'status',             
+                'paymentStatus',          
+                'shippingStatus',
+                'transactions',      
+                'shipment.shippingLogs',          
+            )->findOrFail($id);
+    
             return response()->json([
-                'message' => 'Success',
+                'message' => 'Lấy chi tiết đơn hàng thành công!',
                 'data' => $order
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Failed',
+                'message' => 'Không thể lấy đơn hàng!',
                 'error' => $th->getMessage()
             ], 500);
         }
     }
+    
 
     public function search()
     {
@@ -226,92 +248,110 @@ class OrderController extends Controller
         }
     }
 
-    public function changeStatus()
-    {
-        try {
-            $id = request('id');
-            $newTrackStatus = request('track_status');
-            $newPaymentStatus = request('payment_status');
+    //
 
-            $order = Order::where('id', $id)->first();
 
-            if ($newTrackStatus) {
-                $oldTrackStatus = $order->stt_track;
 
-                $oldTrackStatusInfo = StatusTracking::where('id', $oldTrackStatus)->first();
 
-                $allowedStatuses = $oldTrackStatusInfo->next_status_allowed;
 
-                // Luồng trạng thái ship_cod
-                if ($order->payment_method == "ship_cod") {
 
-                    if (!in_array($newTrackStatus, $allowedStatuses)) {
-                        return response()->json([
-                            'message' => 'Không thể chuyển trạng thái này!'
-                        ], 400);
-                    }
 
-                    $order->stt_track = $newTrackStatus;
 
-                    if ($newTrackStatus == 6) {
-                        $order->stt_payment = 2;
-                    }
-                    $order->save();
 
-                    // Luồng trạng thái chuyển khoản
-                } else if ($order->payment_method == "bank_transfer") {
 
-                    if ($order->stt_payment == 1) {
 
-                        // Chưa thanh toán nhưng được phép huỷ đơn
-                        if ($newTrackStatus != 7) {
-                            return response()->json([
-                                'message' => 'Khách hàng chưa thanh toán',
-                            ], 400);
-                        }
-                    } elseif ($order->stt_payment == 2) {
 
-                        if ($newTrackStatus == 7) {
 
-                            if (!in_array($order->stt_track, [1, 2])) {
 
-                                return response()->json([
-                                    'message' => 'Chỉ có thể huỷ đơn khi đơn hàng ở trạng thái chờ xử lý hoặc đã xử lý',
-                                ], 400);
-                            }
-                        } else {
-                            if (!in_array($newTrackStatus, $allowedStatuses)) {
-                                return response()->json([
-                                    'message' => 'Không thể chuyển trạng thái này',
-                                ], 400);
-                            }
-                        }
-                    }
 
-                    $order->stt_track = $newTrackStatus;
-                }
-            }
 
-            if ($newPaymentStatus) {
-                if (!in_array($newPaymentStatus, [1, 2])) {
-                    return response()->json([
-                        'message' => 'Trạng thái thanh toán không hợp lệ!',
-                    ], 400);
-                }
-                $order->stt_payment = $newPaymentStatus;
-            }
 
-            $order->save();
+    // public function changeStatus()
+    // {
+    //     try {
+    //         $id = request('id');
+    //         $newTrackStatus = request('track_status');
+    //         $newPaymentStatus = request('payment_status');
 
-            return response()->json([
-                'message' => 'Success',
-            ], 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Failed',
-            ], 500);
-        }
-    }
+    //         $order = Order::where('id', $id)->first();
+
+    //         if ($newTrackStatus) {
+    //             $oldTrackStatus = $order->stt_track;
+
+    //             $oldTrackStatusInfo = StatusTracking::where('id', $oldTrackStatus)->first();
+
+    //             $allowedStatuses = $oldTrackStatusInfo->next_status_allowed;
+
+    //             // Luồng trạng thái ship_cod
+    //             if ($order->payment_method == "ship_cod") {
+
+    //                 if (!in_array($newTrackStatus, $allowedStatuses)) {
+    //                     return response()->json([
+    //                         'message' => 'Không thể chuyển trạng thái này!'
+    //                     ], 400);
+    //                 }
+
+    //                 $order->stt_track = $newTrackStatus;
+
+    //                 if ($newTrackStatus == 6) {
+    //                     $order->stt_payment = 2;
+    //                 }
+    //                 $order->save();
+
+    //                 // Luồng trạng thái chuyển khoản
+    //             } else if ($order->payment_method == "bank_transfer") {
+
+    //                 if ($order->stt_payment == 1) {
+
+    //                     // Chưa thanh toán nhưng được phép huỷ đơn
+    //                     if ($newTrackStatus != 7) {
+    //                         return response()->json([
+    //                             'message' => 'Khách hàng chưa thanh toán',
+    //                         ], 400);
+    //                     }
+    //                 } elseif ($order->stt_payment == 2) {
+
+    //                     if ($newTrackStatus == 7) {
+
+    //                         if (!in_array($order->stt_track, [1, 2])) {
+
+    //                             return response()->json([
+    //                                 'message' => 'Chỉ có thể huỷ đơn khi đơn hàng ở trạng thái chờ xử lý hoặc đã xử lý',
+    //                             ], 400);
+    //                         }
+    //                     } else {
+    //                         if (!in_array($newTrackStatus, $allowedStatuses)) {
+    //                             return response()->json([
+    //                                 'message' => 'Không thể chuyển trạng thái này',
+    //                             ], 400);
+    //                         }
+    //                     }
+    //                 }
+
+    //                 $order->stt_track = $newTrackStatus;
+    //             }
+    //         }
+
+    //         if ($newPaymentStatus) {
+    //             if (!in_array($newPaymentStatus, [1, 2])) {
+    //                 return response()->json([
+    //                     'message' => 'Trạng thái thanh toán không hợp lệ!',
+    //                 ], 400);
+    //             }
+    //             $order->stt_payment = $newPaymentStatus;
+    //         }
+
+    //         $order->save();
+
+    //         return response()->json([
+    //             'message' => 'Success',
+    //         ], 200);
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'message' => 'Failed',
+    //         ], 500);
+    //     }
+    // }
 
     // public function destroy()
     // {

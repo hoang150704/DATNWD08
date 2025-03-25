@@ -12,8 +12,17 @@ class OrderStatusFlowService
     protected const FLOW = [
         'pending' => ['confirmed', 'cancelled'],
         'confirmed' => ['shipping', 'cancelled'],
-        'shipping' => ['completed', 'refunded', 'return_requested'],
-        'completed' => ['closed','refunded'],
+        'shipping' => ['completed', 'return_requested'],
+        'completed' => ['closed', 'return_requested'],
+    
+        // Trả hàng
+        'return_requested' => ['return_approved', 'cancelled'],
+        'return_approved' => ['refunded'],
+    
+        // Kết thúc
+        'refunded' => [],
+        'closed' => [],
+        'cancelled' => [],
     ];
 
     /**

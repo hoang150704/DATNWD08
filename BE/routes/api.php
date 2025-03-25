@@ -50,6 +50,10 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 //Thanh toán
 Route::post('/checkout', [OrderClientController::class, 'store']);
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
+// Lấy thông tin order
+Route::get('/search_order', [OrderClientController::class, 'searchOrderByCode']); // Lấy thông tin order theo mã đơn hàng dành cho khách không đăng nhập vẫn mua hàng
+Route::get('/orders_for_user', [OrderClientController::class, 'getOrdersForUser']);
+Route::get('/order_detail/{code}', [OrderClientController::class, 'getOrderDetail']);
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);

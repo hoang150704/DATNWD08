@@ -109,7 +109,7 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained('orders');
-            $table->enum('method', ['vnpay', 'cod']);
+            $table->enum('method', ['vnpay', 'ship_cod']);
             $table->enum('type', ['payment', 'refund']);
             $table->decimal('amount', 15, 2);
             $table->string('transaction_code')->nullable(); // vnp_TxnRef or CK code

@@ -31,7 +31,7 @@ class Order extends Model
     ];
 
     protected $dates = ['cancelled_at'];
-    
+
     public function status()
     {
         return $this->belongsTo(OrderStatus::class, 'order_status_id');
@@ -54,5 +54,18 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+    public function shipment()
+    {
+        return $this->hasOne(Shipment::class);
+    }
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+    
+    public function refundRequests()
+    {
+        return $this->hasMany(RefundRequest::class);
     }
 }
