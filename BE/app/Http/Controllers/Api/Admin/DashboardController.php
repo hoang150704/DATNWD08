@@ -136,11 +136,11 @@ class DashboardController extends Controller
     {
         return Order::select(
             'user_id',
-            DB::raw('SUM(final_amount) as total_spent')
+            DB::raw('SUM(final_amount) as total_spent') // Tính tổng số tiền đã chi tiêu
         )
             ->where('stt_payment', 1) // Chỉ tính đơn hàng đã thanh toán
-            ->groupBy('user_id')
-            ->orderByDesc('total_spent')
+            ->groupBy('user_id') // Nhóm theo user
+            ->orderByDesc('total_spent') // Sắp xếp theo số tiền đã chi tiêu
             ->take(5)
             ->with('user:id,name,email') // Lấy thông tin user
             ->get();
