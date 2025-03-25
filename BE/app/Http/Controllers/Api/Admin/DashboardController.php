@@ -145,6 +145,8 @@ class DashboardController extends Controller
             ->with('user:id,name,email') // Lấy thông tin user
             ->get();
     }
+
+    // Lấy thống kê doanh thu theo thời gian
     private function getRevenueStatistics($period = 'daily', $year = null)
     {
         $year = $year ?? now()->year; // Nếu không truyền năm, mặc định lấy năm hiện tại
@@ -155,7 +157,7 @@ class DashboardController extends Controller
                     'daily' => "DATE(created_at) as period", // Lấy ngày
                     'weekly' => "YEARWEEK(created_at, 1) as period", // Lấy tuần
                     'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period", // Lấy tháng
-                    'yearly' => "YEAR(created_at) as period",
+                    'yearly' => "YEAR(created_at) as period", // Lấy năm
                     default => "DATE(created_at) as period",
                 }
             ),
@@ -163,7 +165,7 @@ class DashboardController extends Controller
         ])
             ->whereYear('created_at', $year) // Lọc theo năm
             ->where('stt_payment', 1)   // Chỉ lấy đơn hàng đã thanh toán
-            ->groupBy('period')
+            ->groupBy('period') // Nhóm theo thời gian
             ->orderBy('period', 'ASC');
 
         return $query->get();
