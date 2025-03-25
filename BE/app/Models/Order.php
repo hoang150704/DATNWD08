@@ -21,19 +21,30 @@ class Order extends Model
         'o_address',
         'o_phone',
         'o_mail',
-        'stt_track',
-        'stt_payment',
-        'note'
+        'note',
+        'order_status_id',
+        'payment_status_id',
+        'shipping_status_id',
+        'cancel_reason',
+        'cancel_by',
+        'cancelled_at',
     ];
 
-    public function stt_track()
+    protected $dates = ['cancelled_at'];
+    
+    public function status()
     {
-        return $this->belongsTo(StatusTracking::class, 'stt_track');
+        return $this->belongsTo(OrderStatus::class, 'order_status_id');
     }
 
-    public function stt_payment()
+    public function shippingStatus()
     {
-        return $this->belongsTo(StatusPayment::class, 'stt_payment');
+        return $this->belongsTo(ShippingStatus::class);
+    }
+
+    public function paymentStatus()
+    {
+        return $this->belongsTo(PaymentStatus::class);
     }
 
     public function items()
@@ -44,5 +55,4 @@ class Order extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-
 }

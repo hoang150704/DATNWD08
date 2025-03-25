@@ -11,7 +11,7 @@ class NotificationController extends Controller
     public function index()
     {
         try {
-            $notifications = Notification::all();
+            $notifications = Notification::orderByDesc('created_at')->get();
             return response()->json([
                 'message' => 'Success',
                 'data' => $notifications
@@ -34,7 +34,6 @@ class NotificationController extends Controller
                     'message' => 'Trạng thái không hợp lệ'
                 ]);
             }
-
             return response()->json([
                 'message' => 'Success',
                 'data' => $notification

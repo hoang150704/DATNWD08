@@ -16,6 +16,7 @@ return new class extends Migration
             $table->integer('user_id');
             $table->string('name');
             $table->string('phone', 20);
+            $table->string('email',255);
             $table->string('address');
             $table->integer('province');
             $table->integer('district');

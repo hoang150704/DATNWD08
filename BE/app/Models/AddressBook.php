@@ -13,6 +13,7 @@ class AddressBook extends Model
         'user_id',
         'name',
         'phone',
+        'email',
         'address',
         'is_active',
         'province',

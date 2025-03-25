@@ -21,7 +21,7 @@ return new class extends Migration {
             // $table->foreign('box_id')->references('id')->on('boxes');
             $table->string('slug', 255);
             $table->enum('type', [0, 1]);
-            $table->double('rating')->default(0);
+            $table->double('avg_rating')->default(0);
             $table->softDeletes();
             $table->timestamps();
         });
