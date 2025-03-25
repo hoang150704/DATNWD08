@@ -309,7 +309,7 @@ class OrderClientController extends Controller
     {
         try {
             $status = $request->get('status'); // query param
-            $userId = auth()->id();
+            $userId = auth('sanctum')->user()->id;
 
             $query = Order::with(['items', 'status', 'paymentStatus'])
                 ->where('user_id', $userId);

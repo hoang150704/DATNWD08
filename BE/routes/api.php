@@ -86,7 +86,8 @@ Route::middleware('auth:sanctum')->group(function () {
     //Profile routes
     Route::get('/profile', [ProfileController::class, 'info']);
     Route::post('/change_profile', [ProfileController::class, 'changeProfile']);
-
+    //
+    
     //Address routes
     Route::get('/addresses', [ProfileController::class, 'index']); // Lấy danh sách địa chỉ
     Route::get('/addresses/default', [ProfileController::class, 'getDefault']); // Lấy địa chỉ mặc định
