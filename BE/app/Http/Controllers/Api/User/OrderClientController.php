@@ -12,7 +12,13 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\OrderItem;
+use App\Models\OrderStatus;
+use App\Models\OrderStatusLog;
+use App\Models\PaymentStatus;
 use App\Models\ProductVariation;
+use App\Models\Shipment;
+use App\Models\ShippingLog;
+use App\Models\ShippingStatus;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +81,7 @@ class OrderClientController extends Controller
             $orderCode = $this->generateUniqueOrderCode();
 
             // Tạo đơn hàng
-            $order = Order::create([
+            $dataOrder = [
                 'user_id' => $userId,
                 'code' => $orderCode,
                 'total_amount' => $validatedData['total_amount'],
@@ -88,40 +94,45 @@ class OrderClientController extends Controller
                 'o_phone' => $validatedData['o_phone'],
                 'o_mail' => $validatedData['o_mail'] ?? null,
                 'note' => strip_tags($validatedData['note'] ?? ''),
-                'stt_payment' => 1,
-                'stt_track' => 1,
-                // Lưu thông tin thời gian giao hàng nếu có
-                // 'from_estimate_date' => $validatedData['time']['from_estimate_date'] ?? null,
-                // 'to_estimate_date' => $validatedData['time']['to_estimate_date'] ?? null,
-            ]);
+                'order_status_id' => OrderStatus::idByCode('pending'),
+                'payment_status_id' => PaymentStatus::idByCode('unpaid'),
+                'shipping_status_id' => ShippingStatus::idByCode('not_created'),
+            ];
+            //
+            $order = Order::create( $dataOrder);
+            //
 
             if (!$order) {
                 DB::rollBack();
                 return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
             }
 
-            // Thêm log trước khi broadcast
-            Log::info('Broadcasting order event for order: ' . $order->code);
-            broadcast(new OrderEvent($order));
-            Log::info('Broadcast completed');
+            // Broadcast và Event
+            // $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+            $voucher = Voucher::where('code', 'VOUCHER3')->first();
+            broadcast(new OrderEvent($order, $voucher));
 
             // Lưu lịch sử trạng thái
-            $orderHistoryTrack = OrderHistory::insert([
+            $orderHistoryTrack = OrderHistory::insert(
                 [
                     'order_id' => $order->id,
-                    'type' => 'paid',
-                    'status_id' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ],
-                [
-                    'order_id' => $order->id,
-                    'type' => 'tracking',
-                    'status_id' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now()
+                    'from_status_id' => null,
+                    'to_status_id' => 1,
+                    'changed_by' => 'system',
+                    'changed_at' => now(),
                 ]
-            ]);
+            );
+            // Lưu trạng thái đơn hàng shipping
+            Shipment::create(
+                [
+                    'order_id' => $order->id,
+                    'shipping_status_id' => ShippingStatus::idByCode('not_created'),
+                    'shipping_fee' => $order->shipping,
+                    'carrier' => 'ghn',
+                    'from_estimate_date' => $validatedData['from_estimate_date'] ?? null,
+                    'to_estimate_date' => $validatedData['to_estimate_date'] ?? null,
+                ]
+            );
             //
             $orderItems = [];
 
@@ -161,30 +172,28 @@ class OrderClientController extends Controller
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
 
+            // $voucher->decrement('usage_limit');
 
             // Sau khi hoàn tất việc tạo đơn hàng và trước khi commit transaction
-            if (isset($validatedData['voucher_code'])) {
-                $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
+            // if (isset($validatedData['voucher_code'])) {
+            //     $voucher = Voucher::where('code', $validatedData['voucher_code'])->first();
 
-                if ($voucher) {
-                    // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
-                    if ($voucher->usage_limit && $voucher->times_used < $voucher->usage_limit) {
-                        // Tăng số lần sử dụng ngay trước khi commit
-                        $voucher->increment('times_used');
-                    } else {
-                        DB::rollBack();
-                        return response()->json([
-                            'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
-                        ], 400);
-                    }
-                }
-            }
-
-            // Đặt sau khi cập nhật voucher
+            //     if ($voucher) {
+            //         // Chỉ tăng số lượt sử dụng sau khi đơn hàng được tạo thành công
+            //         if ($voucher->usage_limit && $voucher->usage_limit > 0) {
+            //             // Tăng số lần sử dụng ngay trước khi commit
+            //             $voucher->decrement('usage_limit');
+            //         } else {
+            //             DB::rollBack();
+            //             return response()->json([
+            //                 'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
+            //             ], 400);
+            //         }
+            //     }
+            // }
 
             // Gửi email xác nhận đơn hàng (background job)
             SendMailSuccessOrderJob::dispatch($order);
-
             DB::commit();
             //Xóa giỏ hhangf
             if ($userId) {
@@ -194,6 +203,8 @@ class OrderClientController extends Controller
 
                     if ($cart) {
                         // Xóa các cart_items có trong đơn hàng
+                        Log::info('Deleting cart items with variation_ids:', array_column($orderItems, 'variation_id'));
+
                         CartItem::where('cart_id', $cart->id)
                             ->whereIn('variation_id', array_column($orderItems, 'variation_id'))
                             ->delete();
@@ -216,6 +227,7 @@ class OrderClientController extends Controller
             return response()->json([
                 'message' => 'Bạn đã thêm đơn hàng thành công!',
                 'order_code' => $order->code,
+                'user'=> $user,
                 'code' => 201
             ], 200);
         } catch (\Throwable $th) {
@@ -223,6 +235,7 @@ class OrderClientController extends Controller
             return response()->json([
                 'message' => 'Lỗi trong quá trình tạo đơn hàng!',
                 'errors' => $th->getMessage(),
+                'data'=> $dataOrder
             ], 500);
         }
     }
@@ -258,17 +271,6 @@ class OrderClientController extends Controller
         if ($secureHash === $vnp_SecureHash) {
             if ($request['vnp_ResponseCode'] == '00') {
                 // Giao dịch thành công, cập nhật trạng thái đơn hàng
-                $order = Order::where('code', $request['vnp_TxnRef'])->first();
-                if ($order) {
-                    $order->update(['stt_payment' => 2]);
-                }
-                OrderHistory::create([
-
-                    'order_id' => $order->id,
-                    'type' => 'paid',
-                    'status_id' => 2
-
-                ]);
                 return response()->json([
                     'success' => true,
                     'message' => 'Thanh toán thành công',

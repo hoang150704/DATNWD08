@@ -326,6 +326,18 @@ class CategoryController extends Controller
     {
         try {
             $ids = request('ids');
+            $invalidCategories = Category::whereIn('id', $ids)
+                ->where(function ($query) {
+                    $query->whereNotNull('parent_id')  // Kiểm tra nếu đã có parent_id
+                        ->orWhereHas('children');  // Kiểm tra nếu đã có danh mục con
+                })
+                ->exists();
+
+            if ($invalidCategories) {
+                return response()->json([
+                    'message' => 'Danh mục không thể cập nhật vì đã có danh mục cha hoặc đang là danh mục con.'
+                ], 400);
+            }
             $categoryId = request('categoryId');
 
             $update = Category::whereIn('id', $ids)->update(['parent_id' => $categoryId]);

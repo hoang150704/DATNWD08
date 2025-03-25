@@ -42,7 +42,7 @@ class GhnTrackingController extends Controller
             ];
             //Lấy setiing của shoop
 
-            $weight = $data['weight'] + 10;
+            $weight = $data['weight'] ;
             $dataGetFee = array_merge($dataGetTime, ['weight' => $weight]);
             $responses = $this->ApiService->postAsyncMultiple([
                 'time' => [
@@ -106,12 +106,12 @@ class GhnTrackingController extends Controller
                 'endpoint' => '/shiip/public-api/v2/shop/all',
                 'data' => $dataShop,
                 'headers' => []
-            ]
+            ]       
         ]);
 
         $responseShop = $responses['shop_info'];
         // COnvert thông tin
-        $infoShop = $this->covertInfoShop($responseShop, $setting_ghn->shop_id);
+        $infoShop = $this->covertInfoShop($responseShop, 195780);
         // convert địa chỉ
         $convertAddressShop = $this->convertAddress($infoShop['address']);
         // Lấy ra thông tin shop
@@ -123,7 +123,7 @@ class GhnTrackingController extends Controller
         $totalWeight = OrderItem::where('order_id', $id)
             ->selectRaw('SUM(weight * quantity) as total_weight')
             ->value('total_weight');
-        $finalWeight = (int) $totalWeight + $setting_ghn->weight_box;
+        $finalWeight = (int) $totalWeight ;
         $dataValidated = $request->validate(
             [
                 'note' => 'nullable|string|max:5000',
