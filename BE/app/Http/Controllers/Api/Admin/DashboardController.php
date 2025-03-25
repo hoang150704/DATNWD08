@@ -100,7 +100,7 @@ class DashboardController extends Controller
     {
         $query = OrderItem::select(
             DB::raw('DATE(created_at) as date'), // Lấy ngày từ trường created_at
-            DB::raw('SUM(quantity) as totalSales')
+            DB::raw('SUM(quantity) as totalSales') // Tính tổng số lượng sản phẩm bán ra
         )
             ->groupBy('date')
             ->orderBy('date', 'ASC');
