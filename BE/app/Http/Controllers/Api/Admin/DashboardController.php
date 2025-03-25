@@ -140,7 +140,7 @@ class DashboardController extends Controller
     }
     private function getRevenueStatistics($period = 'daily', $year = null)
 {
-    $year = $year ?? now()->year;
+    $year = $year ?? now()->year; // Nếu không truyền năm, mặc định lấy năm hiện tại
 
     $query = Order::select([
         DB::raw(
@@ -151,10 +151,10 @@ class DashboardController extends Controller
                 default => "DATE(created_at) as period",
             }
         ),
-        DB::raw('SUM(final_amount) as totalRevenue')
+        DB::raw('SUM(final_amount) as totalRevenue') // Tính tổng doanh thu
     ])
-    ->whereYear('created_at', $year)
-    ->where('stt_payment', 1)
+    ->whereYear('created_at', $year) // Lọc theo năm
+    ->where('stt_payment', 1)   // Chỉ lấy đơn hàng đã thanh toán
     ->groupBy('period')
     ->orderBy('period', 'ASC');
 
