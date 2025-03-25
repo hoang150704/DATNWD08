@@ -42,6 +42,7 @@ class DashboardController extends Controller
                 "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
                 "revenueStatistics" => [
                     "daily" => $this->getRevenueStatistics('daily', $year),
+                    "weekly" => $this->getRevenueStatistics('weekly', $year),
                     "monthly" => $this->getRevenueStatistics('monthly', $year),
                     "yearly" => $this->getRevenueStatistics('yearly', $year),
                 ],
