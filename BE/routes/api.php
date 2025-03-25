@@ -52,8 +52,6 @@ Route::post('/checkout', [OrderClientController::class, 'store']);
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
 // Lấy thông tin order
 Route::get('/search_order', [OrderClientController::class, 'searchOrderByCode']); // Lấy thông tin order theo mã đơn hàng dành cho khách không đăng nhập vẫn mua hàng
-Route::get('/orders_for_user', [OrderClientController::class, 'getOrdersForUser']);
-Route::get('/order_detail/{code}', [OrderClientController::class, 'getOrderDetail']);
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
@@ -80,6 +78,10 @@ Route::prefix('voucher')->group(function () {
 // =======================================================================================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
+    //Order
+    Route::get('/orders_for_user', [OrderClientController::class, 'getOrdersForUser']);
+    Route::get('/order_detail/{code}', [OrderClientController::class, 'getOrderDetail']);
+    //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
@@ -87,7 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'info']);
     Route::post('/change_profile', [ProfileController::class, 'changeProfile']);
     //
-    
+
     //Address routes
     Route::get('/addresses', [ProfileController::class, 'index']); // Lấy danh sách địa chỉ
     Route::get('/addresses/default', [ProfileController::class, 'getDefault']); // Lấy địa chỉ mặc định

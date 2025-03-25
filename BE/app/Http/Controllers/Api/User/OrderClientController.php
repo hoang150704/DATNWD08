@@ -403,10 +403,13 @@ class OrderClientController extends Controller
     public function getOrderDetail($orderCode)
     {
         try {
+
             //
-            $order = Order::with('items', 'status', 'paymentStatus', 'refundRequests')
-                ->where('code', $orderCode)
-                ->firstOrFail();
+            $userId = auth('sanctum')->user()->id;
+            $order = Order::where('code', $orderCode)
+                ->where('user_id', $userId)
+                ->with(['items', 'status', 'paymentStatus', 'shipment', 'refundRequests'])
+                ->first();
 
             // COnvert lại dữ liệu
             $orderDetails = [

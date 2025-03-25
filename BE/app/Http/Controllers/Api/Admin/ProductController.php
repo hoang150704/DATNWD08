@@ -26,7 +26,7 @@ class ProductController extends Controller
     {
         try {
 
-            $params = array_filter(request()->only(['keyword', 'category', 'rating']));
+            $params = array_filter(request()->only(['keyword', 'category', 'avg_rating']));
 
             $query = Product::query();
 
@@ -40,13 +40,13 @@ class ProductController extends Controller
                 });
             }
 
-            if (isset($params['rating'])) {
-                $query->whereBetween('rating', [$params['rating'], $params['rating'] + 0.99]);
+            if (isset($params['avg_rating'])) {
+                $query->whereBetween('avg_rating', [$params['avg_rating'], $params['avg_rating'] + 0.99]);
             }
 
             return $query
                 ->with("categories:id,name")
-                ->select('id', 'name', 'main_image', 'type', 'slug', 'rating')
+                ->select('id', 'name', 'main_image', 'type', 'slug', 'avg_rating')
                 ->latest()
                 ->paginate(10);
 
