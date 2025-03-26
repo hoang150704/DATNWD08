@@ -65,9 +65,15 @@ class DashboardController extends Controller
                 "topSellingProducts" => $topSellingProducts,
 
                 // Thống kê doanh số bán hàng
-                "salesStatistics" => $salesData, // Thống kê doanh số bán hàng
-                "ratingStatistics" => $ratingStatistics, // Thống kê số lượng đánh giá theo từng mức rating
-                "productByCategory" => $productByCategory, // Thống kê số lượng sản phẩm theo danh mục
+                "salesStatistics" => $salesData,
+
+                // Thống kê số lượng đánh giá theo từng mức rating
+                "ratingStatistics" => $ratingStatistics,
+
+                // Số lượng sản phẩm theo danh mục
+                "productByCategory" => $productByCategory,
+
+                // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topUsersBySpending" => $topUsersBySpending, // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
                 "revenueStatistics" => [
