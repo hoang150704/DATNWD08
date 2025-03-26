@@ -37,7 +37,8 @@ return [
     ],
     'ghn'=>[
         'token' =>env('TOKEN_GHN'),
-        'url'   =>env('URL_GHN')
+        'url'   =>env('URL_GHN'),
+        'shop_id' => env('SHOPID'),
     ]
 
 

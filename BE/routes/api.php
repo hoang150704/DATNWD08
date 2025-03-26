@@ -79,6 +79,7 @@ Route::prefix('voucher')->group(function () {
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
     //Order
+    Route::get('/order_statuses', [OrderClientController::class, 'getOrderStatuses']);
     Route::get('/orders_for_user', [OrderClientController::class, 'getOrdersForUser']);
     Route::get('/order_detail/{code}', [OrderClientController::class, 'getOrderDetail']);
     //

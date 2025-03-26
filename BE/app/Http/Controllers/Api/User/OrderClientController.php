@@ -437,6 +437,28 @@ class OrderClientController extends Controller
             ], 500);
         }
     }
+    //Tạo map các trạng thái hiển thị 
+    public function getOrderStatuses()
+    {
+        $statuses = [
+                ['code' => null,'label' => 'Tất cả '],            
+                ['code' => 'waiting_payment','label' => 'Chờ thanh toán'],
+                ['code' => 'pending','label' => 'Chờ xác nhận'],
+                ['code' => 'confirmed','label' => 'Đã xác nhận'],
+                ['code' => 'shipping','label' => 'Đang giao'],
+                ['code' => 'completed','label' => 'Đã giao'],
+                ['code' => 'closed','label' => 'Hoàn thành'],
+                ['code' => 'cancelled','label' => 'Đã hủy'],
+                ['code' => 'refund','label' => 'Trả hàng/Hoàn tiền'],
+        ];
+    
+        return response()->json([
+            'message' => 'Success',
+            'data' => $statuses,
+        ]);
+    }
+    
+
     //
     public function getOrderDetail($orderCode)
     {
