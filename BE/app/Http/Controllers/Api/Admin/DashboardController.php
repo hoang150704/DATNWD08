@@ -76,23 +76,24 @@ class DashboardController extends Controller
 
     // Lấy top 5 sản phẩm được đánh giá cao nhất
     private function getTopRatedProducts()
-    {
-        return Product::select(
-            'products.id',
-            'products.name',
-            'products.rating as avg_rating', // Lấy rating từ bảng products
-            DB::raw('COUNT(comments.id) as total_reviews') // Lấy số lượng đánh giá từ bảng comments
-        )
-            ->leftJoin('comments', function ($join) {
-                $join->on('products.id', '=', 'comments.product_id')
-                    ->where('comments.is_active', 1); // Chỉ lấy đánh giá đã duyệt
-            })
-            ->groupBy('products.id', 'products.name', 'products.rating')
-            ->orderByDesc('products.rating') // Sắp xếp theo rating từ bảng products
-            ->orderByDesc(DB::raw('COUNT(comments.id)')) // Nếu rating giống nhau, ưu tiên sản phẩm có nhiều đánh giá hơn
-            ->take(5)
-            ->get();
-    }
+{
+    return Product::select(
+        'products.id',
+        'products.name',
+        'products.avg_rating as avg_rating', // Thay đổi từ `rating` thành `avg_rating`
+        DB::raw('COUNT(comments.id) as total_reviews') // Đếm tổng số đánh giá
+    )
+    ->leftJoin('comments', function ($join) {
+        $join->on('products.id', '=', 'comments.product_id')
+            ->where('comments.is_active', 1); // Chỉ lấy đánh giá đã duyệt
+    })
+    ->groupBy('products.id', 'products.name', 'products.avg_rating') // Thay đổi từ `rating` thành `avg_rating`
+    ->orderByDesc('products.avg_rating') // Sắp xếp theo `avg_rating`
+    ->orderByDesc(DB::raw('COUNT(comments.id)')) // Nếu rating giống nhau, ưu tiên sản phẩm có nhiều đánh giá hơn
+    ->take(5)
+    ->get();
+}
+
 
 
     // Thống kê doanh số bán hàng theo thời gian
@@ -133,18 +134,19 @@ class DashboardController extends Controller
 
     // Lấy top 5 user có số tiền chi tiêu nhiều nhất
     private function getTopUsersBySpending()
-    {
-        return Order::select(
-            'user_id',
-            DB::raw('SUM(final_amount) as total_spent') // Tính tổng số tiền đã chi tiêu
-        )
-            ->where('stt_payment', 1) // Chỉ tính đơn hàng đã thanh toán
-            ->groupBy('user_id') // Nhóm theo user
-            ->orderByDesc('total_spent') // Sắp xếp theo số tiền đã chi tiêu
-            ->take(5)
-            ->with('user:id,name,email') // Lấy thông tin user
-            ->get();
-    }
+{
+    return Order::select(
+        'user_id',
+        DB::raw('SUM(final_amount) as total_spent') // Tính tổng tiền đã chi
+    )
+    ->where('payment_status_id', 1) // Chỉ lấy đơn hàng đã thanh toán
+    ->groupBy('user_id') // Nhóm theo user
+    ->orderByDesc('total_spent') // Sắp xếp theo số tiền đã chi
+    ->take(5) // Lấy top 5
+    ->with('user:id,name,email') // Lấy thông tin user
+    ->get();
+}
+
 
     // Lấy thống kê doanh thu theo thời gian
     private function getRevenueStatistics($period = 'daily', $year = null)
