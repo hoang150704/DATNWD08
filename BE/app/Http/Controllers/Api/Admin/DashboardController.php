@@ -15,26 +15,56 @@ class DashboardController extends Controller
 {
     public function dashboard(Request $request)
     {
-        $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
-        $salesData = $this->getSalesStatistics($statisticBy); // Thống kê doanh số bán hàng
-        $topSellingProducts = $this->getTopSellingProducts(); // Top 5 sản phẩm bán chạy nhất
-        $productByCategory = $this->getProductByCategory(); // Số lượng sản phẩm theo danh mục
-        $ratingStatistics = $this->getRatingStatistics(); // Số lượng đánh giá theo từng mức rating
-        $topRatedProducts = $this->getTopRatedProducts(); // Top 5 sản phẩm được đánh giá cao nhất
-        $topUsersBySpending = $this->getTopUsersBySpending(); // Top 5 user có số tiền chi tiêu nhiều nhất
-        $year = $request->query('year', now()->year); // Năm thống kê
+        // Mặc định là 7 ngày
+        $statisticBy = $request->query('statisticBy', '7day');
+
+        // Thống kê doanh số bán hàng
+        $salesData = $this->getSalesStatistics($statisticBy);
+
+        // Top 5 sản phẩm bán chạy nhất
+        $topSellingProducts = $this->getTopSellingProducts();
+
+        // Số lượng sản phẩm theo danh mục
+        $productByCategory = $this->getProductByCategory();
+
+        // Số lượng đánh giá theo từng mức rating
+        $ratingStatistics = $this->getRatingStatistics();
+
+        // Top 5 sản phẩm được đánh giá cao nhất
+        $topRatedProducts = $this->getTopRatedProducts();
+
+        // Top 5 user có số tiền chi tiêu nhiều nhất
+        $topUsersBySpending = $this->getTopUsersBySpending();
+
+        // Năm thống kê
+        $year = $request->query('year', now()->year);
 
         return response()->json([
             "status" => "success",
             "message" => "Lấy dữ liệu dashboard thành công!",
             "data" => [
-                "totalCategories" => Category::count(), // Tổng số danh mục
-                "totalProducts" => DB::table('products')->count(), // Tổng số sản phẩm
-                "totalUsers" => DB::table('users')->count(), // Tổng số người dùng
-                "totalVouchers" => DB::table('vouchers')->count(), // Tổng số voucher
-                "totalOrders" => Order::count(), // Tổng số đơn hàng
-                "totalRevenue" => Order::where('payment_status_id', 1)->sum('final_amount'), // Tổng doanh thu
-                "topSellingProducts" => $topSellingProducts, // Top 5 sản phẩm bán chạy nhất
+                // Tổng số danh mục
+                "totalCategories" => Category::count(),
+
+                // Tổng số sản phẩm
+                "totalProducts" => DB::table('products')->count(),
+
+                // Tổng số người dùng
+                "totalUsers" => DB::table('users')->count(),
+
+                // Tổng số voucher
+                "totalVouchers" => DB::table('vouchers')->count(),
+
+                // Tổng số đơn hàng
+                "totalOrders" => Order::count(),
+
+                // Tổng doanh thu
+                "totalRevenue" => Order::where('payment_status_id', 1)->sum('final_amount'),
+
+                // Top 5 sản phẩm bán chạy nhất
+                "topSellingProducts" => $topSellingProducts,
+
+                // Thống kê doanh số bán hàng
                 "salesStatistics" => $salesData, // Thống kê doanh số bán hàng
                 "ratingStatistics" => $ratingStatistics, // Thống kê số lượng đánh giá theo từng mức rating
                 "productByCategory" => $productByCategory, // Thống kê số lượng sản phẩm theo danh mục
@@ -60,8 +90,8 @@ class DashboardController extends Controller
             DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products') // Đếm số lượng sản phẩm
         )
             ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id') // Join bảng product_category_relations
-            ->groupBy('categories.id', 'categories.name')
-            ->orderByDesc('total_products')
+            ->groupBy('categories.id', 'categories.name') // Nhóm theo danh mục
+            ->orderByDesc('total_products') // Sắp xếp theo số lượng sản phẩm giảm dần
             ->get();
     }
 
@@ -69,8 +99,8 @@ class DashboardController extends Controller
     private function getRatingStatistics()
     {
         return Comment::select('rating', DB::raw('COUNT(*) as total_reviews')) // Đếm số lượng đánh giá
-            ->groupBy('rating')
-            ->orderByDesc('rating')
+            ->groupBy('rating') // Nhóm theo rating
+            ->orderByDesc('rating') // Sắp xếp theo rating giảm dần
             ->get();
     }
 
