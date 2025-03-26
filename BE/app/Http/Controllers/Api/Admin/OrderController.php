@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductVariation;
 use App\Models\StatusTracking;
+use App\Services\OrderStatusFlowService;
 use App\Traits\MaskableTraits;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -152,43 +153,18 @@ class OrderController extends Controller
     }
 
 
-    // public function update(UpdateOrderRequest $request, Order $order)
-    // {
-    //     try {
-    //         $validatedData = $request->validated();
-
-    //         $order->update([
-    //             'o_name' => $validatedData['o_name'],
-    //             'o_address' => $validatedData['o_address'],
-    //             'o_phone' => $validatedData['o_phone'],
-    //             'o_mail' => $validatedData['o_mail'],
-    //         ]);
-
-    //         return response()->json([
-    //             'message' => 'Success',
-    //             'order' => $order
-    //         ], 200);
-    //     } catch (\Throwable $th) {
-    //         return response()->json([
-    //             'message' => 'Failed',
-    //             'errors' => $th->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-
-
     public function show($id)
     {
         try {
             $order = Order::with(
-                'items', 
-                'status',             
-                'paymentStatus',          
+                'items',
+                'status',
+                'paymentStatus',
                 'shippingStatus',
-                'transactions',      
-                'shipment.shippingLogs',          
+                'transactions',
+                'shipment.shippingLogs',
             )->findOrFail($id);
-    
+
             return response()->json([
                 'message' => 'Lấy chi tiết đơn hàng thành công!',
                 'data' => $order
@@ -200,7 +176,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
 
     public function search()
     {
@@ -249,6 +225,40 @@ class OrderController extends Controller
     }
 
     //
+    public function confirmOrder($code)
+    {
+        $order = Order::with('status')->where('code', $code)->firstOrFail();
+
+        // Kiểm tra trạng thái hiện tại có thể chuyển sang 'confirmed' không
+        if (!OrderStatusFlowService::canChange($order, 'confirmed')) {
+            return response()->json([
+                'message' => 'Không thể xác nhận đơn hàng ở trạng thái hiện tại!',
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $changed = OrderStatusFlowService::change($order, 'confirmed', 'admin');
+
+            if (!$changed) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Lỗi khi xác nhận đơn hàng!',
+                ], 500);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Đã xác nhận đơn hàng thành công!',
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Đã xảy ra lỗi!',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
 
 
 
@@ -266,124 +276,76 @@ class OrderController extends Controller
 
 
 
-    // public function changeStatus()
-    // {
-    //     try {
-    //         $id = request('id');
-    //         $newTrackStatus = request('track_status');
-    //         $newPaymentStatus = request('payment_status');
+        //
+        // public function update(UpdateOrderRequest $request, Order $order)
+        // {
+        //     try {
+        //         $validatedData = $request->validated();
 
-    //         $order = Order::where('id', $id)->first();
+        //         $order->update([
+        //             'o_name' => $validatedData['o_name'],
+        //             'o_address' => $validatedData['o_address'],
+        //             'o_phone' => $validatedData['o_phone'],
+        //             'o_mail' => $validatedData['o_mail'],
+        //         ]);
 
-    //         if ($newTrackStatus) {
-    //             $oldTrackStatus = $order->stt_track;
+        //         return response()->json([
+        //             'message' => 'Success',
+        //             'order' => $order
+        //         ], 200);
+        //     } catch (\Throwable $th) {
+        //         return response()->json([
+        //             'message' => 'Failed',
+        //             'errors' => $th->getMessage(),
+        //         ], 500);
+        //     }
+        // }
 
-    //             $oldTrackStatusInfo = StatusTracking::where('id', $oldTrackStatus)->first();
 
-    //             $allowedStatuses = $oldTrackStatusInfo->next_status_allowed;
 
-    //             // Luồng trạng thái ship_cod
-    //             if ($order->payment_method == "ship_cod") {
 
-    //                 if (!in_array($newTrackStatus, $allowedStatuses)) {
-    //                     return response()->json([
-    //                         'message' => 'Không thể chuyển trạng thái này!'
-    //                     ], 400);
-    //                 }
 
-    //                 $order->stt_track = $newTrackStatus;
 
-    //                 if ($newTrackStatus == 6) {
-    //                     $order->stt_payment = 2;
-    //                 }
-    //                 $order->save();
 
-    //                 // Luồng trạng thái chuyển khoản
-    //             } else if ($order->payment_method == "bank_transfer") {
 
-    //                 if ($order->stt_payment == 1) {
 
-    //                     // Chưa thanh toán nhưng được phép huỷ đơn
-    //                     if ($newTrackStatus != 7) {
-    //                         return response()->json([
-    //                             'message' => 'Khách hàng chưa thanh toán',
-    //                         ], 400);
-    //                     }
-    //                 } elseif ($order->stt_payment == 2) {
 
-    //                     if ($newTrackStatus == 7) {
 
-    //                         if (!in_array($order->stt_track, [1, 2])) {
 
-    //                             return response()->json([
-    //                                 'message' => 'Chỉ có thể huỷ đơn khi đơn hàng ở trạng thái chờ xử lý hoặc đã xử lý',
-    //                             ], 400);
-    //                         }
-    //                     } else {
-    //                         if (!in_array($newTrackStatus, $allowedStatuses)) {
-    //                             return response()->json([
-    //                                 'message' => 'Không thể chuyển trạng thái này',
-    //                             ], 400);
-    //                         }
-    //                     }
-    //                 }
 
-    //                 $order->stt_track = $newTrackStatus;
-    //             }
-    //         }
 
-    //         if ($newPaymentStatus) {
-    //             if (!in_array($newPaymentStatus, [1, 2])) {
-    //                 return response()->json([
-    //                     'message' => 'Trạng thái thanh toán không hợp lệ!',
-    //                 ], 400);
-    //             }
-    //             $order->stt_payment = $newPaymentStatus;
-    //         }
+        // public function destroy()
+        // {
+        //     try {
+        //         $id = request('id');
 
-    //         $order->save();
+        //         $orders = Order::whereIn('id', $id)->get();
 
-    //         return response()->json([
-    //             'message' => 'Success',
-    //         ], 200);
-    //     } catch (\Throwable $th) {
-    //         return response()->json([
-    //             'message' => 'Failed',
-    //         ], 500);
-    //     }
-    // }
+        //         foreach ($orders as $order) {
+        //             if ($order->stt_track != 9) {
+        //                 return response()->json([
+        //                     'message' => 'Chỉ có thể xoá những đơn hàng bị huỷ',
+        //                 ], 400);
+        //             }
+        //         }
 
-    // public function destroy()
-    // {
-    //     try {
-    //         $id = request('id');
+        //         Order::whereIn('id', $id)->delete();
 
-    //         $orders = Order::whereIn('id', $id)->get();
+        //         return response()->json([
+        //             'message' => 'Success',
+        //         ], 200);
 
-    //         foreach ($orders as $order) {
-    //             if ($order->stt_track != 9) {
-    //                 return response()->json([
-    //                     'message' => 'Chỉ có thể xoá những đơn hàng bị huỷ',
-    //                 ], 400);
-    //             }
-    //         }
+        //     } catch (\Throwable $th) {
+        //         return response()->json([
+        //             'message' => 'Failed',
+        //         ], 500);
+        //     }
+        // }
 
-    //         Order::whereIn('id', $id)->delete();
+        // Xoá trắng toàn bộ tất cả order
+        // public function bulk()
+        // {
+        //     Order::truncate();
+        // }
+    }
 
-    //         return response()->json([
-    //             'message' => 'Success',
-    //         ], 200);
-
-    //     } catch (\Throwable $th) {
-    //         return response()->json([
-    //             'message' => 'Failed',
-    //         ], 500);
-    //     }
-    // }
-
-    // Xoá trắng toàn bộ tất cả order
-    // public function bulk()
-    // {
-    //     Order::truncate();
-    // }
-}

@@ -14,11 +14,11 @@ class OrderStatusFlowService
         'confirmed' => ['shipping', 'cancelled'],
         'shipping' => ['completed', 'return_requested'],
         'completed' => ['closed', 'return_requested'],
-    
+
         // Trả hàng
-        'return_requested' => ['return_approved', 'cancelled'],
+        'return_requested' => ['return_approved', 'completed'],
         'return_approved' => ['refunded'],
-    
+
         // Kết thúc
         'refunded' => [],
         'closed' => [],
@@ -67,5 +67,27 @@ class OrderStatusFlowService
         ]);
 
         return true;
+    }
+    public static function getNextStatuses(Order $order): array
+    {
+        $currentStatusCode = $order->status->code ?? null;
+
+        if (!$currentStatusCode || !isset(self::FLOW[$currentStatusCode])) {
+            return [];
+        }
+
+        return self::FLOW[$currentStatusCode];
+    }
+    public static function createInitialStatus(Order $order, string $statusCode = 'pending', string $changedBy = 'system'): void
+    {
+        $statusId = OrderStatus::where('code', $statusCode)->value('id');
+
+        DB::table('order_status_logs')->insert([
+            'order_id' => $order->id,
+            'from_status_id' => null,
+            'to_status_id' => $statusId,
+            'changed_by' => $changedBy,
+            'changed_at' => now(),
+        ]);
     }
 }

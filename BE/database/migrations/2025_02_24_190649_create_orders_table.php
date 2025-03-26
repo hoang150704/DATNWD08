@@ -99,7 +99,7 @@ return new class extends Migration
         Schema::create('order_status_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained('orders');
-            $table->foreignId('from_status_id')->constrained('order_statuses');
+            $table->foreignId('from_status_id')->nullable()->constrained('order_statuses');
             $table->foreignId('to_status_id')->constrained('order_statuses');
             $table->string('changed_by')->nullable();
             $table->timestamp('changed_at')->useCurrent();
