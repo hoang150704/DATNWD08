@@ -74,8 +74,12 @@ class DashboardController extends Controller
                 "productByCategory" => $productByCategory,
 
                 // Top 5 user có số tiền chi tiêu nhiều nhất
-                "topUsersBySpending" => $topUsersBySpending, // Top 5 user có số tiền chi tiêu nhiều nhất
-                "topRatedProducts" => $topRatedProducts, // Top 5 sản phẩm được đánh giá cao nhất
+                "topUsersBySpending" => $topUsersBySpending,
+
+                // Top 5 sản phẩm được đánh giá cao nhất
+                "topRatedProducts" => $topRatedProducts,
+
+                // Thống kê doanh thu
                 "revenueStatistics" => [
                     "daily" => $this->getRevenueStatistics('daily', $year), // Thống kê doanh thu theo ngày
                     "weekly" => $this->getRevenueStatistics('weekly', $year), // Thống kê doanh thu theo tuần
