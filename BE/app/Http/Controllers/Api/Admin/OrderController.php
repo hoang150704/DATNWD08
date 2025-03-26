@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductVariation;
 use App\Models\StatusTracking;
+use App\Services\OrderActionService;
 use App\Services\OrderStatusFlowService;
 use App\Traits\MaskableTraits;
 use Carbon\Carbon;
@@ -156,18 +157,85 @@ class OrderController extends Controller
     public function show($id)
     {
         try {
-            $order = Order::with(
+            $order = Order::with([
                 'items',
                 'status',
                 'paymentStatus',
                 'shippingStatus',
                 'transactions',
-                'shipment.shippingLogs',
-            )->findOrFail($id);
+                'shipment.shippingLogsTimeline',
+                'refundRequests',
+                'statusLogs.fromStatus',
+                'statusLogs.toStatus',
+            ])->findOrFail($id);
+
+            // Convert dữ liệu
+            $data = [
+                'order_id' => $order->id,
+                'order_code' => $order->code,
+                'status' => $order->status->name,
+                'payment_status' => $order->paymentStatus->name ?? null,
+                'shipping_status' => $order->shippingStatus->name ?? null,
+                'total_amount' => $order->total_amount,
+                'final_amount' => $order->final_amount,
+                'discount_amount' => $order->discount_amount,
+                'shipping_fee' => $order->shipping,
+                'payment_method' => $order->payment_method,
+                'o_name' => $order->o_name,
+                'o_phone' => $order->o_phone,
+                'o_email' => $order->o_mail,
+                'o_address' => $order->o_address,
+                'items' => $order->items->map(function ($item) {
+                    return [
+                        'product_name' => $item->product_name,
+                        'quantity' => $item->quantity,
+                        'price' => $item->price,
+                        'image' => $item->image,
+                        'variation' => $item->variation
+                    ];
+                }),
+                'transactions' => $order->transactions->map(function ($tran) {
+                    return [
+                        'type' => $tran->type,
+                        'method' => $tran->method,
+                        'amount' => $tran->amount,
+                        'status' => $tran->status,
+                        'note' => $tran->note,
+                        'pay_date' => $tran->vnp_pay_date,
+                        'transaction_code' => $tran->transaction_code,
+                        'created_at' => $tran->created_at,
+                    ];
+                }),
+                'shipping_logs' => $order->shipment?->shippingLogs->map(function ($log) {
+                    return [
+                        'status' => $log->status,
+                        'note' => $log->note,
+                        'created_at' => $log->created_at
+                    ];
+                }),
+                'refund_requests' => $order->refundRequests->map(function ($refund) {
+                    return [
+                        'status' => $refund->status,
+                        'reason' => $refund->reason,
+                        'amount' => $refund->amount,
+                        'approved_by' => $refund->approved_by,
+                        'approved_at' => optional($refund->approved_at),
+                    ];
+                }),
+                'status_timelines' => $order->statusLogs->map(function ($log) {
+                    return [
+                        'from' => $log->fromStatus->name ?? null,
+                        'to' => $log->toStatus->name ?? null,
+                        'changed_by' => $log->changed_by,
+                        'changed_at' => $log->changed_at,
+                    ];
+                }),
+                'actions' => OrderActionService::availableActions($order, 'admin') 
+            ];
 
             return response()->json([
                 'message' => 'Lấy chi tiết đơn hàng thành công!',
-                'data' => $order
+                'data' => $data
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
@@ -176,6 +244,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
 
 
     public function search()
@@ -276,32 +345,30 @@ class OrderController extends Controller
 
 
 
-        //
-        // public function update(UpdateOrderRequest $request, Order $order)
-        // {
-        //     try {
-        //         $validatedData = $request->validated();
+    //
+    // public function update(UpdateOrderRequest $request, Order $order)
+    // {
+    //     try {
+    //         $validatedData = $request->validated();
 
-        //         $order->update([
-        //             'o_name' => $validatedData['o_name'],
-        //             'o_address' => $validatedData['o_address'],
-        //             'o_phone' => $validatedData['o_phone'],
-        //             'o_mail' => $validatedData['o_mail'],
-        //         ]);
+    //         $order->update([
+    //             'o_name' => $validatedData['o_name'],
+    //             'o_address' => $validatedData['o_address'],
+    //             'o_phone' => $validatedData['o_phone'],
+    //             'o_mail' => $validatedData['o_mail'],
+    //         ]);
 
-        //         return response()->json([
-        //             'message' => 'Success',
-        //             'order' => $order
-        //         ], 200);
-        //     } catch (\Throwable $th) {
-        //         return response()->json([
-        //             'message' => 'Failed',
-        //             'errors' => $th->getMessage(),
-        //         ], 500);
-        //     }
-        // }
-
-
+    //         return response()->json([
+    //             'message' => 'Success',
+    //             'order' => $order
+    //         ], 200);
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'message' => 'Failed',
+    //             'errors' => $th->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 
 
 
@@ -314,38 +381,39 @@ class OrderController extends Controller
 
 
 
-        // public function destroy()
-        // {
-        //     try {
-        //         $id = request('id');
 
-        //         $orders = Order::whereIn('id', $id)->get();
 
-        //         foreach ($orders as $order) {
-        //             if ($order->stt_track != 9) {
-        //                 return response()->json([
-        //                     'message' => 'Chỉ có thể xoá những đơn hàng bị huỷ',
-        //                 ], 400);
-        //             }
-        //         }
+    // public function destroy()
+    // {
+    //     try {
+    //         $id = request('id');
 
-        //         Order::whereIn('id', $id)->delete();
+    //         $orders = Order::whereIn('id', $id)->get();
 
-        //         return response()->json([
-        //             'message' => 'Success',
-        //         ], 200);
+    //         foreach ($orders as $order) {
+    //             if ($order->stt_track != 9) {
+    //                 return response()->json([
+    //                     'message' => 'Chỉ có thể xoá những đơn hàng bị huỷ',
+    //                 ], 400);
+    //             }
+    //         }
 
-        //     } catch (\Throwable $th) {
-        //         return response()->json([
-        //             'message' => 'Failed',
-        //         ], 500);
-        //     }
-        // }
+    //         Order::whereIn('id', $id)->delete();
 
-        // Xoá trắng toàn bộ tất cả order
-        // public function bulk()
-        // {
-        //     Order::truncate();
-        // }
-    }
+    //         return response()->json([
+    //             'message' => 'Success',
+    //         ], 200);
 
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'message' => 'Failed',
+    //         ], 500);
+    //     }
+    // }
+
+    // Xoá trắng toàn bộ tất cả order
+    // public function bulk()
+    // {
+    //     Order::truncate();
+    // }
+}

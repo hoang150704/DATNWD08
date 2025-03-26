@@ -63,9 +63,14 @@ class Order extends Model
     {
         return $this->hasMany(Transaction::class);
     }
-    
+
     public function refundRequests()
     {
         return $this->hasMany(RefundRequest::class);
+    }
+    public function statusLogs()
+    {
+        return $this->hasMany(OrderStatusLog::class, 'order_id')
+            ->orderBy('changed_at'); 
     }
 }
