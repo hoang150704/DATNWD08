@@ -125,7 +125,7 @@ class OrderClientController extends Controller
                     'method' => $order->payment_method,
                     'type' => 'payment',
                     'amount' => $order->final_amount,
-                    'status' => 'pending' 
+                    'status' => 'pending'
                 ]
             );
             if (!$transaction) {
@@ -394,7 +394,7 @@ class OrderClientController extends Controller
                     break;
             }
 
-            $orders = $query->latest()->paginate(10);
+            $orders = $query->latest()->paginate(1);
             // Nó đỏ nhưng ko lỗi, nó chưa xác định được $orders có phải 1 collection hay không, 
             // ai thấy đỏ thì đừng hỏi bạn Hoàng nhé
             $data = $orders->map(function ($order) {
@@ -441,82 +441,101 @@ class OrderClientController extends Controller
     public function getOrderStatuses()
     {
         $statuses = [
-                ['code' => null,'label' => 'Tất cả '],            
-                ['code' => 'waiting_payment','label' => 'Chờ thanh toán'],
-                ['code' => 'pending','label' => 'Chờ xác nhận'],
-                ['code' => 'confirmed','label' => 'Đã xác nhận'],
-                ['code' => 'shipping','label' => 'Đang giao'],
-                ['code' => 'completed','label' => 'Đã giao'],
-                ['code' => 'closed','label' => 'Hoàn thành'],
-                ['code' => 'cancelled','label' => 'Đã hủy'],
-                ['code' => 'refund','label' => 'Trả hàng/Hoàn tiền'],
+            ['code' => null, 'label' => 'Tất cả '],
+            ['code' => 'waiting_payment', 'label' => 'Chờ thanh toán'],
+            ['code' => 'pending', 'label' => 'Chờ xác nhận'],
+            ['code' => 'confirmed', 'label' => 'Đã xác nhận'],
+            ['code' => 'shipping', 'label' => 'Đang giao'],
+            ['code' => 'completed', 'label' => 'Đã giao'],
+            ['code' => 'closed', 'label' => 'Hoàn thành'],
+            ['code' => 'cancelled', 'label' => 'Đã hủy'],
+            ['code' => 'refund', 'label' => 'Trả hàng/Hoàn tiền'],
         ];
-    
         return response()->json([
             'message' => 'Success',
             'data' => $statuses,
         ]);
     }
-    
+
 
     //
-    public function getOrderDetail($orderCode)
+    public function getOrderDetail($code)
     {
         try {
+            $order = Order::with([
+                'items',
+                'status',
+                'paymentStatus',
+                'shippingStatus',
+                'shipment.shippingLogsTimeline',
+                'refundRequests',
+                'statusLogs.fromStatus',
+                'statusLogs.toStatus',
+            ])->where('code',$code)->first();
 
-            //
-            $userId = auth('sanctum')->user()->id;
-            $order = Order::where('code', $orderCode)
-                ->where('user_id', $userId)
-                ->with(['items', 'status', 'paymentStatus', 'shipment', 'refundRequests'])
-                ->first();
-            //
-            if (!$order) {
-                return response()->json([
-                    'message' => 'Không tìm thấy đơn hàng',
-                ], 404);
-            }
-            // COnvert lại dữ liệu
-            $orderDetails = [
+            // Convert dữ liệu
+            $data = [
                 'order_id' => $order->id,
                 'order_code' => $order->code,
                 'status' => $order->status->name,
+                'payment_status' => $order->paymentStatus->name ?? null,
+                'shipping_status' => $order->shippingStatus->name ?? null,
+                'total_amount' => $order->total_amount,
+                'final_amount' => $order->final_amount,
+                'discount_amount' => $order->discount_amount,
+                'shipping_fee' => $order->shipping,
+                'payment_method' => $order->payment_method,
+                'o_name' => $order->o_name,
+                'o_phone' => $order->o_phone,
+                'o_email' => $order->o_mail,
+                'o_address' => $order->o_address,
                 'items' => $order->items->map(function ($item) {
                     return [
                         'product_name' => $item->product_name,
                         'quantity' => $item->quantity,
                         'price' => $item->price,
-                        'image_url' => $item->image
+                        'image' => $item->image,
+                        'variation' => $item->variation
                     ];
                 }),
-                'total_amount' => $order->total_amount,
-                'final_amount' => $order->final_amount,
-                'discount_amount' => $order->discount_amount,
-                'shipping_fee' => $order->shipping, // phí ship
-                'refund_requests' => $order->refundRequests->map(function ($refundRequest) { // Hoàn đơn
+                'shipping_logs' => $order->shipment?->shippingLogs->map(function ($log) {
                     return [
-                        'request_id' => $refundRequest->id,
-                        'status' => $refundRequest->status,
-                        'reason' => $refundRequest->reason,
-                        'requested_amount' => $refundRequest->amount,
-                        'approved_by' => $refundRequest->approved_by,
-                        'approved_at' => $refundRequest->approved_at ? $refundRequest->approved_at->toDateTimeString() : null
+                        'status' => $log->status,
+                        'note' => $log->note,
+                        'created_at' => $log->created_at
                     ];
                 }),
-                'actions' => OrderActionService::availableActions($order, 'user')
+                'refund_requests' => $order->refundRequests->map(function ($refund) {
+                    return [
+                        'status' => $refund->status,
+                        'reason' => $refund->reason,
+                        'amount' => $refund->amount,
+                        'approved_at' => optional($refund->approved_at),
+                    ];
+                }),
+                'status_timelines' => $order->statusLogs->map(function ($log) {
+                    return [
+                        'from' => $log->fromStatus->name ?? null,
+                        'to' => $log->toStatus->name ?? null,
+                        'changed_at' => $log->changed_at,
+                    ];
+                }),
+                'actions' => OrderActionService::availableActions($order, 'admin') 
             ];
 
             return response()->json([
-                'message' => 'Success',
-                'data' => $orderDetails
+                'message' => 'Lấy chi tiết đơn hàng thành công!',
+                'data' => $data
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Không tìm thấy đơn hàng',
+                'message' => 'Không thể lấy đơn hàng!',
                 'error' => $th->getMessage()
-            ], 404);
+            ], 500);
         }
     }
+    
+    
 
 
     // Lấy các button có thể thực hiện
@@ -556,21 +575,26 @@ class OrderClientController extends Controller
     // } // đã chuyển thành service
     //Hủy đơn hàng
 
-    public function cancel(Request $request, $code)
+    public function cancel(Request $request)
     {
-        $order = Order::where('code', $code)->firstOrFail();
-
+        $validated = $request->validate([
+            'code' => 'required|exists:orders,code',
+            'cancel_reason' => 'required|string|max:1000'
+        ]);
+    
+        $order = Order::where('code', $validated['code'])->firstOrFail();
+    
         if (!in_array($order->status->code, ['pending', 'confirmed'])) {
             return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại!'], 400);
         }
-
+    
         DB::beginTransaction();
-
+    
         try {
             $fromStatusId = $order->order_status_id;
             $cancelStatusId = OrderStatus::idByCode('cancelled');
-
-            // Nếu là đơn thanh toán online và đã thanh toán
+    
+            // Nếu thanh toán online đã thanh toán
             if ($order->payment_method === 'vnpay' && $order->payment_status->code === 'paid') {
                 Transaction::create([
                     'order_id' => $order->id,
@@ -580,21 +604,21 @@ class OrderClientController extends Controller
                     'status' => 'pending',
                     'created_at' => now(),
                 ]);
+                // TODO: gọi API hoàn tiền
             }
-
-            // Nếu đơn đã tạo vận đơn thì gọi API hủy GHN (giả lập)
+    
+            // Nếu đã tạo vận đơn GHN
             if (!in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
-                $success = $this->cancelGhnOrder($order);
-                if (!$success) {
-                    DB::rollBack();
-                    return response()->json(['message' => 'Không thể hủy vận đơn GHN!'], 500);
-                }
+                // TODO: gọi API hủy đơn GHN
             }
-
+    
             $order->update([
                 'order_status_id' => $cancelStatusId,
+                'cancel_reason' => $validated['cancel_reason'],
+                'cancel_by' => 'user',
+                'cancelled_at' => now()
             ]);
-
+    
             OrderStatusLog::create([
                 'order_id' => $order->id,
                 'from_status_id' => $fromStatusId,
@@ -602,7 +626,7 @@ class OrderClientController extends Controller
                 'changed_by' => 'user',
                 'changed_at' => now(),
             ]);
-
+    
             DB::commit();
             return response()->json(['message' => 'Đơn hàng đã được hủy.']);
         } catch (\Throwable $th) {
@@ -611,6 +635,7 @@ class OrderClientController extends Controller
             return response()->json(['message' => 'Lỗi khi hủy đơn hàng!'], 500);
         }
     }
+    
 
     /**
      * Yêu cầu hoàn hàng / hoàn tiền
@@ -663,10 +688,4 @@ class OrderClientController extends Controller
     /**
      * Giả lập gọi API hủy GHN (có thể thay bằng service thật)
      */
-    private function cancelGhnOrder(Order $order): bool
-    {
-        // Giả lập gọi API GHN cancel
-        Log::info("Đã gọi API huỷ GHN cho đơn: " . $order->code);
-        return true; // Giả lập thành công
-    }
 }
