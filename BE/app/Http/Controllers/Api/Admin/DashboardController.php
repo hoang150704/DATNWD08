@@ -33,7 +33,7 @@ class DashboardController extends Controller
                 "totalUsers" => DB::table('users')->count(), // Tổng số người dùng
                 "totalVouchers" => DB::table('vouchers')->count(), // Tổng số voucher
                 "totalOrders" => Order::count(), // Tổng số đơn hàng
-                "totalRevenue" => Order::where('stt_payment', 1)->sum('final_amount'), // Tổng doanh thu
+                "totalRevenue" => Order::where('payment_status_id', 1)->sum('final_amount'), // Tổng doanh thu
                 "topSellingProducts" => $topSellingProducts, // Top 5 sản phẩm bán chạy nhất
                 "salesStatistics" => $salesData, // Thống kê doanh số bán hàng
                 "ratingStatistics" => $ratingStatistics, // Thống kê số lượng đánh giá theo từng mức rating
@@ -150,26 +150,27 @@ class DashboardController extends Controller
 
     // Lấy thống kê doanh thu theo thời gian
     private function getRevenueStatistics($period = 'daily', $year = null)
-    {
-        $year = $year ?? now()->year; // Nếu không truyền năm, mặc định lấy năm hiện tại
+{
+    $year = $year ?? now()->year; // Nếu không truyền năm, mặc định lấy năm hiện tại
 
-        $query = Order::select([
-            DB::raw(
-                match ($period) {
-                    'daily' => "DATE(created_at) as period", // Lấy ngày
-                    'weekly' => "YEARWEEK(created_at, 1) as period", // Lấy tuần
-                    'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period", // Lấy tháng
-                    'yearly' => "YEAR(created_at) as period", // Lấy năm
-                    default => "DATE(created_at) as period",
-                }
-            ),
-            DB::raw('SUM(final_amount) as totalRevenue') // Tính tổng doanh thu
-        ])
-            ->whereYear('created_at', $year) // Lọc theo năm
-            ->where('stt_payment', 1)   // Chỉ lấy đơn hàng đã thanh toán
-            ->groupBy('period') // Nhóm theo thời gian
-            ->orderBy('period', 'ASC');
+    $query = Order::select([
+        DB::raw(
+            match ($period) {
+                'daily' => "DATE(created_at) as period", // Lấy ngày
+                'weekly' => "YEARWEEK(created_at, 1) as period", // Lấy tuần
+                'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period", // Lấy tháng
+                'yearly' => "YEAR(created_at) as period", // Lấy năm
+                default => "DATE(created_at) as period",
+            }
+        ),
+        DB::raw('SUM(final_amount) as totalRevenue') // Tính tổng doanh thu
+    ])
+    ->whereYear('created_at', $year) // Lọc theo năm
+    ->where('payment_status_id', 1)   // Chỉ lấy đơn hàng đã thanh toán
+    ->groupBy('period') // Nhóm theo thời gian
+    ->orderBy('period', 'ASC');
 
-        return $query->get();
-    }
+    return $query->get();
+}
+
 }
