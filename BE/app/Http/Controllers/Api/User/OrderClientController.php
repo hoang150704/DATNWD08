@@ -443,6 +443,7 @@ class OrderClientController extends Controller
                     'payment_code' => $order->paymentStatus->code ?? '',
                     'created_at' => $order->created_at->format('d-m-Y H:i'),
                     'final_amount' => $order->final_amount,
+                    'actions' => OrderActionService::availableActions($order, 'user'),
                     'products' => $order->items->map(function ($item) {
                         return [
                             'name' => $item->product_name,
@@ -556,7 +557,7 @@ class OrderClientController extends Controller
                         'changed_at' => $log->changed_at,
                     ];
                 }),
-                'actions' => OrderActionService::availableActions($order, 'admin')
+                'actions' => OrderActionService::availableActions($order, 'user')
             ];
 
             return response()->json([
@@ -698,55 +699,55 @@ class OrderClientController extends Controller
 
 
 
-  //Yêu cầu hoàn tiền
-  public function requestRefund(Request $request, $code)
-  {
-      $request->validate([
-          'reason'   => 'required|string',
-          'images'   => 'nullable|array',
-          'images.*' => 'url'
-      ]);
-  
-      $order = Order::where('code', $code)->firstOrFail();
-  
-      if (!in_array($order->status->code, ['completed'])) {
-          return response()->json(['message' => 'Không thể yêu cầu hoàn tiền ở trạng thái hiện tại.'], 400);
-      }
-  
-      DB::beginTransaction();
-  
-      try {
-          RefundRequest::create([
-              'order_id' => $order->id,
-              'type'     => 'return_after_received',
-              'reason'   => $request->reason,
-              'amount'   => $order->final_amount,
-              'status'   => 'pending',
-              'images'   => $request->images ?? [],
-          ]);
-  
-          $fromStatusId = $order->order_status_id;
-          $toStatusId   = OrderStatus::idByCode('return_requested');
-  
-          $order->update(['order_status_id' => $toStatusId]);
-  
-          OrderStatusLog::create([
-              'order_id'       => $order->id,
-              'from_status_id' => $fromStatusId,
-              'to_status_id'   => $toStatusId,
-              'changed_by'     => 'user',
-              'changed_at'     => now(),
-          ]);
-  
-          DB::commit();
-          return response()->json(['message' => 'Đã gửi yêu cầu hoàn hàng thành công.']);
-      } catch (\Throwable $th) {
-          DB::rollBack();
-          Log::error('Refund Request Error: ' . $th->getMessage());
-          return response()->json(['message' => 'Lỗi khi gửi yêu cầu hoàn hàng!'], 500);
-      }
-  }
-  
+    //Yêu cầu hoàn tiền
+    public function requestRefund(Request $request, $code)
+    {
+        $request->validate([
+            'reason'   => 'required|string',
+            'images'   => 'nullable|array',
+            'images.*' => 'url'
+        ]);
+
+        $order = Order::where('code', $code)->firstOrFail();
+
+        if (!in_array($order->status->code, ['completed'])) {
+            return response()->json(['message' => 'Không thể yêu cầu hoàn tiền ở trạng thái hiện tại.'], 400);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            RefundRequest::create([
+                'order_id' => $order->id,
+                'type'     => 'return_after_received',
+                'reason'   => $request->reason,
+                'amount'   => $order->final_amount,
+                'status'   => 'pending',
+                'images'   => $request->images ?? [],
+            ]);
+
+            $fromStatusId = $order->order_status_id;
+            $toStatusId   = OrderStatus::idByCode('return_requested');
+
+            $order->update(['order_status_id' => $toStatusId]);
+
+            OrderStatusLog::create([
+                'order_id'       => $order->id,
+                'from_status_id' => $fromStatusId,
+                'to_status_id'   => $toStatusId,
+                'changed_by'     => 'user',
+                'changed_at'     => now(),
+            ]);
+
+            DB::commit();
+            return response()->json(['message' => 'Đã gửi yêu cầu hoàn hàng thành công.']);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error('Refund Request Error: ' . $th->getMessage());
+            return response()->json(['message' => 'Lỗi khi gửi yêu cầu hoàn hàng!'], 500);
+        }
+    }
+
 
     // Thanh toán lại
     public function retryPaymentVnpay(Request $request)
