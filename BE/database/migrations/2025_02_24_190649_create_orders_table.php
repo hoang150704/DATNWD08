@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
-            $table->string('type'); 
+            $table->string('type');
         });
 
         // Trạng thái thanh toán
@@ -51,7 +51,7 @@ return new class extends Migration
             $table->foreignId('payment_status_id')->constrained('payment_statuses');
             $table->foreignId('shipping_status_id')->constrained('shipping_statuses');
             $table->text('cancel_reason')->nullable();
-            $table->string('cancel_by')->nullable(); 
+            $table->string('cancel_by')->nullable();
             $table->timestamp('cancelled_at')->nullable();
             $table->timestamps();
         });
@@ -68,11 +68,11 @@ return new class extends Migration
             $table->timestamp('actual_delivery_date')->nullable(); // ngày giao hàng thực tế
             $table->timestamp('pickup_time')->nullable();
             $table->text('cancel_reason')->nullable();
-            $table->timestamps(); 
+            $table->timestamps();
         });
         //
-         // Lịch sử đơn hàng GHN
-         Schema::create('shipping_logs', function (Blueprint $table) {
+        // Lịch sử đơn hàng GHN
+        Schema::create('shipping_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('shipment_id')->constrained('shipments');
             $table->string('ghn_status');
@@ -87,13 +87,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained('orders');
             $table->enum('type', ['not_received', 'return_after_received']);
-            $table->text('reason')->nullable();
             $table->decimal('amount', 15, 2);
+            $table->text('reason')->nullable();
+            $table->json('images')->nullable(); // ảnh sản phẩm lỗi
             $table->enum('status', ['pending', 'approved', 'rejected', 'refunded'])->default('pending');
             $table->string('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
             $table->timestamp('refunded_at')->nullable();
+            $table->timestamps();
         });
+        
 
         // Lịch sử đơn hàng hệ thông
         Schema::create('order_status_logs', function (Blueprint $table) {
@@ -109,17 +112,35 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained('orders');
-            $table->enum('method', ['vnpay', 'ship_cod']);
-            $table->enum('type', ['payment', 'refund']);
+        
+            $table->enum('method', ['vnpay', 'ship_cod']); // phương thức thanh toán
+            $table->enum('type', ['payment', 'refund']);   // thanh toán hay hoàn tiền
+        
             $table->decimal('amount', 15, 2);
-            $table->string('transaction_code')->nullable(); // vnp_TxnRef or CK code
+            $table->enum('status', ['pending', 'success', 'failed']);
+        
+            // Dùng chung
+            $table->string('transaction_code')->nullable();     // vnp_TxnRef hoặc mã CK
+            $table->text('note')->nullable();
+        
+            // Dành cho VNPAY
             $table->string('vnp_transaction_no')->nullable();
             $table->string('vnp_bank_code')->nullable();
+            $table->string('vnp_bank_tran_no')->nullable();
             $table->timestamp('vnp_pay_date')->nullable();
-            $table->enum('status', ['pending', 'success', 'failed']);
-            $table->text('note')->nullable();
-            $table->timestamp('created_at')->useCurrent();
+            $table->string('vnp_card_type')->nullable();
+            $table->string('vnp_response_code')->nullable();
+            $table->string('vnp_transaction_status')->nullable();
+            $table->timestamp('vnp_create_date')->nullable();
+            $table->string('vnp_refund_request_id')->nullable();
+        
+            // Dành cho hoàn tiền thủ công (ship_cod)
+            $table->string('transfer_reference')->nullable();  // mã giao dịch ngân hàng
+            $table->json('proof_images')->nullable();          // ảnh chụp minh chứng
+        
+            $table->timestamps();
         });
+        
     }
 
     /**

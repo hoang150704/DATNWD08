@@ -10,6 +10,7 @@ use App\Models\SettingGhn;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Services\ApiService;
+use App\Services\GhnApiService;
 use App\Traits\GhnTraits;
 use Carbon\Carbon;
 
@@ -18,11 +19,13 @@ class GhnTrackingController extends Controller
 {
     use GhnTraits;
     protected $ApiService;
+    protected $ghnApiService;
     protected $shopId;
     protected $weight_service = 20000;
-    public function __construct(ApiService $ApiService)
+    public function __construct(ApiService $ApiService,GhnApiService $ghnApiService)
     {
         $this->ApiService = $ApiService;
+        $this->ghnApiService = $ghnApiService;
         $this->shopId = config('services.ghn.shop_id');
     }
 
@@ -41,11 +44,10 @@ class GhnTrackingController extends Controller
             $dataGetTime = [
                 'to_ward_code' => $data['to_ward_code'],
                 'to_district_id' => $data['to_district_id'],
+                'service_type_id'=>2
             ];
 
             $weight = $data['weight'] ;
-           $service_type_id = $weight < $this->weight_service ? 2 : 5;
-           $dataGetTime['service_type_id'] =      $service_type_id;
             $dataGetFee = array_merge($dataGetTime, ['weight' => $weight]);
             $responses = $this->ApiService->postAsyncMultiple([
                 'time' => [
@@ -193,6 +195,7 @@ class GhnTrackingController extends Controller
      * Display the specified resource.
      */
     public function cancelOrderGhn(Request $request){
-
+        $result = $this->ghnApiService->cancelOrder(['LB7TUG']);
+        return response()->json($result,200);
     }
 }

@@ -235,10 +235,6 @@ class CartController extends Controller
                 ['quantity' => $totalQuantity]
             );
     
-            // Cập nhật số lượng tồn kho
-            $productVariation->stock_quantity -= $newQuantity;
-            $productVariation->save();
-    
             return response()->json([
                 'message' => 'Sản phẩm đã được thêm vào giỏ hàng!',
                 'data' => $cartItem

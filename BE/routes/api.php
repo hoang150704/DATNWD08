@@ -37,6 +37,7 @@ Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
+    Route::post('/cancel_order', [GhnTrackingController::class, 'cancelOrderGhn']);
 });
 
 // Đăng nhập bằng google

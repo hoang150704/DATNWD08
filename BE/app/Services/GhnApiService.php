@@ -37,7 +37,7 @@ class GhnApiService
 
     public function cancelOrder(array $orderCodes): array
     {
-        return $this->post('/v2/switch-status/cancel', [
+        return $this->post('/shiip/public-api/v2/switch-status/cancel', [
             'order_codes' => $orderCodes
         ]);
     }
