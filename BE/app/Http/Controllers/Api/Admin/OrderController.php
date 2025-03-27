@@ -577,7 +577,7 @@ class OrderController extends Controller
         $order = Order::with(['transactions', 'refundRequest'])->where('code', $code)->firstOrFail();
     
         if ($order->payment_method !== 'vnpay' || $order->paymentStatus->code !== 'paid') {
-            return response()->json(['message' => 'Đơn hàng không hợp lệ để hoàn tiền tự động.'], 400);
+            return response()->json(['message' => 'Đơn hàng không hợp lệ để hoàn tiền tự động'], 400);
         }
     
         DB::beginTransaction();
@@ -591,7 +591,7 @@ class OrderController extends Controller
                 ->first();
     
             if (!$refundTransaction) {
-                return response()->json(['message' => 'Không tìm thấy giao dịch hoàn tiền đang chờ xử lý.'], 404);
+                return response()->json(['message' => 'Không tìm thấy giao dịch hoàn tiền đang chờ xử lý'], 404);
             }
     
             // Tìm transaction thanh toán gốc
@@ -603,7 +603,7 @@ class OrderController extends Controller
                 ->first();
     
             if (!$paymentTransaction) {
-                return response()->json(['message' => 'Không tìm thấy giao dịch thanh toán gốc.'], 404);
+                return response()->json(['message' => 'Không tìm thấy giao dịch thanh toán gốc'], 404);
             }
     
             // Gọi API hoàn tiền
@@ -664,7 +664,7 @@ class OrderController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Refund Auto Error: ' . $e->getMessage());
-            return response()->json(['message' => 'Lỗi khi hoàn tiền tự động.'], 500);
+            return response()->json(['message' => 'Lỗi khi hoàn tiền tự động'], 500);
         }
     }
     
