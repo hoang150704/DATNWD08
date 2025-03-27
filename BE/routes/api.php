@@ -80,9 +80,7 @@ Route::prefix('voucher')->group(function () {
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
     //Order
-    Route::get('/order_statuses', [OrderClientController::class, 'getOrderStatuses']);
-    Route::get('/orders_for_user', [OrderClientController::class, 'getOrdersForUser']);
-    Route::get('/order_detail/{code}', [OrderClientController::class, 'getOrderDetail']);
+    require base_path('routes/api/user/orders.php');
     //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
@@ -90,25 +88,10 @@ Route::middleware('auth:sanctum')->group(function () {
     //Profile routes
     Route::get('/profile', [ProfileController::class, 'info']);
     Route::post('/change_profile', [ProfileController::class, 'changeProfile']);
-    //
-
     //Address routes
-    Route::get('/addresses', [ProfileController::class, 'index']); // Lấy danh sách địa chỉ
-    Route::get('/addresses/default', [ProfileController::class, 'getDefault']); // Lấy địa chỉ mặc định
-    Route::post('/addresses', [ProfileController::class, 'store']); // Thêm địa chỉ mới
-    Route::put('/addresses/{id}', [ProfileController::class, 'update']); // Cập nhật địa chỉ
-    Route::delete('/addresses/{id}', [ProfileController::class, 'destroy']); // Xóa địa chỉ
-    Route::put('/addresses/{id}/set-default', [ProfileController::class, 'setDefault']); // Đặt địa chỉ mặc định mới
-    Route::get('/addresses/{id}/select', [ProfileController::class, 'selectAddressForOrder']); // Chọn địa chỉ cho đơn hàng (chỉ dùng tạm thời)
-    // =========================================================================
-
+    require base_path('routes/api/user/address_books.php');
     // Giỏ hàng
-    Route::get('/cart', [CartController::class, 'index']);
-    Route::post('/cart', [CartController::class, 'addCart']);
-    Route::post('/cart/sync', [CartController::class, 'syncCart']);
-    Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
-    Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
-    Route::post('/cart/clear', [CartController::class, 'clearAll']);
+    require base_path('routes/api/user/carts.php');
 
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
