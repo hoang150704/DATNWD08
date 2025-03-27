@@ -208,9 +208,10 @@ class OrderController extends Controller
                 }),
                 'shipping_logs' => $order->shipment?->shippingLogs->map(function ($log) {
                     return [
-                        'status' => $log->status,
+                        'status' => $log->ghn_status,
+                        'location'=>$log->location,
                         'note' => $log->note,
-                        'created_at' => $log->created_at
+                        'created_at' => $log->timestamp
                     ];
                 }),
                 'refund_requests' => $order->refundRequests->map(function ($refund) {
@@ -328,6 +329,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
+    // Hủy order
 
 
 

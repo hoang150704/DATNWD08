@@ -22,7 +22,7 @@ class ShippingStatusMapper
         'delivered' => 'delivered',
         // Giao thất bại
         'delivery_fail' => 'failed',
-        // Chờ hoàn hàng
+        // Chờ hoàn hàng/
         'waiting_to_return' => 'failed',
         'return' => 'failed',
         'return_transporting' => 'failed',

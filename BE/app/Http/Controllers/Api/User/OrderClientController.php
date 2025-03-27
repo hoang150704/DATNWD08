@@ -22,6 +22,7 @@ use App\Models\ShippingLog;
 use App\Models\ShippingStatus;
 use App\Models\Transaction;
 use App\Models\Voucher;
+use App\Services\GhnApiService;
 use App\Services\OrderActionService;
 use App\Services\OrderStatusFlowService;
 use Illuminate\Http\Request;
@@ -34,10 +35,12 @@ use Illuminate\Support\Str;
 class OrderClientController extends Controller
 {
     protected $paymentVnpay;
+    protected $ghn;
 
-    public function __construct(PaymentVnpay $paymentVnpay)
+    public function __construct(PaymentVnpay $paymentVnpay,GhnApiService $ghn)
     {
         $this->paymentVnpay = $paymentVnpay;
+        $this->ghn = $ghn;
     }
     //
     private function generateUniqueOrderCode()
@@ -500,9 +503,10 @@ class OrderClientController extends Controller
                 }),
                 'shipping_logs' => $order->shipment?->shippingLogs->map(function ($log) {
                     return [
-                        'status' => $log->status,
+                        'status' => $log->ghn_status,
+                        'location'=>$log->location,
                         'note' => $log->note,
-                        'created_at' => $log->created_at
+                        'created_at' => $log->timestamp
                     ];
                 }),
                 'refund_requests' => $order->refundRequests->map(function ($refund) {
@@ -609,7 +613,8 @@ class OrderClientController extends Controller
     
             // Nếu đã tạo vận đơn GHN
             if (!in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
-                // TODO: gọi API hủy đơn GHN
+                //  gọi API hủy đơn GHN
+                
             }
     
             $order->update([

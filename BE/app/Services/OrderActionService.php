@@ -44,20 +44,16 @@ class OrderActionService
                     $actions[] = 'complete';
                     break;
                 case 'return_requested':
-                    $actions[] = 'approve_return';
-                    $actions[] = 'reject_return';
+                    $actions[] = 'approve_return'; // Đồng ý hoàn tiền
+                    $actions[] = 'reject_return'; // Không đồng ý
                     break;
                 case 'return_approved':
-                    $actions[] = 'refund';
+                    $actions[] = 'refund'; // Hoàn tiền
                     break;
             }
 
             if ($payment === 'unpaid' && $order->payment_method === 'vnpay') {
                 $actions[] = 'mark_paid';
-            }
-
-            if ($status === 'completed') {
-                $actions[] = 'close';
             }
         }
 
