@@ -30,6 +30,7 @@ class StatusOrder extends Seeder
             ['code' => 'unpaid', 'name' => 'Chưa thanh toán'],
             ['code' => 'paid', 'name' => 'Đã thanh toán'],
             ['code' => 'refunded', 'name' => 'Đã hoàn tiền'],
+            ['code' => 'cancelled', 'name' => 'Đã hủy'],
         ]);
         //Trạng thái GHN
         DB::table('shipping_statuses')->insert([

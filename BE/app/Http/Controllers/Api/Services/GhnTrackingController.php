@@ -10,6 +10,7 @@ use App\Models\SettingGhn;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Services\ApiService;
+use App\Services\GhnApiService;
 use App\Traits\GhnTraits;
 use Carbon\Carbon;
 
@@ -18,9 +19,14 @@ class GhnTrackingController extends Controller
 {
     use GhnTraits;
     protected $ApiService;
-    public function __construct(ApiService $ApiService)
+    protected $ghnApiService;
+    protected $shopId;
+    protected $weight_service = 20000;
+    public function __construct(ApiService $ApiService,GhnApiService $ghnApiService)
     {
         $this->ApiService = $ApiService;
+        $this->ghnApiService = $ghnApiService;
+        $this->shopId = config('services.ghn.shop_id');
     }
 
     public function getFeeAndTimeTracking(Request $request)
@@ -34,13 +40,12 @@ class GhnTrackingController extends Controller
                     'weight' => 'required',
                 ]
             );
-            // $setting_ghn = GhnSetting::first();
+            
             $dataGetTime = [
                 'to_ward_code' => $data['to_ward_code'],
                 'to_district_id' => $data['to_district_id'],
-                'service_type_id' => 2,
+                'service_type_id'=>2
             ];
-            //Lấy setiing của shoop
 
             $weight = $data['weight'] ;
             $dataGetFee = array_merge($dataGetTime, ['weight' => $weight]);
@@ -48,12 +53,12 @@ class GhnTrackingController extends Controller
                 'time' => [
                     'endpoint' => '/shiip/public-api/v2/shipping-order/leadtime',
                     'data' => $dataGetTime,
-                    'headers' => ['ShopId' => 195780]
+                    'headers' => ['ShopId' => $this->shopId]
                 ],
                 'fee' => [
                     'endpoint' => '/shiip/public-api/v2/shipping-order/fee',
                     'data' => $dataGetFee,
-                    'headers' => ['ShopId' => 195780]
+                    'headers' => ['ShopId' => $this->shopId]
                 ]
             ]);
 
@@ -93,7 +98,7 @@ class GhnTrackingController extends Controller
      */
     public function postOrderGHN(Request $request, $id)
     {
-        $setting_ghn = GhnSetting::first(); // Lấy setting ghn
+      
         // Setup data lấy tt shop
         $dataShop  = [
             'offset' => 1,
@@ -111,7 +116,7 @@ class GhnTrackingController extends Controller
 
         $responseShop = $responses['shop_info'];
         // COnvert thông tin
-        $infoShop = $this->covertInfoShop($responseShop, 195780);
+        $infoShop = $this->covertInfoShop($responseShop, $this->shopId);
         // convert địa chỉ
         $convertAddressShop = $this->convertAddress($infoShop['address']);
         // Lấy ra thông tin shop
@@ -124,6 +129,7 @@ class GhnTrackingController extends Controller
             ->selectRaw('SUM(weight * quantity) as total_weight')
             ->value('total_weight');
         $finalWeight = (int) $totalWeight ;
+        $service_type_id = $finalWeight < $this->weight_service ? 2 : 5;
         $dataValidated = $request->validate(
             [
                 'note' => 'nullable|string|max:5000',
@@ -157,11 +163,11 @@ class GhnTrackingController extends Controller
             "to_province_name" => $addressConvert['province'],
             "cod_amount" => $order->final_amount,
             "weight" =>  (int) $finalWeight,
-            "service_type_id" => $setting_ghn->service_type_id
+            "service_type_id" => $service_type_id
 
         ];
         $customHeaders = [
-            "ShopId" => $setting_ghn->shop_id,
+            "ShopId" => $this->shopId,
         ];
         $order_items = OrderItem::where('order_id', $id)->get()->toArray();
         $convertedItems = array_map(function ($item) {
@@ -188,24 +194,8 @@ class GhnTrackingController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function cancelOrderGhn(Request $request){
+        $result = $this->ghnApiService->cancelOrder(['LB7TUG']);
+        return response()->json($result,200);
     }
 }

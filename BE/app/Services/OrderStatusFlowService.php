@@ -12,8 +12,17 @@ class OrderStatusFlowService
     protected const FLOW = [
         'pending' => ['confirmed', 'cancelled'],
         'confirmed' => ['shipping', 'cancelled'],
-        'shipping' => ['completed', 'refunded', 'return_requested'],
-        'completed' => ['closed','refunded'],
+        'shipping' => ['completed', 'return_requested'],
+        'completed' => ['closed', 'return_requested'],
+
+        // Trả hàng
+        'return_requested' => ['return_approved', 'completed'],
+        'return_approved' => ['refunded'],
+
+        // Kết thúc
+        'refunded' => [],
+        'closed' => [],
+        'cancelled' => [],
     ];
 
     /**
@@ -26,7 +35,13 @@ class OrderStatusFlowService
         if (!isset(self::FLOW[$from])) {
             return false;
         }
-
+        if (
+            $toStatusCode === 'confirmed' &&
+            $order->payment_method === 'vnpay' &&
+            ($order->paymentStatus->code ?? null) !== 'paid'
+        ) {
+            return false;
+        }
         return in_array($toStatusCode, self::FLOW[$from]);
     }
 
@@ -58,5 +73,28 @@ class OrderStatusFlowService
         ]);
 
         return true;
+    }
+    public static function getNextStatuses(Order $order): array
+    {
+        $currentStatusCode = $order->status->code ?? null;
+        $from = $order->status->code;
+        if (!$currentStatusCode || !isset(self::FLOW[$currentStatusCode])) {
+            return [];
+        }
+
+
+        return self::FLOW[$currentStatusCode];
+    }
+    public static function createInitialStatus(Order $order, string $statusCode = 'pending', string $changedBy = 'system'): void
+    {
+        $statusId = OrderStatus::where('code', $statusCode)->value('id');
+
+        DB::table('order_status_logs')->insert([
+            'order_id' => $order->id,
+            'from_status_id' => null,
+            'to_status_id' => $statusId,
+            'changed_by' => $changedBy,
+            'changed_at' => now(),
+        ]);
     }
 }

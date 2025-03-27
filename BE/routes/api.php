@@ -37,6 +37,7 @@ Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
+    Route::post('/cancel_order', [GhnTrackingController::class, 'cancelOrderGhn']);
 });
 
 // Đăng nhập bằng google
@@ -50,6 +51,8 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 //Thanh toán
 Route::post('/checkout', [OrderClientController::class, 'store']);
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
+// Lấy thông tin order
+Route::get('/search_order', [OrderClientController::class, 'searchOrderByCode']); // Lấy thông tin order theo mã đơn hàng dành cho khách không đăng nhập vẫn mua hàng
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
@@ -76,30 +79,19 @@ Route::prefix('voucher')->group(function () {
 // =======================================================================================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
+    //Order
+    require base_path('routes/api/user/orders.php');
+    //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
     //Profile routes
     Route::get('/profile', [ProfileController::class, 'info']);
     Route::post('/change_profile', [ProfileController::class, 'changeProfile']);
-
     //Address routes
-    Route::get('/addresses', [ProfileController::class, 'index']); // Lấy danh sách địa chỉ
-    Route::get('/addresses/default', [ProfileController::class, 'getDefault']); // Lấy địa chỉ mặc định
-    Route::post('/addresses', [ProfileController::class, 'store']); // Thêm địa chỉ mới
-    Route::put('/addresses/{id}', [ProfileController::class, 'update']); // Cập nhật địa chỉ
-    Route::delete('/addresses/{id}', [ProfileController::class, 'destroy']); // Xóa địa chỉ
-    Route::put('/addresses/{id}/set-default', [ProfileController::class, 'setDefault']); // Đặt địa chỉ mặc định mới
-    Route::get('/addresses/{id}/select', [ProfileController::class, 'selectAddressForOrder']); // Chọn địa chỉ cho đơn hàng (chỉ dùng tạm thời)
-    // =========================================================================
-
+    require base_path('routes/api/user/address_books.php');
     // Giỏ hàng
-    Route::get('/cart', [CartController::class, 'index']);
-    Route::post('/cart', [CartController::class, 'addCart']);
-    Route::post('/cart/sync', [CartController::class, 'syncCart']);
-    Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
-    Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
-    Route::post('/cart/clear', [CartController::class, 'clearAll']);
+    require base_path('routes/api/user/carts.php');
 
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);

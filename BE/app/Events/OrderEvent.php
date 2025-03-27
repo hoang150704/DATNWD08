@@ -57,7 +57,7 @@ class OrderEvent implements ShouldBroadcast
             'created_at' => $this->order->created_at,
             'voucher' => $this->voucher ? [
                 'code' => $this->voucher->code,
-                'discount' => $this->voucher->discount_amount,
+                'usage_limit' => $this->voucher->usage_limit,
                 'expiry_date' => $this->voucher->expiry_date
             ] : null, // Kiểm tra và lấy thông tin voucher nếu có
         ];

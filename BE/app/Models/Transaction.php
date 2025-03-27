@@ -6,23 +6,36 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
-    public $timestamps = false;
-
     protected $fillable = [
         'order_id',
         'method',
         'type',
         'amount',
+        'status',
         'transaction_code',
+        'note',
+
+        // VNPAY
         'vnp_transaction_no',
         'vnp_bank_code',
+        'vnp_bank_tran_no',
         'vnp_pay_date',
-        'status',
-        'note',
-        'created_at',
+        'vnp_card_type',
+        'vnp_response_code',
+        'vnp_transaction_status',
+        'vnp_create_date',
+        'vnp_refund_request_id',
+
+        // Ship_cod hoàn tiền thủ công
+        'transfer_reference',
+        'proof_images',
     ];
 
-    protected $dates = ['vnp_pay_date', 'created_at'];
+    protected $casts = [
+        'vnp_pay_date' => 'datetime',
+        'vnp_create_date' => 'datetime',
+        'proof_images' => 'array',
+    ];
 
     public function order()
     {
