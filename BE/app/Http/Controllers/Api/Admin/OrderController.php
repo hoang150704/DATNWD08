@@ -152,7 +152,7 @@ class OrderController extends Controller
                     'stock_quantity' => (int) $variant->stock_quantity - (int) $product['quantity']
                 ]);
             }
-            // Thêm nhiều sản phẩm 
+            // Thêm nhiều sản phẩm
             OrderItem::insert($orderItems);
             SendMailSuccessOrderJob::dispatch($order);
             DB::commit();
