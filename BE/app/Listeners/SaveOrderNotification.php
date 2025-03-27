@@ -30,7 +30,7 @@ class SaveOrderNotification
             'created_at' => $event->order->created_at
         ]);
         if ($event->voucher) {
-            if ($event->voucher->usage_limit == 0) {
+            if ($event->voucher->usage_limit = 0 || $event->voucher->usage_limit < 0) {
                 Notification::create([
                     'title' => 'Voucher hết lượt dùng: ' . $event->voucher->code,
                     'message' => 'Voucher ' . $event->voucher->code . ' đã hết lượt dùng',
