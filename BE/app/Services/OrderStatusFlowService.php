@@ -35,7 +35,13 @@ class OrderStatusFlowService
         if (!isset(self::FLOW[$from])) {
             return false;
         }
-
+        if (
+            $toStatusCode === 'confirmed' &&
+            $order->payment_method === 'vnpay' &&
+            ($order->paymentStatus->code ?? null) !== 'paid'
+        ) {
+            return false;
+        }
         return in_array($toStatusCode, self::FLOW[$from]);
     }
 
@@ -71,10 +77,11 @@ class OrderStatusFlowService
     public static function getNextStatuses(Order $order): array
     {
         $currentStatusCode = $order->status->code ?? null;
-
+        $from = $order->status->code;
         if (!$currentStatusCode || !isset(self::FLOW[$currentStatusCode])) {
             return [];
         }
+
 
         return self::FLOW[$currentStatusCode];
     }

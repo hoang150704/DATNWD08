@@ -298,7 +298,7 @@ class OrderController extends Controller
     public function confirmOrder($code)
     {
         $order = Order::with('status')->where('code', $code)->firstOrFail();
-
+        
         // Kiểm tra trạng thái hiện tại có thể chuyển sang 'confirmed' không
         if (!OrderStatusFlowService::canChange($order, 'confirmed')) {
             return response()->json([
