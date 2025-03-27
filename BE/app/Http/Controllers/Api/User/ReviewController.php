@@ -19,7 +19,7 @@ class ReviewController extends Controller
         // Truy vấn bình luận với điều kiện lọc số sao nếu có
         $query = Comment::where('product_id', $productId)
             ->where('is_active', true)
-            ->with(['user:id,name', 'product.variants'])
+            ->with(['user:id,name,avatar', 'product.variants'])
             ->orderBy('created_at', 'desc');
 
         if (!empty($rating) && in_array($rating, [1, 2, 3, 4, 5])) {
@@ -29,6 +29,7 @@ class ReviewController extends Controller
         $reviews = $query->paginate(5)->through(function ($comment) {
             return [
                 'id'        => $comment->id,
+                'avatar'    => $comment->avatar,
                 'username'  => $comment->user ? $this->maskName($comment->user->name) : 'Người dùng ẩn danh',
                 'rating'    => $comment->rating,
                 'variants'  => $comment->product->variants->map(function ($variant) {
@@ -39,7 +40,6 @@ class ReviewController extends Controller
                 }),
                 'content'       => $comment->content,
                 'created_at'    => Carbon::parse($comment->created_at)->format('d/m/Y'),
-                'images'        => json_decode($comment->images) ?? [],
                 'reply'         => $comment->reply ?? null,
             ];
         });
@@ -65,8 +65,6 @@ class ReviewController extends Controller
             'product_id'    => 'required|exists:products,id',
             'rating'        => 'required|integer|min:1|max:5',
             'content'       => 'required|string|min:10|max:500',
-            'images'        => 'nullable|array',
-            'images.*'      => 'nullable|image|max:2048',
         ]);
 
         // Lấy user ID từ người dùng đã đăng nhập
@@ -91,7 +89,6 @@ class ReviewController extends Controller
             'user_id'       => $userId,
             'rating'        => $validated['rating'],
             'content'       => $validated['content'],
-            'images'        => json_encode($imagePaths),
             'is_active'     => false
         ]);
 
@@ -106,7 +103,6 @@ class ReviewController extends Controller
                 'user_id'    => $comment->user_id,
                 'rating'     => $comment->rating,
                 'content'    => $comment->content,
-                'images'     => json_decode($comment->images), // Giải mã JSON để hiển thị mảng
                 'is_active'  => $comment->is_active,
                 'created_at' => Carbon::parse($comment->created_at)->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i:s'),
             ]
