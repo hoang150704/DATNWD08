@@ -69,6 +69,17 @@ class TransactionResource extends JsonResource
         }
 
         if ($this->method === 'vnpay') {
+            // Ưu tiên nếu có dữ liệu thủ công
+            if ($this->transfer_reference || $this->proof_images) {
+                return collect([
+                    'Hình thức' => 'Chuyển khoản thủ công (VNPAY lỗi)',
+                    'Mã chuyển khoản hoàn tiền' => $this->transfer_reference,
+                    'Ảnh minh chứng' => $this->proof_images,
+                    'Ghi chú' => $this->note,
+                ])->filter()->toArray();
+            }
+        
+            // Ngược lại: hiện thông tin hoàn tiền tự động VNPAY
             return collect([
                 'Ngân hàng' => $this->vnp_bank_code,
                 'Mã giao dịch ngân hàng' => $this->vnp_bank_tran_no,
@@ -81,6 +92,7 @@ class TransactionResource extends JsonResource
                 'Ghi chú' => $this->note,
             ])->filter()->toArray();
         }
+        
 
         if ($this->method === 'ship_cod') {
             return collect([

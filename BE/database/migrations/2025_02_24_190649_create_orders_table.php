@@ -36,7 +36,7 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->integer('user_id')->nullable();
-            $table->char('code');
+            $table->string('code', 255);
             $table->bigInteger('total_amount');
             $table->bigInteger('discount_amount');
             $table->bigInteger('final_amount');
@@ -94,9 +94,12 @@ return new class extends Migration
             $table->string('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
             $table->timestamp('refunded_at')->nullable();
+            $table->text('reject_reason')->nullable();
+            $table->timestamp('rejected_at')->nullable();
+            $table->string('rejected_by')->nullable();
             $table->timestamps();
         });
-        
+
 
         // Lịch sử đơn hàng hệ thông
         Schema::create('order_status_logs', function (Blueprint $table) {
@@ -112,17 +115,17 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained('orders');
-        
+
             $table->enum('method', ['vnpay', 'ship_cod']); // phương thức thanh toán
             $table->enum('type', ['payment', 'refund']);   // thanh toán hay hoàn tiền
-        
+
             $table->decimal('amount', 15, 2);
             $table->enum('status', ['pending', 'success', 'failed']);
-        
+
             // Dùng chung
             $table->string('transaction_code')->nullable();     // vnp_TxnRef hoặc mã CK
             $table->text('note')->nullable();
-        
+
             // Dành cho VNPAY
             $table->string('vnp_transaction_no')->nullable();
             $table->string('vnp_bank_code')->nullable();
@@ -133,14 +136,13 @@ return new class extends Migration
             $table->string('vnp_transaction_status')->nullable();
             $table->timestamp('vnp_create_date')->nullable();
             $table->string('vnp_refund_request_id')->nullable();
-        
+
             // Dành cho hoàn tiền thủ công (ship_cod)
             $table->string('transfer_reference')->nullable();  // mã giao dịch ngân hàng
             $table->json('proof_images')->nullable();          // ảnh chụp minh chứng
-        
+
             $table->timestamps();
         });
-        
     }
 
     /**

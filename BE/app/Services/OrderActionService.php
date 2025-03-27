@@ -33,27 +33,27 @@ class OrderActionService
         if ($role === 'admin') {
             switch ($status) {
                 case 'pending':
-                    $actions[] = 'confirm';
+                    if (!($order->payment_method === 'vnpay' && $payment === 'unpaid')) {
+                        $actions[] = 'confirm';
+                    }
                     $actions[] = 'cancel';
                     break;
                 case 'confirmed':
                     $actions[] = 'ship';
                     $actions[] = 'cancel';
                     break;
-                case 'shipping':
-                    $actions[] = 'complete';
-                    break;
                 case 'return_requested':
                     $actions[] = 'approve_return'; // Đồng ý hoàn tiền
                     $actions[] = 'reject_return'; // Không đồng ý
                     break;
                 case 'return_approved':
-                    $actions[] = 'refund'; // Hoàn tiền
+                    if ($order->payment_method === 'vnpay') {
+                        $actions[] = 'refund_auto';   // Ưu tiên hoàn tự động
+                        $actions[] = 'refund_manual'; // Dự phòng nếu VNPAY lỗi
+                    } else {
+                        $actions[] = 'refund_manual';
+                    }
                     break;
-            }
-
-            if ($payment === 'unpaid' && $order->payment_method === 'vnpay') {
-                $actions[] = 'mark_paid';
             }
         }
 
