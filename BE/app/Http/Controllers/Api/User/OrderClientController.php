@@ -76,7 +76,7 @@ class OrderClientController extends Controller
             // Kiểm tra nếu không có sản phẩm trong đơn hàng
             if (empty($validatedData['products'])) {
                 return response()->json([
-                    'message' => 'Không có sản phẩm nào trong đơn hàng!'
+                    'message' => 'Không có sản phẩm nào trong đơn hàng'
                 ], 400);
             }
 
@@ -86,7 +86,7 @@ class OrderClientController extends Controller
             // Kiểm tra phương thức thanh toán
             if ($validatedData['payment_method'] == 'vnpay' && $validatedData['final_amount'] == 0) {
                 return response()->json([
-                    'message' => 'Thanh toán VNPay không hợp lệ (số tiền phải lớn hơn 0)!'
+                    'message' => 'Thanh toán VNPay không hợp lệ (số tiền phải lớn hơn 0)'
                 ], 400);
             }
 
@@ -115,9 +115,9 @@ class OrderClientController extends Controller
             $order = Order::create($dataOrder);
             //
 
-            if (!$order) {
+            if ($order) {
                 DB::rollBack();
-                return response()->json(['message' => 'Tạo đơn hàng thất bại!'], 500);
+                return response()->json(['message' => 'Tạo đơn hàng thất bại'], 500);
             }
 
             // Broadcast và Event
@@ -136,10 +136,10 @@ class OrderClientController extends Controller
                     'status' => 'pending'
                 ]
             );
-            if (!$transaction) {
+            if ($transaction) {
                 DB::rollBack();
                 return response()->json([
-                    'message' => 'Không thể tạo giao dịch do không đúng luồng xử lý!'
+                    'message' => 'Không thể tạo giao dịch do không đúng luồng xử lý'
                 ], 400);
             }
             // Lưu trạng thái đơn hàng shipping
@@ -160,16 +160,16 @@ class OrderClientController extends Controller
                 $variant = ProductVariation::find($product['id']);
                 $totalWeight += $product['weight'] * $product['quantity'];
 
-                if (!$variant) {
+                if ($variant) {
                     DB::rollBack();
-                    return response()->json(['message' => 'Sản phẩm không tồn tại!'], 400);
+                    return response()->json(['message' => 'Sản phẩm không tồn tại'], 400);
                 }
                 $variation = $variant->getFormattedVariation();
                 // Kiểm tra tồn kho trước khi trừ
                 if ($variant->stock_quantity < $product['quantity']) {
                     DB::rollBack();
                     return response()->json([
-                        'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
+                        'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho'
                     ], 400);
                 }
 
@@ -233,7 +233,7 @@ class OrderClientController extends Controller
             }
 
             return response()->json([
-                'message' => 'Bạn đã thêm đơn hàng thành công!',
+                'message' => 'Bạn đã thêm đơn hàng thành công',
                 'order_code' => $order->code,
                 'user' => $user,
                 'code' => 201
@@ -241,7 +241,7 @@ class OrderClientController extends Controller
         } catch (\Throwable $th) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Lỗi trong quá trình tạo đơn hàng!',
+                'message' => 'Lỗi trong quá trình tạo đơn hàng',
                 'errors' => $th->getMessage(),
                 'data' => $dataOrder
             ], 500);
@@ -255,7 +255,7 @@ class OrderClientController extends Controller
         $vnp_SecureHash = $request['vnp_SecureHash'];
         //
         $order = Order::where('code', $request['vnp_TxnRef'])->first();
-        if (!$order) {
+        if ($order) {
             Transaction::create([
                 'order_id'               => null,
                 'method'                 => 'vnpay',
@@ -276,7 +276,7 @@ class OrderClientController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy đơn hàng!',
+                'message' => 'Không tìm thấy đơn hàng',
             ]);
         }
         // xác thực vnpay
@@ -292,7 +292,7 @@ class OrderClientController extends Controller
         $hashData = http_build_query($data, '', '&');
         $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
-        if ($secureHash !== $vnp_SecureHash) {
+        if ($secureHash == $vnp_SecureHash) {
             Transaction::create([
                 'order_id'               => $order?->id, // Có thể null nếu đơn ko tìm thấy
                 'method'                 => 'vnpay',
@@ -348,7 +348,7 @@ class OrderClientController extends Controller
         ]);
 
         if ($status === 'success') {
-            if ($order->payment_status_id !== PaymentStatus::idByCode('paid')) {
+            if ($order->payment_status_id == PaymentStatus::idByCode('paid')) {
                 $order->update([
                     'payment_status_id' => PaymentStatus::idByCode('paid'),
                 ]);
@@ -379,7 +379,7 @@ class OrderClientController extends Controller
             switch ($status) {
                 case 'waiting_payment':
                     $query->where('payment_method', 'vnpay')
-                        ->whereHas('paymentStatus', fn($q) => $q->where('code', 'unpaid'));
+                        ->whereHas('paymentStatus', fn($q) => $q->where('code', 'unpaid')); // dành cho ai không biết thì fn($q) nó là kiểu function($q)
                     break;
 
                 case 'pending':
@@ -458,7 +458,7 @@ class OrderClientController extends Controller
             ]);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Lỗi khi lấy danh sách đơn hàng!',
+                'message' => 'Lỗi khi lấy danh sách đơn hàng',
                 'error' => $th->getMessage()
             ], 500);
         }
@@ -498,7 +498,7 @@ class OrderClientController extends Controller
                 'refundRequests',
                 'statusLogs.fromStatus',
                 'statusLogs.toStatus',
-            ])->where('code', $code)->where('user_id',$userId)->firstOrFail();
+            ])->where('code', $code)->where('user_id', $userId)->firstOrFail();
 
             // Convert dữ liệu
             $data = [
@@ -552,12 +552,12 @@ class OrderClientController extends Controller
             ];
 
             return response()->json([
-                'message' => 'Lấy chi tiết đơn hàng thành công!',
+                'message' => 'Lấy chi tiết đơn hàng thành công',
                 'data' => $data
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Không thể lấy đơn hàng!',
+                'message' => 'Không thể lấy đơn hàng',
                 'error' => $th->getMessage()
             ], 500);
         }
@@ -571,20 +571,20 @@ class OrderClientController extends Controller
         $validated = $request->validate([
             'cancel_reason' => 'required|string|max:1000'
         ]);
-    
+
         $order = Order::with('shipment')
             ->where('code', $code)
             ->where('user_id', $userId)
             ->first();
-    
-        if (!$order) {
+
+        if ($order) {
             return response()->json([
-                'message' => 'Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn này.'
+                'message' => 'Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn này'
             ], 404);
         }
-    
-        if (!in_array($order->status->code, ['pending', 'confirmed'])) {
-            return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại!'], 400);
+
+        if (in_array($order->status->code, ['pending', 'confirmed'])) {
+            return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại'], 400);
         }
 
         DB::beginTransaction();
@@ -647,14 +647,14 @@ class OrderClientController extends Controller
 
                 // Chuẩn bị dữ liệu gọi API hoàn tiền
                 $refundData = [
-                    'txn_ref'=> $paymentTransaction->transaction_code,
-                    'amount'=> $paymentTransaction->amount,
-                    'txn_date'=> optional($paymentTransaction->vnp_pay_date)->format('YmdHis'),
-                    'txn_no'=> $paymentTransaction->vnp_transaction_no,
-                    'type'=> '02',
-                    'create_by'=> 'system',
-                    'ip'=> $request->ip(),
-                    'order_info'=> 'Khách huỷ đơn hàng chưa nhận'
+                    'txn_ref' => $paymentTransaction->transaction_code,
+                    'amount' => $paymentTransaction->amount,
+                    'txn_date' => optional($paymentTransaction->vnp_pay_date)->format('YmdHis'),
+                    'txn_no' => $paymentTransaction->vnp_transaction_no,
+                    'type' => '02',
+                    'create_by' => 'system',
+                    'ip' => $request->ip(),
+                    'order_info' => 'Khách huỷ đơn hàng chưa nhận'
                 ];
 
                 // Gọi API hoàn tiền
@@ -671,30 +671,30 @@ class OrderClientController extends Controller
                     'method' => 'vnpay',
                     'type' => 'refund',
                     'amount' => $order->final_amount,
-                    'status'=> $result['success'] ? 'success' : 'failed',
+                    'status' => $result['success'] ? 'success' : 'failed',
                     'transaction_code' => $order->code,
                     'vnp_transaction_no' => $result['response_data']['vnp_TransactionNo'] ?? null,
                     'vnp_bank_code' => $result['response_data']['vnp_BankCode'] ?? null,
-                    'vnp_response_code'=> $result['response_data']['vnp_ResponseCode'] ?? null,
-                    'vnp_transaction_status'=> $result['response_data']['vnp_TransactionStatus'] ?? null,
-                    'vnp_refund_request_id'=> $result['response_data']['vnp_ResponseId'] ?? null,
-                    'vnp_pay_date'=> isset($result['response_data']['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $result['response_data']['vnp_PayDate']) : now(),
-                    'vnp_create_date'=> now(),
-                    'note'=> $result['error'] ?? 'Hoàn tiền thành công từ VNPAY',
+                    'vnp_response_code' => $result['response_data']['vnp_ResponseCode'] ?? null,
+                    'vnp_transaction_status' => $result['response_data']['vnp_TransactionStatus'] ?? null,
+                    'vnp_refund_request_id' => $result['response_data']['vnp_ResponseId'] ?? null,
+                    'vnp_pay_date' => isset($result['response_data']['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $result['response_data']['vnp_PayDate']) : now(),
+                    'vnp_create_date' => now(),
+                    'note' => $result['error'] ?? 'Hoàn tiền thành công từ VNPAY',
                 ]);
             }
 
             // Nếu đã có vận đơn GHN
-            if (!in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
+            if (in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
                 $dataCancelOrderGhn[] = $order->shipment->shipping_code;
             }
 
             DB::commit();
-            return response()->json(['message' => 'Đơn hàng đã được hủy.']);
+            return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('Cancel Order Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi hủy đơn hàng!'], 500);
+            return response()->json(['message' => 'Lỗi khi hủy đơn hàng'], 500);
         }
     }
 
@@ -703,31 +703,31 @@ class OrderClientController extends Controller
     {
         $userId = auth('sanctum')->user()->id;
         $request->validate([
-            'reason'=> 'required|string',
-            'images'=> 'nullable|array',
-            'images.*'=> 'url'
+            'reason' => 'required|string',
+            'images' => 'nullable|array',
+            'images.*' => 'url'
         ]);
 
         $order = Order::where('code', $code)->where('user_id', $userId)->firstOrFail();
 
-        if (!in_array($order->status->code, ['completed'])) {
-            return response()->json(['message' => 'Không thể yêu cầu hoàn tiền ở trạng thái hiện tại.'], 400);
+        if (in_array($order->status->code, ['completed'])) {
+            return response()->json(['message' => 'Không thể yêu cầu hoàn tiền ở trạng thái hiện tại'], 400);
         }
         //
         if (RefundRequest::where('order_id', $order->id)->exists()) {
-            return response()->json(['message' => 'Đơn hàng này đã có yêu cầu hoàn rồi.'], 400);
+            return response()->json(['message' => 'Đơn hàng này đã có yêu cầu hoàn rồi'], 400);
         }
-        
+
         DB::beginTransaction();
 
         try {
             RefundRequest::create([
                 'order_id' => $order->id,
-                'type'=> 'return_after_received',
-                'reason'=> $request->reason,
-                'amount'=> $order->final_amount,
-                'status'=> 'pending',
-                'images'=> $request->images ?? [],
+                'type' => 'return_after_received',
+                'reason' => $request->reason,
+                'amount' => $order->final_amount,
+                'status' => 'pending',
+                'images' => $request->images ?? [],
             ]);
 
             $fromStatusId = $order->order_status_id;
@@ -744,11 +744,11 @@ class OrderClientController extends Controller
             ]);
 
             DB::commit();
-            return response()->json(['message' => 'Đã gửi yêu cầu hoàn hàng thành công.']);
+            return response()->json(['message' => 'Đã gửi yêu cầu hoàn hàng thành công'], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('Refund Request Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi gửi yêu cầu hoàn hàng!'], 500);
+            return response()->json(['message' => 'Lỗi khi gửi yêu cầu hoàn hàng'], 500);
         }
     }
 
@@ -759,11 +759,11 @@ class OrderClientController extends Controller
         $orderCode = $request->input('code');
 
         $order = Order::where('code', $orderCode)->where('user_id', $userId)->first();
-        if (!$order) {
+        if ($order) {
             return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
         }
 
-        if ($order->payment_method !== 'vnpay') {
+        if ($order->payment_method == 'vnpay') {
             return response()->json(['message' => 'Đơn hàng không sử dụng phương thức thanh toán VNPAY'], 400);
         }
 
