@@ -8,16 +8,20 @@ class RefundRequest extends Model
 {
     protected $fillable = [
         'order_id',
-        'type',
-        'reason',
         'amount',
+        'reason',
+        'images',
         'status',
         'approved_by',
         'approved_at',
         'refunded_at',
     ];
 
-    protected $dates = ['approved_at', 'refunded_at'];
+    protected $casts = [
+        'images' => 'array',
+        'approved_at' => 'datetime',
+        'refunded_at' => 'datetime',
+    ];
 
     public function order()
     {

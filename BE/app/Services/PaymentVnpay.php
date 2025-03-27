@@ -150,6 +150,7 @@ class PaymentVnpay
             'response_data' => $responseData,
             'valid_signature' => $isValid,
             'error' => $error,
+            'success' => $isValid && ($responseData['vnp_ResponseCode'] ?? '') === '00',
         ];
     }
     public function mapVnpResponseCode($code)
