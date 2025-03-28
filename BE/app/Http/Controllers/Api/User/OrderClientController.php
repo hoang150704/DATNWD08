@@ -721,7 +721,7 @@ class OrderClientController extends Controller
                 $dataCancelOrderGhn[] = $order->shipment->shipping_code;
             }
 
-        
+        DB::commit();
             return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
