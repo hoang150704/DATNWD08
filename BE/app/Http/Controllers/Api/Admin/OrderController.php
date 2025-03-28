@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
+use App\Http\Resources\TransactionResource;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -210,18 +211,8 @@ class OrderController extends Controller
                         'variation' => $item->variation
                     ];
                 }),
-                'transactions' => $order->transactions->map(function ($tran) {
-                    return [
-                        'type' => $tran->type,
-                        'method' => $tran->method,
-                        'amount' => $tran->amount,
-                        'status' => $tran->status,
-                        'note' => $tran->note,
-                        'pay_date' => $tran->vnp_pay_date,
-                        'transaction_code' => $tran->transaction_code,
-                        'created_at' => $tran->created_at,
-                    ];
-                }),
+                'transactions' => TransactionResource::collection($order->transactions),
+
                 'shipping_logs' => $order->shipment?->shippingLogs->map(function ($log) {
                     return [
                         'status' => $log->ghn_status,
@@ -575,13 +566,13 @@ class OrderController extends Controller
     public function refundAuto($code)
     {
         $order = Order::with(['transactions', 'refundRequest'])->where('code', $code)->firstOrFail();
-    
+
         if ($order->payment_method !== 'vnpay' || $order->paymentStatus->code !== 'paid') {
             return response()->json(['message' => 'Đơn hàng không hợp lệ để hoàn tiền tự động'], 400);
         }
-    
+
         DB::beginTransaction();
-    
+
         try {
             // Tìm transaction hoàn tiền đang chờ xử lý
             $refundTransaction = $order->transactions()
@@ -589,11 +580,11 @@ class OrderController extends Controller
                 ->where('status', 'pending')
                 ->latest()
                 ->first();
-    
+
             if (!$refundTransaction) {
                 return response()->json(['message' => 'Không tìm thấy giao dịch hoàn tiền đang chờ xử lý'], 404);
             }
-    
+
             // Tìm transaction thanh toán gốc
             $paymentTransaction = $order->transactions()
                 ->where('type', 'payment')
@@ -601,11 +592,11 @@ class OrderController extends Controller
                 ->where('method', 'vnpay')
                 ->latest()
                 ->first();
-    
+
             if (!$paymentTransaction) {
                 return response()->json(['message' => 'Không tìm thấy giao dịch thanh toán gốc'], 404);
             }
-    
+
             // Gọi API hoàn tiền
             $refundData = [
                 'txn_ref'    => $paymentTransaction->transaction_code,
@@ -617,9 +608,9 @@ class OrderController extends Controller
                 'ip'         => request()->ip(),
                 'order_info' => 'Hoàn tiền sau hoàn hàng',
             ];
-    
+
             $result = $this->paymentVnpay->refundTransaction($refundData);
-    
+
             Transaction::create([
                 'order_id' => $order->id,
                 'method' => 'vnpay',
@@ -636,16 +627,16 @@ class OrderController extends Controller
                 'vnp_create_date' => now(),
                 'note' => $result['error'] ?? 'Hoàn tiền thành công qua VNPAY',
             ]);
-    
+
             if ($result['success']) {
                 $fromStatusId = $order->order_status_id;
                 $refundedStatusId = OrderStatus::idByCode('refunded');
-    
+
                 $order->update([
                     'order_status_id' => $refundedStatusId,
                     'payment_status_id' => PaymentStatus::idByCode('refunded'),
                 ]);
-    
+
                 OrderStatusLog::create([
                     'order_id' => $order->id,
                     'from_status_id' => $fromStatusId,
@@ -655,19 +646,18 @@ class OrderController extends Controller
                     'note' => 'Hoàn tiền tự động thành công qua VNPAY',
                 ]);
             }
-    
+
             DB::commit();
             return response()->json([
                 'message' => $result['success'] ? 'Hoàn tiền thành công' : 'Hoàn tiền thất bại'
             ], $result['success'] ? 200 : 500);
-    
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Refund Auto Error: ' . $e->getMessage());
             return response()->json(['message' => 'Lỗi khi hoàn tiền tự động'], 500);
         }
     }
-    
+
 
 
     //2. Hoàn tiền thủ công
