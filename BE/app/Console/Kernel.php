@@ -2,7 +2,7 @@
 
 namespace App\Console;
 
-use App\Jobs\CheckExpiredVouchersJob;
+use App\Console\Commands\CheckExpiredVouchers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
