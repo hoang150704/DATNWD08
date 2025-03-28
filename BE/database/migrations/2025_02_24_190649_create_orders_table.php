@@ -101,6 +101,12 @@ return new class extends Migration
             $table->decimal('amount', 15, 2);
             $table->text('reason')->nullable();
             $table->json('images')->nullable(); // ảnh sản phẩm lỗi
+        
+            // Thêm 3 trường thông tin ngân hàng
+            $table->string('bank_name')->nullable();
+            $table->string('bank_account_name')->nullable();
+            $table->string('bank_account_number')->nullable();
+        
             $table->enum('status', ['pending', 'approved', 'rejected', 'refunded'])->default('pending');
             $table->string('approved_by')->nullable();
             $table->timestamp('approved_at')->nullable();
@@ -110,6 +116,7 @@ return new class extends Migration
             $table->string('rejected_by')->nullable();
             $table->timestamps();
         });
+        
 
 
         // Lịch sử đơn hàng hệ thông
