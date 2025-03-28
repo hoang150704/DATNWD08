@@ -41,9 +41,8 @@ class Shipment extends Model
         return $this->hasMany(ShippingLog::class);
     }
     public function shippingLogsTimeline()
-{
-    return $this->hasMany(ShippingLog::class, 'shipment_id')
-                ->orderBy('timestamp'); // timeline
-}
-
+    {
+        return $this->hasMany(ShippingLog::class, 'shipment_id')
+            ->orderBy('timestamp'); // timeline
+    }
 }
