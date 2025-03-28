@@ -16,6 +16,7 @@ class VoucherController extends Controller
     {
         try {
             $vouchers = Voucher::paginate(10);
+
             return response()->json($vouchers, 200);
         } catch (\Throwable $th) {
             return response()->json(["message" => "Lỗi", 500]);

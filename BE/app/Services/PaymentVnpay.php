@@ -29,10 +29,11 @@ class PaymentVnpay
     public function createPaymentUrl($order)
     {
         $vnp_TxnRef = $order->code;
-        $vnp_OrderInfo = "Thanh toán hóa đơn " . $order->code;
-        $vnp_OrderType = "other";
+        $vnp_OrderInfo = "Thanh toán hóa đơn " . $order->order_code;
+        $vnp_OrderType = "100002";
         $vnp_Amount = ($order->total_amount - $order->discount_amount) * 100;
         $vnp_Locale = "VN";
+        $vnp_IpAddr = request()->ip();
 
         $inputData = [
             "vnp_Version" => "2.1.0",
@@ -41,10 +42,10 @@ class PaymentVnpay
             "vnp_Command" => "pay",
             "vnp_CreateDate" => date('YmdHis'),
             "vnp_CurrCode" => "VND",
-            "vnp_IpAddr" => $this->vnp_IpAddr,
+            "vnp_IpAddr" => $vnp_IpAddr,
             "vnp_Locale" => $vnp_Locale,
             "vnp_OrderInfo" => $vnp_OrderInfo,
-            "vnp_OrderType" => $vnp_OrderType,
+            "vnp_OrderType" => 'other',
             "vnp_ReturnUrl" => $this->vnp_ReturnUrl,
             "vnp_TxnRef" => $vnp_TxnRef
         ];
@@ -56,10 +57,10 @@ class PaymentVnpay
             $hashdata .= ($hashdata ? '&' : '') . urlencode($key) . "=" . urlencode($value);
             $query .= urlencode($key) . "=" . urlencode($value) . '&';
         }
-
+        
         $vnpSecureHash = hash_hmac('sha512', $hashdata, $this->vnp_HashSecret);
         $query .= 'vnp_SecureHash=' . $vnpSecureHash;
-
+        
         return $this->vnp_Url . "?" . $query;
     }
 
@@ -71,13 +72,14 @@ class PaymentVnpay
         $vnp_TransactionType = $data['type'] ?? '02'; // 02: hoàn toàn phần, 03: một phần
         $vnp_TxnRef = $data['txn_ref'];
         $vnp_Amount = $data['amount'] * 100;
-        $vnp_TransactionNo = $data['txn_no'] ?? "";
+        $vnp_TransactionNo = (string) ($data['txn_no'] ?? "");
         $vnp_TransactionDate = $data['txn_date'];
         $vnp_CreateBy = $data['create_by'] ?? 'admin';
         $vnp_CreateDate = now()->format('YmdHis');
         $vnp_IpAddr = $data['ip'] ?? $this->vnp_IpAddr;
         $vnp_OrderInfo = $data['order_info'] ?? "Hoàn tiền cho giao dịch $vnp_TxnRef";
-
+    
+        // Tạo chuỗi hash theo thứ tự yêu cầu của VNPAY
         $hashData = implode('|', [
             $vnp_RequestId,
             $vnp_Version,
@@ -93,10 +95,10 @@ class PaymentVnpay
             $vnp_IpAddr,
             $vnp_OrderInfo
         ]);
-
-        $vnp_SecureHash = hash_hmac('sha256', $hashData, $this->vnp_HashSecret);
-
-        $data = [
+    
+        $vnp_SecureHash = hash_hmac('sha512', $hashData, $this->vnp_HashSecret);
+    
+        $requestData = [
             "vnp_RequestId" => $vnp_RequestId,
             "vnp_Version" => $vnp_Version,
             "vnp_Command" => $vnp_Command,
@@ -112,13 +114,15 @@ class PaymentVnpay
             "vnp_OrderInfo" => $vnp_OrderInfo,
             "vnp_SecureHash" => $vnp_SecureHash,
         ];
-
+    
+        // Gọi API hoàn tiền
         $response = Http::withHeaders([
             'Content-Type' => 'application/json'
-        ])->post("https://sandbox.vnpayment.vn/merchant_webapi/api/transaction", $data);
-
+        ])->post("https://sandbox.vnpayment.vn/merchant_webapi/api/transaction", $requestData);
+    
         $responseData = $response->json();
-
+    
+        // Tạo chuỗi xác thực chữ ký từ VNPAY
         $verifyData = implode('|', [
             $responseData['vnp_ResponseId'] ?? '',
             $responseData['vnp_Command'] ?? '',
@@ -134,42 +138,40 @@ class PaymentVnpay
             $responseData['vnp_TransactionStatus'] ?? '',
             $responseData['vnp_OrderInfo'] ?? ''
         ]);
-
-        $verifyHash = hash_hmac('sha256', $verifyData, $this->vnp_HashSecret);
+    
+        $verifyHash = hash_hmac('sha512', $verifyData, $this->vnp_HashSecret);
         $isValid = $verifyHash === ($responseData['vnp_SecureHash'] ?? '');
-
+    
         $error = null;
         if (!$isValid) {
             $error = 'Chữ ký xác thực không hợp lệ.';
         } elseif (($responseData['vnp_ResponseCode'] ?? '') !== '00') {
             $error = 'Lỗi hoàn tiền từ VNPAY: ' . ($responseData['vnp_Message'] ?? 'Không rõ lỗi');
         }
-
+    
         return [
-            'request_data' => $data,
+            'request_data' => $requestData,
             'response_data' => $responseData,
+            ' $hashData '=> $hashData ,
             'valid_signature' => $isValid,
+            'verifyData' =>   $verifyData,
             'error' => $error,
             'success' => $isValid && ($responseData['vnp_ResponseCode'] ?? '') === '00',
         ];
     }
+    
     public function mapVnpResponseCode($code)
     {
         return match ($code) {
-            '00' => 'Giao dịch thành công',
-            '07' => 'Giao dịch nghi ngờ (liên quan đến gian lận, bất thường)',
-            '09' => 'Chưa đăng ký Internet Banking',
-            '10' => 'Xác thực sai quá 3 lần',
-            '11' => 'Hết hạn chờ thanh toán',
-            '12' => 'Tài khoản bị khóa',
-            '13' => 'Sai OTP',
-            '24' => 'Khách hàng hủy giao dịch',
-            '51' => 'Không đủ số dư',
-            '65' => 'Vượt quá hạn mức giao dịch trong ngày',
-            '75' => 'Ngân hàng bảo trì',
-            '79' => 'Sai mật khẩu quá số lần quy định',
-            '99' => 'Lỗi không xác định từ VNPAY',
+            '00' => 'Yêu cầu thành công',
+            '02' => 'Mã định danh kết nối không hợp lệ (kiểm tra lại TmnCode)',
+            '03' => 'Dữ liệu gửi sang không đúng định dạng',
+            '91' => 'Không tìm thấy giao dịch yêu cầu hoàn trả',
+            '94' => 'Giao dịch đã được gửi yêu cầu hoàn tiền trước đó. Yêu cầu này VNPAY đang xử lý',
+            '95' => 'Giao dịch này không thành công bên VNPAY. VNPAY từ chối xử lý yêu cầu',
+            '97' => 'Checksum không hợp lệ',
+            '99' => 'Các lỗi khác (lỗi còn lại, không có trong danh sách mã lỗi đã liệt kê)',
             default => 'Giao dịch thất bại (mã: ' . $code . ')',
         };
-    }
+    }    
 }

@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Events\OrderEvent;
-use App\Events\VoucherEvent;
+use App\Events\VoucherExpireEvent;
 use App\Listeners\SaveOrderNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
