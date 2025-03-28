@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
+use App\Http\Resources\RefundRequestResource;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Jobs\SendVerifyGuestOrderJob;
 use App\Models\Cart;
@@ -565,14 +566,7 @@ class OrderClientController extends Controller
                     ];
                 }),
                 // Yêu cầu hoàn hàng (nếu có)
-                'refund_requests' => $order->refundRequests->map(function ($refund) {
-                    return [
-                        'status' => $refund->status,
-                        'reason' => $refund->reason,
-                        'amount' => $refund->amount,
-                        'approved_at' => optional($refund->approved_at),
-                    ];
-                }),
+                'refund_requests' => RefundRequestResource::collection($order->refundRequests),
                 // Timeline trạng thái
                 'status_timelines' => $order->statusLogs->map(function ($log) {
                     return [
@@ -725,7 +719,6 @@ class OrderClientController extends Controller
             // Nếu đã có vận đơn GHN
             if (!in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
                 $dataCancelOrderGhn[] = $order->shipment->shipping_code;
-                
             }
 
             DB::commit();
@@ -744,8 +737,12 @@ class OrderClientController extends Controller
         $request->validate([
             'reason' => 'required|string',
             'images' => 'nullable|array',
-            'images.*' => 'url'
+            'images.*' => 'url',
+            'bank_name' => 'required|string|max:255',
+            'bank_account_name' => 'required|string|max:255',
+            'bank_account_number' => 'required|string|max:50',
         ]);
+
 
         $order = Order::where('code', $code)->where('user_id', $userId)->firstOrFail();
 
@@ -767,7 +764,11 @@ class OrderClientController extends Controller
                 'amount' => $order->final_amount,
                 'status' => 'pending',
                 'images' => $request->images ?? [],
+                'bank_name' => $request->bank_name,
+                'bank_account_name' => $request->bank_account_name,
+                'bank_account_number' => $request->bank_account_number,
             ]);
+
 
             $fromStatusId = $order->order_status_id;
             $toStatusId = OrderStatus::idByCode('return_requested');
@@ -791,7 +792,7 @@ class OrderClientController extends Controller
         }
     }
     //Hoàn thành đơn hàng
-    
+
     //Xác nhận đơn hàng
     public function closeOrder($code)
     {
@@ -1017,5 +1018,4 @@ class OrderClientController extends Controller
             'token' => $verifyToken,
         ]);
     }
-
 }
