@@ -101,43 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'dashboard']);
-
-        // Voucher
-        Route::prefix('vouchers')->group(function () {
-            Route::get('/', [VoucherController::class, 'index']);
-            Route::post('/create', [VoucherController::class, 'store']);
-            Route::get('/{id}', [VoucherController::class, 'show']);
-            Route::put('/{id}', [VoucherController::class, 'update']);
-            Route::delete('/', [VoucherController::class, 'destroy']);
-        });
-
-        // Đơn hàng
-        Route::prefix('orders')->group(function () {
-            Route::get('/', [OrderController::class, 'index']);
-            Route::get('/search', [OrderController::class, 'search']);
-            Route::post('/create', [OrderController::class, 'store']);
-            Route::patch('/changestatus', [OrderController::class, 'changeStatus'])->middleware('check.order.status');
-            Route::put('/{order}/edit', [OrderController::class, 'update']);
-            Route::get('/{order}', [OrderController::class, 'show']);
-        });
-
-        //Xử lí api giao hàng nhanh
-        // User
-        Route::apiResource('users', UserController::class);
-        Route::prefix('users')->group(function () {
-            Route::post('/change_status/{id}', [UserController::class, 'changeActive']);
-        });
-
-        // Comment
-        Route::prefix('comments')->group(function () {
-            Route::get('/', [CommentController::class, 'index']);
-            Route::get('hidden', [CommentController::class, 'hiddenComment']);
-            Route::delete('delete', [CommentController::class, 'destroy']);
-            Route::patch('reply', [CommentController::class, 'reply']);
-            Route::patch('status', [CommentController::class, 'statusToggle']);
-            Route::get('{comment}', [CommentController::class, 'show']);
-        });
-
+ 
         // Notification
         Route::prefix('notifications')->group(function () {
             Route::get('/', [NotificationController::class, 'index']);
@@ -145,10 +109,14 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Require
-        require base_path('routes/api/admin/categories.php');
-        require base_path('routes/api/admin/attributes.php');
-        require base_path('routes/api/admin/attribute_values.php');
-        require base_path('routes/api/admin/libraries.php');
-        require base_path('routes/api/admin/products.php');
+        require base_path('routes/api/admin/categories.php'); // Danh mục
+        require base_path('routes/api/admin/attributes.php'); // Thuộc tính
+        require base_path('routes/api/admin/attribute_values.php'); // Giá trị thuộc tính
+        require base_path('routes/api/admin/libraries.php'); // Thư viện ảnh sản phẩm
+        require base_path('routes/api/admin/products.php'); // Sản phẩm
+        require base_path('routes/api/admin/orders.php'); // Đơn hàng
+        require base_path('routes/api/admin/comments.php'); // Bình luận
+        require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
+        require base_path('routes/api/admin/users.php'); // Mã giảm giá
     });
 });

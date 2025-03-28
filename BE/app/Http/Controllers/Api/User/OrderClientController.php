@@ -115,14 +115,14 @@ class OrderClientController extends Controller
             $order = Order::create($dataOrder);
             //
 
-            if ($order) {
+            if (!$order) {
                 DB::rollBack();
                 return response()->json(['message' => 'Tạo đơn hàng thất bại'], 500);
             }
 
             // Broadcast và Event
-            event(new OrderEvent($order));
-            broadcast(new OrderEvent($order));
+            // event(new OrderEvent($order));
+            // broadcast(new OrderEvent($order));
             Log::info('Broadcast completed');
             // Lưu bảng trạng thái đơn hàng orderstatus
             OrderStatusFlowService::createInitialStatus($order);
@@ -136,7 +136,7 @@ class OrderClientController extends Controller
                     'status' => 'pending'
                 ]
             );
-            if ($transaction) {
+            if (!$transaction) {
                 DB::rollBack();
                 return response()->json([
                     'message' => 'Không thể tạo giao dịch do không đúng luồng xử lý'
@@ -160,7 +160,7 @@ class OrderClientController extends Controller
                 $variant = ProductVariation::find($product['id']);
                 $totalWeight += $product['weight'] * $product['quantity'];
 
-                if ($variant) {
+                if (!$variant) {
                     DB::rollBack();
                     return response()->json(['message' => 'Sản phẩm không tồn tại'], 400);
                 }
@@ -255,7 +255,7 @@ class OrderClientController extends Controller
         $vnp_SecureHash = $request['vnp_SecureHash'];
         //
         $order = Order::where('code', $request['vnp_TxnRef'])->first();
-        if ($order) {
+        if (!$order) {
             Transaction::create([
                 'order_id'               => null,
                 'method'                 => 'vnpay',
@@ -292,7 +292,7 @@ class OrderClientController extends Controller
         $hashData = http_build_query($data, '', '&');
         $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
-        if ($secureHash == $vnp_SecureHash) {
+        if ($secureHash !== $vnp_SecureHash) {
             Transaction::create([
                 'order_id'               => $order?->id, // Có thể null nếu đơn ko tìm thấy
                 'method'                 => 'vnpay',
@@ -348,7 +348,7 @@ class OrderClientController extends Controller
         ]);
 
         if ($status === 'success') {
-            if ($order->payment_status_id == PaymentStatus::idByCode('paid')) {
+            if ($order->payment_status_id !== PaymentStatus::idByCode('paid')) {
                 $order->update([
                     'payment_status_id' => PaymentStatus::idByCode('paid'),
                 ]);
@@ -577,13 +577,13 @@ class OrderClientController extends Controller
             ->where('user_id', $userId)
             ->first();
 
-        if ($order) {
+        if (!$order) {
             return response()->json([
                 'message' => 'Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn này'
             ], 404);
         }
 
-        if (in_array($order->status->code, ['pending', 'confirmed'])) {
+        if (!in_array($order->status->code, ['pending', 'confirmed'])) {
             return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại'], 400);
         }
 
@@ -685,7 +685,7 @@ class OrderClientController extends Controller
             }
 
             // Nếu đã có vận đơn GHN
-            if (in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
+            if (!in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
                 $dataCancelOrderGhn[] = $order->shipment->shipping_code;
             }
 
@@ -710,7 +710,7 @@ class OrderClientController extends Controller
 
         $order = Order::where('code', $code)->where('user_id', $userId)->firstOrFail();
 
-        if (in_array($order->status->code, ['completed'])) {
+        if (!in_array($order->status->code, ['completed'])) {
             return response()->json(['message' => 'Không thể yêu cầu hoàn tiền ở trạng thái hiện tại'], 400);
         }
         //
@@ -759,11 +759,11 @@ class OrderClientController extends Controller
         $orderCode = $request->input('code');
 
         $order = Order::where('code', $orderCode)->where('user_id', $userId)->first();
-        if ($order) {
+        if (!$order) {
             return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
         }
 
-        if ($order->payment_method == 'vnpay') {
+        if (!$order->payment_method == 'vnpay') {
             return response()->json(['message' => 'Đơn hàng không sử dụng phương thức thanh toán VNPAY'], 400);
         }
 

@@ -347,44 +347,44 @@ class OrderController extends Controller
             ->where('code', $code)
             ->first();
 
-        if (!$order) {
-            return response()->json([
-                'message' => 'Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn này'
-            ], 404);
-        }
+        // if (!$order) {
+        //     return response()->json([
+        //         'message' => 'Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn này'
+        //     ], 404);
+        // }
 
-        if (!in_array($order->status->code, ['pending', 'confirmed'])) {
-            return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại!'], 400);
-        }
+        // if (!in_array($order->status->code, ['pending', 'confirmed'])) {
+        //     return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại!'], 400);
+        // }
 
         DB::beginTransaction();
 
         try {
-            // Cập nhật trạng thái đơn hàng & shipping
-            $fromStatusId = $order->order_status_id;
-            $cancelStatusId = OrderStatus::idByCode('cancelled');
-            $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            $paymentStatus = PaymentStatus::idByCode('cancelled');
-            $order->update([
-                'shipping_status_id' => $cancelStatusShipId,
-                'order_status_id' => $cancelStatusId,
-                'payment_status_id' => $paymentStatus,
-                'cancel_reason' => $validated['cancel_reason'],
-                'cancel_by' => 'admin',
-                'cancelled_at' => now()
-            ]);
+            // // Cập nhật trạng thái đơn hàng & shipping
+            // $fromStatusId = $order->order_status_id;
+            // $cancelStatusId = OrderStatus::idByCode('cancelled');
+            // $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
+            // $paymentStatus = PaymentStatus::idByCode('cancelled');
+            // $order->update([
+            //     'shipping_status_id' => $cancelStatusShipId,
+            //     'order_status_id' => $cancelStatusId,
+            //     'payment_status_id' => $paymentStatus,
+            //     'cancel_reason' => $validated['cancel_reason'],
+            //     'cancel_by' => 'admin',
+            //     'cancelled_at' => now()
+            // ]);
 
-            // Ghi log trạng thái
-            OrderStatusLog::create([
-                'order_id' => $order->id,
-                'from_status_id' => $fromStatusId,
-                'to_status_id' => $cancelStatusId,
-                'changed_by' => 'admin',
-                'changed_at' => now(),
-            ]);
+            // // Ghi log trạng thái
+            // OrderStatusLog::create([
+            //     'order_id' => $order->id,
+            //     'from_status_id' => $fromStatusId,
+            //     'to_status_id' => $cancelStatusId,
+            //     'changed_by' => 'admin',
+            //     'changed_at' => now(),
+            // ]);
 
             // Nếu thanh toán online (VNPAY) & đã thanh toán
-            if ($order->payment_method === 'vnpay' && $order->payment_status->code === 'paid') {
+            if ($order->payment_method === 'vnpay' && $order->paymentStatus->code === 'paid') {
                 // Tạo bản ghi refund_requests
                 RefundRequest::create([
                     'order_id' => $order->id,
@@ -405,7 +405,7 @@ class OrderController extends Controller
                     ->first();
 
                 // Tạo transaction hoàn tiền mới (trạng thái pending)
-                $refundTransaction = Transaction::create([
+                Transaction::create([
                     'order_id' => $order->id,
                     'method' => 'vnpay',
                     'type' => 'refund',
@@ -455,16 +455,16 @@ class OrderController extends Controller
             }
 
             // Nếu đã có vận đơn GHN
-            if (!in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
+            if (!in_array($order->shippingStatus->code, ['not_created', 'cancelled'])) {
                 $dataCancelOrderGhn[] = $order->shipment->shipping_code;
             }
 
             DB::commit();
-            return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
+            return response()->json(['message' => 'Đơn hàng đã được hủy','code'=>$result], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('Cancel Order Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi hủy đơn hàng'], 500);
+            return response()->json(['message' => 'Lỗi khi hủy đơn hàng','errors'=>$th->getMessage(),'code'=>$result], 500);
         }
     }
     //Xử lí yêu cầu trả hàng
