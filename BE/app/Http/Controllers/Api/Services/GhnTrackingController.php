@@ -6,14 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\GhnSetting;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderStatus;
+use App\Models\OrderStatusLog;
+use App\Models\PaymentStatus;
 use App\Models\SettingGhn;
+use App\Models\Shipment;
+use App\Models\ShippingLog;
+use App\Models\ShippingStatus;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Services\ApiService;
 use App\Services\GhnApiService;
+use App\Services\ShippingStatusMapper;
 use App\Traits\GhnTraits;
 use Carbon\Carbon;
-
+use Illuminate\Support\Facades\Log;
 
 class GhnTrackingController extends Controller
 {
@@ -22,7 +30,7 @@ class GhnTrackingController extends Controller
     protected $ghnApiService;
     protected $shopId;
     protected $weight_service = 20000;
-    public function __construct(ApiService $ApiService,GhnApiService $ghnApiService)
+    public function __construct(ApiService $ApiService, GhnApiService $ghnApiService)
     {
         $this->ApiService = $ApiService;
         $this->ghnApiService = $ghnApiService;
@@ -40,14 +48,14 @@ class GhnTrackingController extends Controller
                     'weight' => 'required',
                 ]
             );
-            
+
             $dataGetTime = [
                 'to_ward_code' => $data['to_ward_code'],
                 'to_district_id' => $data['to_district_id'],
-                'service_type_id'=>2
+                'service_type_id' => 2
             ];
 
-            $weight = $data['weight'] ;
+            $weight = $data['weight'];
             $dataGetFee = array_merge($dataGetTime, ['weight' => $weight]);
             $responses = $this->ApiService->postAsyncMultiple([
                 'time' => [
@@ -98,7 +106,7 @@ class GhnTrackingController extends Controller
      */
     public function postOrderGHN(Request $request, $id)
     {
-      
+
         // Setup data lấy tt shop
         $dataShop  = [
             'offset' => 1,
@@ -111,7 +119,7 @@ class GhnTrackingController extends Controller
                 'endpoint' => '/shiip/public-api/v2/shop/all',
                 'data' => $dataShop,
                 'headers' => []
-            ]       
+            ]
         ]);
 
         $responseShop = $responses['shop_info'];
@@ -128,7 +136,7 @@ class GhnTrackingController extends Controller
         $totalWeight = OrderItem::where('order_id', $id)
             ->selectRaw('SUM(weight * quantity) as total_weight')
             ->value('total_weight');
-        $finalWeight = (int) $totalWeight ;
+        $finalWeight = (int) $totalWeight;
         $service_type_id = $finalWeight < $this->weight_service ? 2 : 5;
         $dataValidated = $request->validate(
             [
@@ -194,8 +202,90 @@ class GhnTrackingController extends Controller
     /**
      * Display the specified resource.
      */
-    public function cancelOrderGhn(Request $request){
+    public function cancelOrderGhn(Request $request)
+    {
         $result = $this->ghnApiService->cancelOrder(['LB7TUG']);
-        return response()->json($result,200);
+        return response()->json($result, 200);
+    }
+    //callback webhook
+    public function callBackWebHook(Request $request)
+    {
+        $data = $request->all();
+        $type = strtolower($data['Type'] ?? '');
+        $orderCodeGhn = $data['OrderCode'] ?? null;
+        $ghnStatus = $data['Status'] ?? null;
+
+        if (!$orderCodeGhn || !in_array($type, ['create', 'switch_status'])) {
+            return response()->json(['message' => 'Dữ liệu không hợp lệ'], 200);
+        }
+
+        $shipment = Shipment::where('shipping_code', $orderCodeGhn)->first();
+        if (!$shipment || !$shipment->order) {
+            Log::warning("GHN Webhook: Không tìm thấy shipment với mã đơn $orderCodeGhn");
+            return response()->json(['message' => 'Không tìm thấy shipment tương ứng'], 200);
+        }
+
+        $order = $shipment->order;
+
+        // Mapping trạng thái
+        $shippingCode = ShippingStatusMapper::toShipping($ghnStatus);
+        $orderCodeMapped = ShippingStatusMapper::toOrder($shippingCode);
+
+        // Cập nhật trạng thái vận chuyển
+        if ($shippingCode) {
+            $shippingStatus = ShippingStatus::where('code', $shippingCode)->first();
+            if ($shippingStatus && $shipment->shipping_status_id !== $shippingStatus->id) {
+                $shipment->shipping_status_id = $shippingStatus->id;
+                $shipment->save();
+            }
+        }
+
+        // Cập nhật trạng thái đơn hàng
+        if ($orderCodeMapped) {
+            $orderStatus = OrderStatus::where('code', $orderCodeMapped)->first();
+            if ($orderStatus && $order->order_status_id !== $orderStatus->id) {
+                OrderStatusLog::create([
+                    'order_id' => $order->id,
+                    'from_status_id' => $order->order_status_id,
+                    'to_status_id' => $orderStatus->id,
+                    'changed_by' => 'system',
+                ]);
+                $order->order_status_id = $orderStatus->id;
+                $order->save();
+            }
+        }
+
+        // Ghi log trạng thái vận chuyển
+        ShippingLog::create([
+            'shipment_id' => $shipment->id,
+            'ghn_status' => $ghnStatus,
+            'mapped_status_id' => $shippingStatus->id ?? null,
+            'location' => $data['Warehouse'] ?? null,
+            'note' => $data['Description'] ?? null,
+            'timestamp' => Carbon::parse($data['Time'] ?? now()),
+        ]);
+        // Nếu giao hàng thanh công thì cập nhật transaction
+        if (
+            $ghnStatus === 'delivered' &&
+            $order->payment_method === 'ship_cod' &&
+            $order->paymentStatus->code === 'unpaid'
+        ) {
+            // Tạo transaction thanh toán ship_cod
+            Transaction::create([
+                'order_id' => $order->id,
+                'method' => 'ship_cod',
+                'type' => 'payment',
+                'amount' => $order->final_amount,
+                'status' => 'success',
+                'note' => 'Giao hàng thành công - GHN thu hộ',
+            ]);
+
+            // Cập nhật trạng thái thanh toán
+            $order->update([
+                'payment_status_id' => PaymentStatus::idByCode('paid'),
+            ]);
+        }
+
+        return response()->json(['message' => 'Xử lý webhook thành công'], 200);
     }
 }

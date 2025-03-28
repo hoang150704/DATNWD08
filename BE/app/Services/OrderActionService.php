@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Order;
@@ -55,6 +56,18 @@ class OrderActionService
                     }
                     break;
             }
+            if ($shipping === 'failed') {
+                $actions[] = 're_ship'; // Giao hàng lại
+            }
+
+            if ($shipping === 'returned') {
+                if (!$order->shipment->return_confirmed) {
+                    $actions[] = 'mark_return_received'; // Chưa xác nhận → chỉ cho xác nhận
+                } else {
+                    $actions[] = 'partial_refund'; // Đã xác nhận → cho hoàn tiền
+                }
+            }
+            
         }
 
         return $actions;

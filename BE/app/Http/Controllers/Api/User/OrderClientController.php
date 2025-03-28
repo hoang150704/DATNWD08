@@ -594,11 +594,13 @@ class OrderClientController extends Controller
             $fromStatusId = $order->order_status_id;
             $cancelStatusId = OrderStatus::idByCode('cancelled');
             $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            $paymentStatus = PaymentStatus::idByCode('cancelled');
+            if ($order->payment_method === 'ship_cod') {
+                $paymentStatus = PaymentStatus::idByCode('cancelled');
+                $order->payment_status_id = $paymentStatus;
+            }
             $order->update([
                 'shipping_status_id' => $cancelStatusShipId,
                 'order_status_id' => $cancelStatusId,
-                'payment_status_id' => $paymentStatus,
                 'cancel_reason' => $validated['cancel_reason'],
                 'cancel_by' => 'user',
                 'cancelled_at' => now()

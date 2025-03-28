@@ -13,6 +13,8 @@ use App\Models\OrderStatusLog;
 use App\Models\PaymentStatus;
 use App\Models\ProductVariation;
 use App\Models\RefundRequest;
+use App\Models\Shipment;
+use App\Models\ShippingLog;
 use App\Models\ShippingStatus;
 use App\Models\Transaction;
 use App\Services\GhnApiService;
@@ -364,11 +366,13 @@ class OrderController extends Controller
             $fromStatusId = $order->order_status_id;
             $cancelStatusId = OrderStatus::idByCode('cancelled');
             $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            $paymentStatus = PaymentStatus::idByCode('cancelled');
+            if ($order->payment_method === 'ship_cod') {
+                $paymentStatus = PaymentStatus::idByCode('cancelled');
+                $order->payment_status_id = $paymentStatus;
+            }
             $order->update([
                 'shipping_status_id' => $cancelStatusShipId,
                 'order_status_id' => $cancelStatusId,
-                'payment_status_id' => $paymentStatus,
                 'cancel_reason' => $validated['cancel_reason'],
                 'cancel_by' => 'admin',
                 'cancelled_at' => now()
@@ -460,11 +464,11 @@ class OrderController extends Controller
             }
 
             DB::commit();
-            return response()->json(['message' => 'Đơn hàng đã được hủy','code'=>$result], 200);
+            return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('Cancel Order Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi hủy đơn hàng','errors'=>$th->getMessage(),'code'=>$result], 500);
+            return response()->json(['message' => 'Lỗi khi hủy đơn hàng', 'errors' => $th->getMessage()], 500);
         }
     }
     //Xử lí yêu cầu trả hàng
@@ -553,7 +557,7 @@ class OrderController extends Controller
             ]);
 
             DB::commit();
-            return response()->json(['message' => 'Đã từ chối yêu cầu hoàn tiền']);
+            return response()->json(['message' => 'Đã từ chối yêu cầu hoàn tiền'],200);
         } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json(['message' => 'Lỗi khi từ chối hoàn tiền'], 500);
@@ -689,7 +693,7 @@ class OrderController extends Controller
                 'transfer_reference' => $request->transfer_reference,
             ]);
         } else {
-            \App\Models\Transaction::create([
+            Transaction::create([
                 'order_id' => $order->id,
                 'method' => $order->payment_method,
                 'type' => 'refund',
@@ -719,8 +723,44 @@ class OrderController extends Controller
             'note' => 'Hoàn tiền thủ công đã được thực hiện thành công',
         ]);
 
-        return response()->json(['message' => 'Đã hoàn tiền thủ công thành công']);
+        return response()->json(['message' => 'Đã hoàn tiền thủ công thành công'],200);
     }
+
+
+    // 3. Hoàn tiền 1 phần
+    public function confirmReturnReceived($shipmentId)
+{
+    $shipment = Shipment::with('order', 'shippingStatus')->find($shipmentId);
+
+    if (!$shipment) {
+        return response()->json(['message' => 'Không tìm thấy vận đơn'], 404);
+    }
+
+    if ($shipment->shippingStatus->code !== 'returned') {
+        return response()->json(['message' => 'Đơn hàng chưa được GHN hoàn về, không thể xác nhận'], 400);
+    }
+
+    if ($shipment->return_confirmed) {
+        return response()->json(['message' => 'Đơn hàng đã được xác nhận hoàn về trước đó'], 400);
+    }
+
+    $shipment->update([
+        'return_confirmed' => true,
+        'return_confirmed_at' => now(),
+    ]);
+
+    ShippingLog::create([
+        'shipment_id' => $shipment->id,
+        'ghn_status' => 'manual_return_confirmed',
+        'mapped_status_id' => $shipment->shipping_status_id,
+        'note' => 'Admin đã xác nhận hàng hoàn về kho',
+        'location' => 'Kho Shine Light',
+        'timestamp' => now(),
+    ]);
+
+    return response()->json(['message' => 'Xác nhận hoàn hàng thành công'],200);
+}
+
 
 
 
