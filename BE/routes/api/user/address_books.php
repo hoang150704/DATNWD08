@@ -2,7 +2,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\ProfileController;
 
-
 Route::get('/addresses', [ProfileController::class, 'index']); // Lấy danh sách địa chỉ
 Route::get('/addresses/default', [ProfileController::class, 'getDefault']); // Lấy địa chỉ mặc định
 Route::post('/addresses', [ProfileController::class, 'store']); // Thêm địa chỉ mới
