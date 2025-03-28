@@ -646,7 +646,7 @@ class OrderClientController extends Controller
             ]);
 
             // Nếu thanh toán online (VNPAY) & đã thanh toán
-            if ($order->payment_method === 'vnpay' && $order->payment_status->code === 'paid') {
+            if ($order->payment_method === 'vnpay' && $order->paymentStatus->code === 'paid') {
                 // Tạo bản ghi refund_requests
                 RefundRequest::create([
                     'order_id' => $order->id,
@@ -717,16 +717,16 @@ class OrderClientController extends Controller
             }
 
             // Nếu đã có vận đơn GHN
-            if (!in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
+            if (!in_array($order->shippingStatus->code, ['not_created', 'cancelled'])) {
                 $dataCancelOrderGhn[] = $order->shipment->shipping_code;
             }
 
-            DB::commit();
+        
             return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('Cancel Order Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi hủy đơn hàng'], 500);
+            return response()->json(['message' => 'Lỗi khi hủy đơn hàng','errors'=>$th->getMessage()], 500);
         }
     }
 

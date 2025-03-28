@@ -31,7 +31,7 @@ class PaymentVnpay
         $vnp_TxnRef = $order->code;
         $vnp_OrderInfo = "Thanh toán hóa đơn " . $order->order_code;
         $vnp_OrderType = "100002";
-        $vnp_Amount = ($order->total_amount - $order->discount_amount) * 100;
+        $vnp_Amount = $order->final_amount  * 100;
         $vnp_Locale = "VN";
         $vnp_IpAddr = request()->ip();
 
