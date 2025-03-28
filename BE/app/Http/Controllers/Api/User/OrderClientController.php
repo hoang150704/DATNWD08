@@ -829,10 +829,10 @@ class OrderClientController extends Controller
         }
     }
     // Thanh toán lại
-    public function retryPaymentVnpay(Request $request)
+    public function retryPaymentVnpay($orderCode)
     {
         $userId = auth('sanctum')->user()->id;
-        $orderCode = $request->input('code');
+        
 
         $order = Order::where('code', $orderCode)->where('user_id', $userId)->first();
         if (!$order) {
