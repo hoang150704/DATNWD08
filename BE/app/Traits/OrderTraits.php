@@ -5,9 +5,9 @@ namespace App\Traits;
 trait OrderTraits
 {
     //Lấy subtitle
-    public function generateOrderSubtitle($order): string
+    public static function generateOrderSubtitle($order): string
     {
-        $statusLogs = $order->statusstatusLogs->sortByDesc('changed_at'); // Trạng thái đơn hàng
+        $statusLogs = $order->statusLogs->sortByDesc('changed_at'); // Trạng thái đơn hàng
         $status = $order->status->code; // Mã trạng thái
         $shipping = $order->shippingStatus->code ?? null;
         $payment = $order->paymentStatus->code ?? null;

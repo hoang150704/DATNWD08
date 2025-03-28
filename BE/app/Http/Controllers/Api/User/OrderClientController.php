@@ -31,6 +31,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\PaymentVnpay;
 use App\Services\TransactionFlowService;
+use App\Traits\MaskableTraits;
 use App\Traits\OrderTraits;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -40,6 +41,7 @@ use Illuminate\Support\Str;
 class OrderClientController extends Controller
 {
     use OrderTraits;
+    use MaskableTraits;
     protected $paymentVnpay;
     protected $ghn;
 
@@ -788,7 +790,43 @@ class OrderClientController extends Controller
             return response()->json(['message' => 'Lỗi khi gửi yêu cầu hoàn hàng'], 500);
         }
     }
+    //Hoàn thành đơn hàng
+    
+    //Xác nhận đơn hàng
+    public function closeOrder($code)
+    {
+        $order = Order::with('status')->where('code', $code)->firstOrFail();
 
+        // Kiểm tra trạng thái hiện tại có thể chuyển sang 'closed' không
+        if (!OrderStatusFlowService::canChange($order, 'closed')) {
+            return response()->json([
+                'message' => 'Không thể hoàn thành đơn hàng',
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $changed = OrderStatusFlowService::change($order, 'closed', 'admin');
+
+            if (!$changed) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Lỗi khi xác nhận đơn hàng!',
+                ], 500);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Đã xác nhận đơn hàng thành công!',
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Đã xảy ra lỗi!',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
     // Thanh toán lại
     public function retryPaymentVnpay(Request $request)
     {
@@ -860,8 +898,8 @@ class OrderClientController extends Controller
                 // Thông tin người nhận (ẩn nếu không phải chủ đơn)
                 'payment_method' => $order->payment_method,
                 'o_name' => $order->o_name,
-                'o_phone' => $isOwner ? $order->o_phone : null,
-                'o_email' => $isOwner ? $order->o_mail : null,
+                'o_phone' => $isOwner ? $order->o_phone : $this->maskPhone($order->o_phone),
+                'o_email' => $isOwner ? $order->o_mail : $this->maskEmail($order->o_mail),
                 'o_address' => $order->o_address,
 
                 // Sản phẩm
