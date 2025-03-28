@@ -347,41 +347,41 @@ class OrderController extends Controller
             ->where('code', $code)
             ->first();
 
-        // if (!$order) {
-        //     return response()->json([
-        //         'message' => 'Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn này'
-        //     ], 404);
-        // }
+        if (!$order) {
+            return response()->json([
+                'message' => 'Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn này'
+            ], 404);
+        }
 
-        // if (!in_array($order->status->code, ['pending', 'confirmed'])) {
-        //     return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại!'], 400);
-        // }
+        if (!in_array($order->status->code, ['pending', 'confirmed'])) {
+            return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại!'], 400);
+        }
 
         DB::beginTransaction();
 
         try {
             // // Cập nhật trạng thái đơn hàng & shipping
-            // $fromStatusId = $order->order_status_id;
-            // $cancelStatusId = OrderStatus::idByCode('cancelled');
-            // $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            // $paymentStatus = PaymentStatus::idByCode('cancelled');
-            // $order->update([
-            //     'shipping_status_id' => $cancelStatusShipId,
-            //     'order_status_id' => $cancelStatusId,
-            //     'payment_status_id' => $paymentStatus,
-            //     'cancel_reason' => $validated['cancel_reason'],
-            //     'cancel_by' => 'admin',
-            //     'cancelled_at' => now()
-            // ]);
+            $fromStatusId = $order->order_status_id;
+            $cancelStatusId = OrderStatus::idByCode('cancelled');
+            $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
+            $paymentStatus = PaymentStatus::idByCode('cancelled');
+            $order->update([
+                'shipping_status_id' => $cancelStatusShipId,
+                'order_status_id' => $cancelStatusId,
+                'payment_status_id' => $paymentStatus,
+                'cancel_reason' => $validated['cancel_reason'],
+                'cancel_by' => 'admin',
+                'cancelled_at' => now()
+            ]);
 
-            // // Ghi log trạng thái
-            // OrderStatusLog::create([
-            //     'order_id' => $order->id,
-            //     'from_status_id' => $fromStatusId,
-            //     'to_status_id' => $cancelStatusId,
-            //     'changed_by' => 'admin',
-            //     'changed_at' => now(),
-            // ]);
+            // Ghi log trạng thái
+            OrderStatusLog::create([
+                'order_id' => $order->id,
+                'from_status_id' => $fromStatusId,
+                'to_status_id' => $cancelStatusId,
+                'changed_by' => 'admin',
+                'changed_at' => now(),
+            ]);
 
             // Nếu thanh toán online (VNPAY) & đã thanh toán
             if ($order->payment_method === 'vnpay' && $order->paymentStatus->code === 'paid') {
