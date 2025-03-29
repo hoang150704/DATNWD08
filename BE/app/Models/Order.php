@@ -73,8 +73,5 @@ class Order extends Model
         return $this->hasMany(OrderStatusLog::class, 'order_id')
             ->orderBy('changed_at'); 
     }
-    public function payment_method()
-    {
-        return $this->belongsTo(OrderStatus::class, 'order_status_id');
-    }
+
 }
