@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Api\User;
 use App\Events\NewCommentSubmitted;
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
-use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ReviewController extends Controller
 {
@@ -68,19 +67,29 @@ class ReviewController extends Controller
         ]);
 
         // Lấy user ID từ người dùng đã đăng nhập
-        $userId = 1; // Tạm thời sử dụng user ID 1
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['message' => 'Bạn cần đăng nhập để bình luận!'], 401);
+        }
+    
+        // Lấy danh sách đơn hàng đã mua của user
+        $order = DB::table('orders')
+            ->where('user_id', $userId)
+            ->pluck('id'); // Lấy danh sách order_id
+    
+        if ($order->isEmpty()) {
+            return response()->json(['message' => 'Bạn chưa mua sản phẩm này!'], 403);
+        }
+    
+        // Kiểm tra trạng thái đơn hàng
+        $completedStatusId = 5;
+        $orderStatus = DB::table('order_histories')
+            ->whereIn('order_id', $order)
+            ->orderBy('id', 'desc')
+            ->first();
 
-        // Xử lý ảnh: Lưu ảnh vào storage nếu có
-        $imagePaths = [];
-        if (isset($validated['images'])) {
-            $directory = 'comments';
-            if (!Storage::disk('public')->exists($directory)) {
-                Storage::disk('public')->makeDirectory($directory);
-            }
-
-            foreach ($validated['images'] as $image) {
-                $imagePaths[] = $image->store('comments', 'public');
-            }
+        if (!$orderStatus || $orderStatus->status_id != $completedStatusId) {
+            return response()->json(['message' => 'Bạn chỉ có thể bình luận sau khi đơn hàng đã hoàn thành.'], 403);
         }
 
         // Tạo bình luận

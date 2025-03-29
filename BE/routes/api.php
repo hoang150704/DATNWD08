@@ -61,7 +61,6 @@ Route::get('/categories/{category_id}/products', [ShopController::class, 'getPro
 // Đánh giá
 Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
 Route::post('/reviews', [ReviewController::class, 'store']);
-Route::put('/reviews/{id}', [ReviewController::class, 'update']);
 
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
@@ -93,6 +92,9 @@ Route::middleware('auth:sanctum')->group(function () {
     require base_path('routes/api/user/address_books.php');
     // Giỏ hàng
     require base_path('routes/api/user/carts.php');
+
+    // Bình luận
+    Route::put('/reviews/{id}', [ReviewController::class, 'update']);
 
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
