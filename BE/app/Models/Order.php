@@ -21,24 +21,60 @@ class Order extends Model
         'o_address',
         'o_phone',
         'o_mail',
-        'stt_track',
-        'stt_payment',
-        'note'
+        'note',
+        'order_status_id',
+        'payment_status_id',
+        'shipping_status_id',
+        'cancel_reason',
+        'cancel_by',
+        'cancelled_at',
     ];
 
-    public function stt_track()
+    protected $dates = ['cancelled_at'];
+
+    public function status()
     {
-        return $this->belongsTo(StatusTracking::class, 'stt_track');
+        return $this->belongsTo(OrderStatus::class, 'order_status_id');
     }
 
-    public function stt_payment()
+    public function shippingStatus()
     {
-        return $this->belongsTo(StatusPayment::class, 'stt_payment');
+        return $this->belongsTo(ShippingStatus::class);
+    }
+
+    public function paymentStatus()
+    {
+        return $this->belongsTo(PaymentStatus::class);
     }
 
     public function items()
     {
         return $this->hasMany(OrderItem::class);
     }
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+    public function shipment()
+    {
+        return $this->hasOne(Shipment::class);
+    }
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
 
+    public function refundRequests()
+    {
+        return $this->hasMany(RefundRequest::class);
+    }
+    public function statusLogs()
+    {
+        return $this->hasMany(OrderStatusLog::class, 'order_id')
+            ->orderBy('changed_at'); 
+    }
+    public function payment_method()
+    {
+        return $this->belongsTo(OrderStatus::class, 'order_status_id');
+    }
 }

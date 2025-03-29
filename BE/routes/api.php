@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Admin\VoucherController;
 use App\Http\Controllers\Api\Admin\OrderController;
 use App\Http\Controllers\Api\Admin\CommentController;
+use App\Http\Controllers\Api\Admin\NotificationController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\Auth\ProfileController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\User\CartController;
@@ -35,6 +37,7 @@ Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
+    Route::post('/cancel_order', [GhnTrackingController::class, 'cancelOrderGhn']);
 });
 
 // Đăng nhập bằng google
@@ -48,6 +51,8 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 //Thanh toán
 Route::post('/checkout', [OrderClientController::class, 'store']);
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
+// Lấy thông tin order
+Route::get('/search_order', [OrderClientController::class, 'searchOrderByCode']); // Lấy thông tin order theo mã đơn hàng dành cho khách không đăng nhập vẫn mua hàng
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
@@ -75,19 +80,19 @@ Route::prefix('voucher')->group(function () {
 // =======================================================================================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
+    //Order
+    require base_path('routes/api/user/orders.php');
+    //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
-
-    // =========================================================================
-
+    //Profile routes
+    Route::get('/profile', [ProfileController::class, 'info']);
+    Route::post('/change_profile', [ProfileController::class, 'changeProfile']);
+    //Address routes
+    require base_path('routes/api/user/address_books.php');
     // Giỏ hàng
-    Route::get('/cart', [CartController::class, 'index']);
-    Route::post('/cart', [CartController::class, 'addCart']);
-    Route::post('/cart/sync', [CartController::class, 'syncCart']);
-    Route::put('/cart/{id}', [CartController::class, 'changeQuantity']);
-    Route::delete('/cart/{id}', [CartController::class, 'removeItem']);
-    Route::post('/cart/clear', [CartController::class, 'clearAll']);
+    require base_path('routes/api/user/carts.php');
 
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
@@ -97,48 +102,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'dashboard']);
-
-        // Voucher
-        Route::prefix('vouchers')->group(function () {
-            Route::get('/', [VoucherController::class, 'index']);
-            Route::post('/create', [VoucherController::class, 'store']);
-            Route::get('/{id}', [VoucherController::class, 'show']);
-            Route::put('/{id}', [VoucherController::class, 'update']);
-            Route::delete('/', [VoucherController::class, 'destroy']);
-        });
-
-        // Đơn hàng
-        Route::prefix('orders')->group(function () {
-            Route::get('/', [OrderController::class, 'index']);
-            Route::get('/search', [OrderController::class, 'search']);
-            Route::post('/create', [OrderController::class, 'store']);
-            Route::patch('/changestatus', [OrderController::class, 'changeStatus'])->middleware('check.order.status');
-            Route::put('/{order}/edit', [OrderController::class, 'update']);
-            Route::get('/{order}', [OrderController::class, 'show']);
-        });
-
-        //Xử lí api giao hàng nhanh
-        // User
-        Route::apiResource('users', UserController::class);
-        Route::prefix('users')->group(function () {
-            Route::post('/change_status/{id}', [UserController::class, 'changeActive']);
-        });
-
-        // Comment
-        Route::prefix('comments')->group(function () {
-            Route::get('/', [CommentController::class, 'index']);
-            Route::get('hidden', [CommentController::class, 'hiddenComment']);
-            Route::delete('delete', [CommentController::class, 'destroy']);
-            Route::patch('reply', [CommentController::class, 'reply']);
-            Route::patch('status', [CommentController::class, 'statusToggle']);
-            Route::get('{comment}', [CommentController::class, 'show']);
+ 
+        // Notification
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationController::class, 'index']);
+            Route::patch('/{notification}', [NotificationController::class, 'markAsRead']);
         });
 
         // Require
-        require base_path('routes/api/admin/categories.php');
-        require base_path('routes/api/admin/attributes.php');
-        require base_path('routes/api/admin/attribute_values.php');
-        require base_path('routes/api/admin/libraries.php');
-        require base_path('routes/api/admin/products.php');
+        require base_path('routes/api/admin/categories.php'); // Danh mục
+        require base_path('routes/api/admin/attributes.php'); // Thuộc tính
+        require base_path('routes/api/admin/attribute_values.php'); // Giá trị thuộc tính
+        require base_path('routes/api/admin/libraries.php'); // Thư viện ảnh sản phẩm
+        require base_path('routes/api/admin/products.php'); // Sản phẩm
+        require base_path('routes/api/admin/orders.php'); // Đơn hàng
+        require base_path('routes/api/admin/comments.php'); // Bình luận
+        require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
+        require base_path('routes/api/admin/users.php'); // Mã giảm giá
     });
 });

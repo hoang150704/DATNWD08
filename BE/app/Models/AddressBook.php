@@ -13,10 +13,13 @@ class AddressBook extends Model
         'user_id',
         'name',
         'phone',
+        'email',
         'address',
         'is_active',
+        'province',
+        'district',
+        'ward'
     ];
 
     public $attributes = ['is_active' => 0];
-
 }

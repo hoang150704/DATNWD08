@@ -15,7 +15,7 @@ class HomeController extends Controller
         // Lấy 8 sản phẩm mới nhất với các mối quan hệ
         $products = Product::with(['library', 'variants'])
             ->latest()
-            ->limit(8)
+            ->limit(10)
             ->get();
 
         $products->transform(function ($product) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\OrderItem;
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,27 +15,78 @@ class DashboardController extends Controller
 {
     public function dashboard(Request $request)
     {
-        $statisticBy = $request->query('statisticBy', '7day'); // Mặc định là 7 ngày
+        // Mặc định là 7 ngày
+        $statisticBy = $request->query('statisticBy', '7day');
+
+        // Thống kê doanh số bán hàng
         $salesData = $this->getSalesStatistics($statisticBy);
+
+        // Top 5 sản phẩm bán chạy nhất
         $topSellingProducts = $this->getTopSellingProducts();
+
+        // Số lượng sản phẩm theo danh mục
         $productByCategory = $this->getProductByCategory();
+
+        // Số lượng đánh giá theo từng mức rating
         $ratingStatistics = $this->getRatingStatistics();
+
+        // Top 5 sản phẩm được đánh giá cao nhất
         $topRatedProducts = $this->getTopRatedProducts();
+
+        // Top 5 user có số tiền chi tiêu nhiều nhất
+        $topUsersBySpending = $this->getTopUsersBySpending();
+
+        // Năm thống kê
+        $year = $request->query('year', now()->year);
 
         return response()->json([
             "status" => "success",
             "message" => "Lấy dữ liệu dashboard thành công!",
             "data" => [
+                // Tổng số danh mục
                 "totalCategories" => Category::count(),
+
+                // Tổng số sản phẩm
                 "totalProducts" => DB::table('products')->count(),
+
+                // Tổng số người dùng
                 "totalUsers" => DB::table('users')->count(),
+
+                // Tổng số voucher
                 "totalVouchers" => DB::table('vouchers')->count(),
+
+                // Tổng số đơn hàng
+                "totalOrders" => Order::count(),
+
+                // Tổng doanh thu
+                "totalRevenue" => Order::where('payment_status_id', 1)->sum('final_amount'),
+
+                // Top 5 sản phẩm bán chạy nhất
                 "topSellingProducts" => $topSellingProducts,
+
+                // Thống kê doanh số bán hàng
                 "salesStatistics" => $salesData,
+
+                // Thống kê số lượng đánh giá theo từng mức rating
                 "ratingStatistics" => $ratingStatistics,
+
+                // Số lượng sản phẩm theo danh mục
                 "productByCategory" => $productByCategory,
+
+                // Top 5 user có số tiền chi tiêu nhiều nhất
+                "topUsersBySpending" => $topUsersBySpending,
+
+                // Top 5 sản phẩm được đánh giá cao nhất
                 "topRatedProducts" => $topRatedProducts,
-                "statisticBy" => $statisticBy
+
+                // Thống kê doanh thu
+                "revenueStatistics" => [
+                    "daily" => $this->getRevenueStatistics('daily', $year), // Thống kê doanh thu theo ngày
+                    "weekly" => $this->getRevenueStatistics('weekly', $year), // Thống kê doanh thu theo tuần
+                    "monthly" => $this->getRevenueStatistics('monthly', $year), // Thống kê doanh thu theo tháng
+                    "yearly" => $this->getRevenueStatistics('yearly', $year), // Thống kê doanh thu theo năm
+                ],
+                "statisticBy" => $statisticBy // Thời gian thống kê
             ]
         ], 200);
     }
@@ -45,20 +97,20 @@ class DashboardController extends Controller
         return Category::select(
             'categories.id',
             'categories.name',
-            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products')
+            DB::raw('COALESCE(COUNT(product_category_relations.product_id), 0) as total_products') // Đếm số lượng sản phẩm
         )
-            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id')
-            ->groupBy('categories.id', 'categories.name')
-            ->orderByDesc('total_products')
+            ->leftJoin('product_category_relations', 'categories.id', '=', 'product_category_relations.category_id') // Join bảng product_category_relations
+            ->groupBy('categories.id', 'categories.name') // Nhóm theo danh mục
+            ->orderByDesc('total_products') // Sắp xếp theo số lượng sản phẩm giảm dần
             ->get();
     }
 
     // Thống kê số lượng đánh giá theo từng mức rating
     private function getRatingStatistics()
     {
-        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews'))
-            ->groupBy('rating')
-            ->orderByDesc('rating')
+        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews')) // Đếm số lượng đánh giá
+            ->groupBy('rating') // Nhóm theo rating
+            ->orderByDesc('rating') // Sắp xếp theo rating giảm dần
             ->get();
     }
 
@@ -68,40 +120,41 @@ class DashboardController extends Controller
         return Product::select(
             'products.id',
             'products.name',
-            'products.rating as avg_rating', // Lấy rating từ bảng products
-            DB::raw('COUNT(comments.id) as total_reviews') // Lấy số lượng đánh giá từ bảng comments
+            'products.avg_rating as avg_rating', // Thay đổi từ `rating` thành `avg_rating`
+            DB::raw('COUNT(comments.id) as total_reviews') // Đếm tổng số đánh giá
         )
             ->leftJoin('comments', function ($join) {
-                $join->on('products.id', '=', 'comments.product_id')
+                $join->on('products.id', '=', 'comments.product_id') // Join bảng comments
                     ->where('comments.is_active', 1); // Chỉ lấy đánh giá đã duyệt
             })
-            ->groupBy('products.id', 'products.name', 'products.rating')
-            ->orderByDesc('products.rating') // Sắp xếp theo rating từ bảng products
+            ->groupBy('products.id', 'products.name', 'products.avg_rating') // Thay đổi từ `rating` thành `avg_rating`
+            ->orderByDesc('products.avg_rating') // Sắp xếp theo `avg_rating`
             ->orderByDesc(DB::raw('COUNT(comments.id)')) // Nếu rating giống nhau, ưu tiên sản phẩm có nhiều đánh giá hơn
             ->take(5)
             ->get();
     }
 
 
+
     // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($period)
     {
         $query = OrderItem::select(
-            DB::raw('DATE(created_at) as date'),
-            DB::raw('SUM(quantity) as totalSales')
+            DB::raw('DATE(created_at) as date'), // Lấy ngày từ trường created_at
+            DB::raw('SUM(quantity) as totalSales') // Tính tổng số lượng sản phẩm bán ra
         )
-            ->groupBy('date')
-            ->orderBy('date', 'ASC');
+            ->groupBy('date') // Nhóm theo ngày
+            ->orderBy('date', 'ASC'); // Sắp xếp tăng dần theo ngày
 
         switch ($period) {
             case '7day':
-                $query->where('created_at', '>=', now()->subDays(7));
+                $query->where('created_at', '>=', now()->subDays(7)); // Lấy dữ liệu trong 7 ngày gần nhất
                 break;
             case '1month':
-                $query->where('created_at', '>=', now()->subMonth());
+                $query->where('created_at', '>=', now()->subMonth()); // Lấy dữ liệu trong 1 tháng gần nhất
                 break;
-            case '6month':
-                $query->where('created_at', '>=', now()->subMonths(6));
+            case '12month':
+                $query->where('created_at', '>=', now()->subMonths(12)); // Lấy dữ liệu trong 12 tháng gần nhất
                 break;
         }
 
@@ -111,11 +164,52 @@ class DashboardController extends Controller
     // Lấy danh sách sản phẩm bán chạy nhất (top 5)
     private function getTopSellingProducts()
     {
-        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
-            ->groupBy('product_id')
-            ->orderByDesc('total_sold')
+        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold')) // Tính tổng số lượng sản phẩm bán ra
+            ->groupBy('product_id') // Nhóm theo sản phẩm
+            ->orderByDesc('total_sold') // Sắp xếp theo số lượng bán được
             ->take(5)
             ->with('product:id,name,main_image')
             ->get();
+    }
+
+    // Lấy top 5 user có số tiền chi tiêu nhiều nhất
+    private function getTopUsersBySpending()
+    {
+        return Order::select(
+            'user_id',
+            DB::raw('SUM(final_amount) as total_spent') // Tính tổng tiền đã chi
+        )
+            ->where('payment_status_id', 1) // Chỉ lấy đơn hàng đã thanh toán
+            ->groupBy('user_id') // Nhóm theo user
+            ->orderByDesc('total_spent') // Sắp xếp theo số tiền đã chi
+            ->take(5) // Lấy top 5
+            ->with('user:id,name,email') // Lấy thông tin user
+            ->get();
+    }
+
+
+    // Lấy thống kê doanh thu theo thời gian
+    private function getRevenueStatistics($period = 'daily', $year = null)
+    {
+        $year = $year ?? now()->year; // Nếu không truyền năm, mặc định lấy năm hiện tại
+
+        $query = Order::select([
+            DB::raw(
+                match ($period) {
+                    'daily' => "DATE(created_at) as period", // Lấy ngày
+                    'weekly' => "YEARWEEK(created_at, 1) as period", // Lấy tuần
+                    'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period", // Lấy tháng
+                    'yearly' => "YEAR(created_at) as period", // Lấy năm
+                    default => "DATE(created_at) as period", // Mặc định lấy ngày
+                }
+            ),
+            DB::raw('SUM(final_amount) as totalRevenue') // Tính tổng doanh thu
+        ])
+            ->whereYear('created_at', $year) // Lọc theo năm
+            ->where('payment_status_id', 1)   // Chỉ lấy đơn hàng đã thanh toán
+            ->groupBy('period') // Nhóm theo thời gian
+            ->orderBy('period', 'ASC'); // Sắp xếp tăng dần theo thời gian
+
+        return $query->get();
     }
 }

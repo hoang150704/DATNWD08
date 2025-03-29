@@ -16,6 +16,7 @@ class VoucherController extends Controller
     {
         try {
             $vouchers = Voucher::paginate(10);
+
             return response()->json($vouchers, 200);
         } catch (\Throwable $th) {
             return response()->json(["message" => "Lỗi", 500]);
@@ -44,9 +45,7 @@ class VoucherController extends Controller
                 return response()->json(['message' => 'Ngày hết hạn phải sau ngày bắt đầu.'], 422);
             }
             $voucher = Voucher::create($voucher);
-            // Phát sự kiện
 
-            broadcast(new VoucherEvent('created', $voucher))->toOthers();
             return response()->json($voucher, 201);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
@@ -104,9 +103,6 @@ class VoucherController extends Controller
             $voucher = Voucher::findOrFail($id);
             $voucher->update($data);
 
-            // Phát sự kiện
-            broadcast(new VoucherEvent('updated', $voucher))->toOthers();
-
             return response()->json($voucher, 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);
@@ -126,8 +122,6 @@ class VoucherController extends Controller
             ]);
             $ids = $data['ids'];
             Voucher::whereIn('id', $ids)->delete();
-            // Phát sự kiện
-            broadcast(new VoucherEvent('deleted', $ids))->toOthers();
             return response()->json(['message' => 'Các voucher đã được xóa'], 200);
         } catch (ValidationException $e) {
             return response()->json(["message" => "Nhập đầy đủ và đúng thông tin", "errors" => $e->errors()], 422);

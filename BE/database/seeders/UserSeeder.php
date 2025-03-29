@@ -24,6 +24,7 @@ class UserSeeder extends Seeder
                 'role' => User::ROLE_ADMIN,
                 'password' => Hash::make(12345678),
                 'email_verified_at' => now()
+                
             ]);
     }
 }

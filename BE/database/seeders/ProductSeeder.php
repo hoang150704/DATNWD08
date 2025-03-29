@@ -2,111 +2,113 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ProductSeeder extends Seeder
 {
-    private function getRandomDate()
-    {
-        return Carbon::create(2025, 2, rand(1, 28), rand(0, 23), rand(0, 59), rand(0, 59));
-    }
-
     public function run(): void
     {
         DB::table('products')->insert([
             [
-                'name' => "Áo thun nam",
-                'description' => "Áo thun nam chất liệu cotton thoáng mát.",
-                'short_description' => "Áo thun nam cotton.",
-                'main_image' => 1,
-                'slug' => 'ao-thun-nam',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Áo Polo Nam Họa Tiết Bo Dệt Geometric Retro Form Regular",
+                "main_image" => 6, 
+                "slug" => "ao-polo-nam-hoa-tiet-bo-det-geometric-retro-form-regular",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Áo sơ mi trắng",
-                'description' => "Áo sơ mi trắng công sở, thanh lịch.",
-                'short_description' => "Áo sơ mi trắng công sở.",
-                'main_image' => 2,
-                'slug' => 'ao-so-mi-trang',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Áo Polo Nam Họa Tiết Sọc Ngang Elegance Form Regular",
+                "main_image" => 13, 
+                "slug" => "ao-polo-nam-hoa-tiet-soc-ngang-elegance-form-regular",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Áo khoác",
-                'description' => "Áo khoác chống nước, giữ ấm tốt.",
-                'short_description' => "Áo khoác chống nước.",
-                'main_image' => 3,
-                'slug' => 'ao-khoac',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Áo Polo Nam Họa Tiết Vivid Layers Form Regular",
+                "main_image" => 18, 
+                "slug" => "ao-polo-nam-hoa-tiet-vivid-layers-form-regular",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Quần jean nam",
-                'description' => "Quần jean nam phong cách trẻ trung, cá tính.",
-                'short_description' => "Quần jean nam cá tính.",
-                'main_image' => 4,
-                'slug' => 'quan-jean-nam',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Áo Polo Nam Phối Màu Shade Flow Form Regular",
+                "main_image" => 28, 
+                "slug" => "ao-polo-nam-phoi-mau-shade-flow-form-regular",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Quần tây công sở",
-                'description' => "Quần tây công sở lịch lãm, sang trọng.",
-                'short_description' => "Quần tây công sở.",
-                'main_image' => 5,
-                'slug' => 'quan-tay-cong-so',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Áo Polo Nam Phối Viền Sọc Trắng Catalyst Innovations Form Regular",
+                "main_image" => 33,
+                "slug" => "ao-polo-nam-phoi-vien-soc-trang-catalyst-innovations-form-regular",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Áo len cổ lọ",
-                'description' => "Áo len cổ lọ giữ ấm tốt vào mùa đông.",
-                'short_description' => "Áo len cổ lọ mùa đông.",
-                'main_image' => 1,
-                'slug' => 'ao-len-co-lo',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Áo Polo Nam Trơn Logo Basic Modern Lifestyle Form Regular",
+                "main_image" => 37, 
+                "slug" => "ao-polo-nam-tron-logo-basic-modern-lifestyle-form-regular",
+                "type" => "1",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Áo blazer nam",
-                'description' => "Áo blazer nam lịch lãm, phong cách.",
-                'short_description' => "Áo blazer nam phong cách.",
-                'main_image' => 2,
-                'slug' => 'ao-blazer-nam',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Quần Short Denim Nam Carpenter Utility Work Form Regular",
+                "main_image" => 44, 
+                "slug" => "quan-short-denim-nam-carpenter-utility-work-form-regular",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Áo hoodie nữ",
-                'description' => "Áo hoodie nữ phong cách trẻ trung, năng động.",
-                'short_description' => "Áo hoodie nữ năng động.",
-                'main_image' => 3,
-                'slug' => 'ao-hoodie-nu',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Quần Short Denim Nam Túi Hộp Street Flex Form Baggy",
+                "main_image" => 50, 
+                "slug" => "quan-short-denim-nam-tui-hop-street-flex-form-baggy",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Quần legging thể thao",
-                'description' => "Quần legging thể thao co giãn, thoải mái.",
-                'short_description' => "Quần legging thể thao.",
-                'main_image' => 4,
-                'slug' => 'quan-legging-the-thao',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
+                "name" => "Quần Short Jean Nam Torn Wash Form Slim",
+                "main_image" => 59, 
+                "slug" => "quan-short-jean-nam-torn-wash-form-slim",
+                "type" => "1",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
             ],
             [
-                'name' => "Áo dạ dài nữ",
-                'description' => "Áo dạ dài nữ giữ ấm tốt, thời trang.",
-                'short_description' => "Áo dạ dài nữ thời trang.",
-                'main_image' => 5,
-                'slug' => 'ao-da-dai-nu',
-                'rating' => rand(0, 50) / 10,
-                'created_at' => $this->getRandomDate()
-            ]
+                "name" => "Quần Short Kaki Nam Fundamental Form Regular",
+                "main_image" => 61, 
+                "slug" => "quan-short-kaki-nam-fundamental-form-regular",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
+            ],
+            [
+                "name" => "Quần Short Tây Nam Comfort Waistband Form Slim-fit",
+                "main_image" => 67, 
+                "slug" => "quan-short-tay-nam-comfort-waistband-form-slim-fit",
+                "type" => "0",
+                "created_at" => now(),
+                "updated_at" => now(),
+                "deleted_at" => null,
+            ],
         ]);
     }
 }

@@ -28,13 +28,11 @@ class DatabaseSeeder extends Seeder
             VoucherSeeder::class,
             VoucherUsageSeeder::class,
             CommentSeeder::class,
+            StatusOrder::class,
             OrderSeeder::class,
-            OrderHistorySeeder::class,
             OrderItemSeeder::class,
-            StatusTrackingSeeder::class,
-            StatusPaymentSeeder::class,
             SettingGhnSeeder::class,
-          
+            NotificationSeeder::class
         ]);
     }
 }
