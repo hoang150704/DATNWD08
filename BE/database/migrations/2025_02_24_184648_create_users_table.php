@@ -20,7 +20,7 @@ return new class extends Migration {
             $table->string('avatar',255)->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password',255)->nullable();
-            $table->enum('role', ['admin', 'member', 'staff'])->default(User::ROLE_MEMBER);
+            $table->enum('role', ['admin', 'member', 'staff'])->default(User::ROLE_MEMBER); // Thêm role nhân viên
             $table->boolean('is_active')->default(true);
             $table->string('reason',255)->nullable();
             $table->softDeletes();
