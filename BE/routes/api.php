@@ -101,12 +101,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'dashboard']);
- 
+
         // Notification
         Route::prefix('notifications')->group(function () {
             Route::get('/', [NotificationController::class, 'index']);
             Route::patch('/{notification}', [NotificationController::class, 'markAsRead']);
         });
+
 
         // Require
         require base_path('routes/api/admin/categories.php'); // Danh mục
@@ -117,6 +118,10 @@ Route::middleware('auth:sanctum')->group(function () {
         require base_path('routes/api/admin/orders.php'); // Đơn hàng
         require base_path('routes/api/admin/comments.php'); // Bình luận
         require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
-        require base_path('routes/api/admin/users.php'); // Mã giảm giá
+        require base_path('routes/api/admin/users.php'); // Người dùng
+    });
+    // Chức năng chỉ Staff mới call được api
+    Route::prefix('staff')->middleware('staff')->group(function () {
+        Route::apiResource('users', UserController::class)->except([DashboardController::class, 'dashboard']); // Chỉ cho phép admin và staff xem danh sách người dùng
     });
 });
