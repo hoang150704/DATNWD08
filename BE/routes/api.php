@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Admin\ContactController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
+use App\Http\Controllers\Api\User\ContactController as ClientContactController;
 use App\Http\Controllers\Api\User\CartController;
 use App\Http\Controllers\Api\User\HomeController;
 use App\Http\Controllers\Api\User\ShopController;
@@ -18,7 +19,6 @@ use App\Http\Controllers\Api\User\ReviewController;
 use App\Http\Controllers\Api\Services\UploadController;
 use App\Http\Controllers\Api\User\OrderClientController;
 use App\Http\Controllers\Api\User\ProductDetailController;
-use App\Http\Controllers\Api\User\ContactController as ClientContactController;
 //
 use App\Http\Controllers\Api\Services\GhnTrackingController;
 use App\Http\Middleware\CheckOrderStatus;
@@ -68,8 +68,6 @@ Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getRevie
 
 // Liên hệ
 Route::post('/contacts', [ClientContactController::class, 'store']);
-Route::get('/contacts', [ClientContactController::class, 'getAllContacts']);
-
 
 Route::patch('/contacts/{id}/restore', [ContactController::class, 'restore']);
 Route::delete('/contacts/{id}/force', [ContactController::class, 'forceDelete']);

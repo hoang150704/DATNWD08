@@ -13,19 +13,9 @@ class ContactController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function getAllContacts()
+    public function index()
     {
-        try {
-            $contacts = Contact::latest()->paginate(10);
 
-            return response()->json($contacts, 200);
-        } catch (\Exception $e) {
-            Log::error($e);
-            return response()->json([
-                'message' => 'Lỗi hệ thống',
-                'error' => $e->getMessage()
-            ], 500);
-        }
     }
 
     /**
