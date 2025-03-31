@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Product\StoreProductRequest;
 use App\Http\Requests\Admin\Product\UpdateProductRequest;
+use App\Models\Comment;
 use App\Models\Product;
 use App\Traits\ProductTraits;
 use Dotenv\Exception\ValidationException;
@@ -21,11 +22,48 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
+    protected function search()
+    {
+        try {
+
+            $params = array_filter(request()->only(['keyword', 'category', 'avg_rating']));
+
+            $query = Product::query();
+
+            if (isset($params['keyword'])) {
+                $query->where('name', 'like', "%{$params['keyword']}%");
+            }
+
+            if (isset($params['category'])) {
+                $query->whereHas('categories', function ($query) use ($params) {
+                    $query->where('categories.id', $params['category']);
+                });
+            }
+
+            if (isset($params['avg_rating'])) {
+                $query->whereBetween('avg_rating', [$params['avg_rating'], $params['avg_rating'] + 0.99]);
+            }
+
+            return $query
+                ->with("categories:id,name")
+                ->select('id', 'name', 'main_image', 'type', 'slug', 'avg_rating')
+                ->latest()
+                ->paginate(10);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed'
+            ], 404);
+        }
+    }
+
     public function index()
     {
         try {
             //code...
-            $products = Product::with("categories:name")->select('id', 'name', 'main_image', 'type', 'slug')->latest()->paginate(10);
+
+            $products = $this->search();
+
             foreach ($products as $key => $value) {
 
                 if ($value->main_image == null) {
@@ -126,7 +164,7 @@ class ProductController extends Controller
                     'sku' => $variant->sku,
                     'regular_price' => $variant->regular_price,
                     'sale_price' => $variant->sale_price,
-                    'weight'=>$variant->weight,
+                    'weight' => $variant->weight,
                     'stock_quantity' => $variant->stock_quantity,
                     'values' => $variant->values->map(function ($value) {
                         return [
@@ -222,55 +260,54 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
-{
-    try {
-        // Tìm sản phẩm (bao gồm cả đã xóa mềm)
-        $product = Product::withTrashed()->findOrFail($id);
+    public function destroy()
+    {
+        try {
 
-        // Nếu sản phẩm đã bị xóa mềm, báo lỗi
-        if ($product->trashed()) {
-            return response()->json(['message' => 'Sản phẩm đã bị xóa trước đó'], 400);
+            $ids = request('ids');
+
+            $products = Product::whereIn('id', $ids)->get();
+
+            $products->each(function ($product) {
+                // Xóa tất cả giá trị thuộc tính của biến thể
+                $product->variants->each(function ($variant) {
+                    $variant->values()->delete(); // Xóa các giá trị thuộc tính liên quan
+                });
+
+                // Xóa tất cả biến thể
+                $product->variants()->delete();
+
+                // Xóa mềm sản phẩm
+                $product->delete();
+            });
+
+            return response()->json(['message' => 'Sản phẩm đã được xóa'], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Sản phẩm không tồn tại'], 404);
+        } catch (\Throwable $th) {
+            Log::error('Lỗi khi xóa sản phẩm: ' . $th->getMessage());
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => env('APP_DEBUG') ? $th->getMessage() : 'Vui lòng thử lại sau!'
+            ], 500);
         }
-
-        // Xóa tất cả giá trị thuộc tính của biến thể
-        $product->variants->each(function ($variant) {
-            $variant->values()->delete(); // Xóa các giá trị thuộc tính liên quan
-        });
-
-        // Xóa tất cả biến thể
-        $product->variants()->delete();
-        $product->variants()->productAttributes();
-
-        // Xóa mềm sản phẩm
-        $product->delete();
-
-        return response()->json(['message' => 'Sản phẩm đã được xóa'], 200);
-    } catch (ModelNotFoundException $e) {
-        return response()->json(['message' => 'Sản phẩm không tồn tại'], 404);
-    } catch (\Throwable $th) {
-        Log::error('Lỗi khi xóa sản phẩm: ' . $th->getMessage());
-        return response()->json([
-            'message' => 'Lỗi hệ thống',
-            'error' => env('APP_DEBUG') ? $th->getMessage() : 'Vui lòng thử lại sau!'
-        ], 500);
-    }}
+    }
 
     public function listProductForOrder(Request $request)
     {
         try {
             // Lấy tham số tìm kiếm
-            $search = $request->input('search'); 
+            $search = $request->input('search');
 
             // Tạo query lấy sản phẩm
             $query = Product::with([
                 'variants' => function ($query) {
-                    $query->select('id', 'product_id', 'stock_quantity', 'weight','regular_price', 'sale_price');
+                    $query->select('id', 'product_id', 'stock_quantity', 'weight', 'regular_price', 'sale_price');
                 },
                 'variants.values.attributeValue' => function ($query) {
                     $query->select('id', 'name');
                 }
-            ])->select('id', 'name', 'main_image',  'type');
+            ])->select('id', 'name', 'main_image', 'type');
 
             // ✅ Tìm kiếm theo tên sản phẩm nếu có
             if ($search) {
@@ -305,6 +342,40 @@ class ProductController extends Controller
                 'status' => 'error',
                 'message' => 'Đã xảy ra lỗi khi lấy danh sách sản phẩm!',
                 'error' => env('APP_DEBUG') ? $e->getMessage() : 'Vui lòng thử lại sau!'
+            ], 500);
+        }
+    }
+
+    public function trash()
+    {
+        try {
+            $listSoftDeleteProducts = Product::onlyTrashed()->with(['variants'])->paginate(15);
+            return response()->json($listSoftDeleteProducts, 200); // trả về response
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
+            ], 500);
+        }
+    }
+
+    public function hardDelete()
+    {
+        try {
+            $ids = request('ids');
+
+            Product::onlyTrashed()->whereIn('id', $ids)->forceDelete();
+
+            return response()->json(['message' => 'Xóa sản phẩm thành công'], 200);
+
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $th->getMessage()
+
             ], 500);
         }
     }

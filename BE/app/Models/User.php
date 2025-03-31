@@ -17,6 +17,7 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasApiTokens, HasFactory, Notifiable,SoftDeletes;
 
     const ROLE_ADMIN = 'admin';
+    const ROLE_STAFF = 'staff';
     const ROLE_MEMBER = 'member';
 
     /**
@@ -43,11 +44,13 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var array<int, string>
      */
+
     protected $hidden = [
         'password',
         'remember_token',
+        'provider_token',
+        'deleted_at',
     ];
-
     /**
      * The attributes that should be cast.
      *

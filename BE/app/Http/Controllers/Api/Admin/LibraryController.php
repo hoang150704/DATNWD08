@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\UploadImageJob;
 use App\Models\Library;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class LibraryController extends Controller
 {
@@ -39,73 +41,56 @@ class LibraryController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-public function store(Request $request)
-{   
-    try {
-        //code...
-        $request->validate([
-            'images' => 'required|array',
-        ]); 
     
-        $validImages = [];
-        $invalidImages = [];
-            foreach ($request->file('images') as $image) {
-                if ($image->isValid()) { 
-                    if ($image->extension() && in_array($image->extension(), ['jpeg', 'png', 'jpg','webp'])) { 
-                        if ($image->getSize() <= 5120 * 1024) {  // 5MB in bytes
-                            try {
-                                $result = cloudinary()->upload($image->getRealPath());
-                                $publicId = $result->getPublicId();
-                                $url = $result->getSecurePath();
-                                $library = Library::create([
-                                    'public_id' => $publicId,
-                                    'url'=>$url
-                                ]);
-    
-                                $validImages[] = [
-                                    'success' => $image->getClientOriginalName() . " đã upload thành công",
-                                    
-                                ];
-                            } catch (\Exception $e) {
-                                $invalidImages[] = [
-                                    'file' => $image->getClientOriginalName(),
-                                    'error' => $e->getMessage()
-                                ];
-                            }
-                        } else {
-                            $invalidImages[] = [
-                                'error' => $image->getClientOriginalName().'đã upload thất bại do file lớn hơn 5Mb.'
-                            ];
-                        }
-                    } else {
-                        $invalidImages[] = [
-                            'ex'=>$image->extension(),
-                            'error' => $image->getClientOriginalName() . ' upload thất bại do không thuộc type: jpg,jpeg,png,webp.',
-                            
-                        ];
-                    }
-                } else {
-                    $invalidImages[] = [
 
-                        'error' => $image->getClientOriginalName().'đã upload thất bại do file không hợp lệ'
-                    ];
-                }
-            }
-    
-        return response()->json([
-            'success' => $validImages,
-            'errors' => $invalidImages
-        ]);
-    } catch (\Throwable $th) {
-        //throw $th;
-        return response()->json([
-            'message' => 'Lỗi hệ thống',
-            'error' => $th->getMessage()
-
-        ], 500);
-    }
-
-}
+     public function store(Request $request)
+     {
+         try {
+             $request->validate([
+                 'images' => 'required|array',
+                 'images.*' => 'file|mimes:jpeg,png,jpg,webp|max:5120',
+             ]);
+     
+             $images = $request->file('images');
+             $uploadedImages = [];
+     
+             foreach ($images as $image) {
+                 // Lưu ảnh vào storage
+                 $storedPath = $image->store('temp_uploads');
+                 $fullPath = storage_path("app/$storedPath");
+             
+                 if (!file_exists($fullPath)) {
+                     Log::error("File không tồn tại trước khi xử lý: $fullPath");
+                     continue;
+                 }
+             
+             
+                    // Nếu có nhiều ảnh, đẩy vào queue
+                    UploadImageJob::dispatch($fullPath, $image->getClientOriginalName())->onQueue('high');
+                
+     
+                 $uploadedImages[] = [
+                     'file' => $image->getClientOriginalName(),
+                     'message' => "Upload thành công"
+                 ];
+             }
+     
+             return response()->json([
+                 'message' => 'Upload thành công',
+                 'images' => $uploadedImages
+             ], 200);
+     
+         } catch (\Throwable $th) {
+             Log::error("Lỗi hệ thống: " . $th->getMessage());
+     
+             return response()->json([
+                 'message' => 'Lỗi hệ thống',
+                 'error' => $th->getMessage()
+             ], 500);
+         }
+     }
+     
+     
 
     /**
      * Display the specified resource.

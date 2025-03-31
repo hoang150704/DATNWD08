@@ -18,11 +18,12 @@ class CreateVouchersTable extends Migration
             $table->integer('amount')->nullable();
             $table->integer('max_discount_amount')->nullable();
             $table->integer('min_product_price')->nullable();
-            $table->integer('usage_limit');
+            $table->integer('usage_limit')->nullable();
             $table->integer('type');
+            $table->boolean('for_logged_in_users')->default(false);
             $table->integer('times_used')->default(0);
-            $table->date('expiry_date');
-            $table->date('start_date'); // Thêm cột start_date
+            $table->datetime('expiry_date')->nullable();
+            $table->datetime('start_date');
             $table->timestamps();
         });
     }

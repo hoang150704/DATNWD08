@@ -15,6 +15,7 @@ class NewCommentSubmitted
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+
     public $comment;
 
     /**

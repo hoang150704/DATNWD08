@@ -13,7 +13,7 @@ class CreateVoucherUsagesTable extends Migration
     {
         Schema::create('voucher_usages', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('voucher_id');
             $table->unsignedBigInteger('order_id');
             $table->timestamps();

@@ -12,14 +12,73 @@ class CategorySeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function run()
     {
         DB::table('categories')->insert([
-            ['name' => 'Danh mục 1', 'slug' => 'danh-muc-1', 'parent_id' => null],
-            ['name' => 'Danh mục 1.1', 'slug' => 'danh-muc-1-1', 'parent_id' => 1],
-            ['name' => 'Danh mục 1.2', 'slug' => 'danh-muc-1-2', 'parent_id' => 1],
-            ['name' => 'Danh mục 1.3', 'slug' => 'danh-muc-1-3', 'parent_id' => 1],
-            ['name' => 'Danh mục 1.4', 'slug' => 'danh-muc-1-4', 'parent_id' => 1],
+            [
+                "name" => "Áo",
+                "slug" => "ao",
+                "parent_id" => null,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "name" => "Áo Polo",
+                "slug" => "ao-polo",
+                "parent_id" => 2.0,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "name" => "Quần",
+                "slug" => "quan",
+                "parent_id" => null,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "name" => "Quần Short",
+                "slug" => "quan-short",
+                "parent_id" => 3.0,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "name" => "Quần Jean",
+                "slug" => "quan-jean",
+                "parent_id" => 3.0,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "name" => "Áo Jacket",
+                "slug" => "ao-jacket",
+                "parent_id" => 2.0,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "name" => "Áo Sơ Mi",
+                "slug" => "ao-so-mi",
+                "parent_id" => 2.0,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "name" => "Áo Thun",
+                "slug" => "ao-thun",
+                "parent_id" => 2.0,
+                "deleted_at" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
         ]);
     }
 }

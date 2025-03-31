@@ -15,22 +15,58 @@ class CategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    protected function search($parent = null, $children = null)
+    {
+        try {
+            return Category::query()
+                ->when($children, function ($query) use ($children) {
+                    $query->where('name', 'like', "%{$children}%")
+                        ->whereNotNull('parent_id');
+                })
+                ->when(!$children && $parent, function ($query) use ($parent) {
+                    $query->where('name', 'like', "%{$parent}%")
+                        ->whereNull('parent_id')
+                        ->with('children');
+                })
+                ->when(!$parent && !$children, function ($query) {
+                    $query->whereNull('parent_id')->with('children');
+                })
+                ->paginate(15);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Failed',
+                'error' => $th->getMessage()
+            ], 404);
+        }
+    }
+
+
     public function index()
     {
         try {
-            //code...
-            $categories = Category::whereNull('parent_id')->with('children')->paginate(15); //phân trang theo danh mục gốc(Không phải con của danh mục khác)
-            $this->convertChildren($categories); // gọi hàm để convert lại dữ liệu
-            return response()->json($categories, 200); // trả về res
+            $parent = request('parent');
+            $children = request('children');
+
+            // Nếu có $children, chỉ tìm theo $children
+            if ($children) {
+                $categories = $this->search(null, $children); // Truyền đúng vị trí tham số
+                return response()->json($categories, 200);
+            }
+
+            // Nếu có $parent hoặc không có request nào, tìm theo $parent
+            $categories = $this->search($parent, null);
+            $this->convertChildren($categories); // Gọi hàm để convert dữ liệu
+
+            return response()->json($categories, 200);
         } catch (\Throwable $th) {
-            //throw $th;
             return response()->json([
                 'message' => 'Lỗi hệ thống',
                 'error' => $th->getMessage()
-
             ], 500);
         }
     }
+
     private function convertChildren($categories)
     {
         foreach ($categories as $category) {
@@ -194,7 +230,7 @@ class CategoryController extends Controller
 
             $count = 1;
             while (Category::where('slug', $slug)->where('id', '!=', $id)->exists()) {
-                $slug = "{$slug}-$count";
+                $slug = "{$slug}-" . $count;
                 $count++;
             }
 
@@ -213,7 +249,6 @@ class CategoryController extends Controller
             return response()->json([
                 'message' => 'Lỗi hệ thống',
                 'error' => $th->getMessage()
-
             ], 500);
         }
     }
@@ -221,21 +256,20 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy()
     {
         try {
-            $category = Category::findOrFail($id);
 
-            if ($category->trashed()) {
-                return response()->json(['message' => 'Danh mục đã được xóa mềm'], 400);
-            }
+            $ids = request('ids');
+
+            $categories = Category::whereIn('id', $ids)->get();
 
             // Cập nhật parent_id của các danh mục con thành null
-            Category::where('parent_id', $id)->update(['parent_id' => null]);
+            Category::whereIn('parent_id', $ids)->update(['parent_id' => null]);
 
-            $category->delete();
+            Category::whereIn('id', $ids)->delete();
 
-            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác'], 200);
+            return response()->json(['message' => 'Danh mục đã được chuyển vào thùng rác', 'data' => $categories], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Danh mục không tồn tại'], 404);
         } catch (\Throwable $th) {
@@ -243,16 +277,17 @@ class CategoryController extends Controller
             return response()->json([
                 'message' => 'Lỗi hệ thống',
                 'error' => $th->getMessage()
-
             ], 500);
         }
     }
 
     // xóa cứng
-    public function hardDelete(string $id)
+    public function hardDelete()
     {
         try {
-            Category::onlyTrashed()->findOrFail($id)->forceDelete();
+            $ids = request('ids');
+
+            Category::onlyTrashed()->whereIn('id', $ids)->forceDelete();
 
             return response()->json(['message' => 'Xóa danh mục thành công'], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -268,11 +303,11 @@ class CategoryController extends Controller
     }
 
     // Khôi phục
-    public function restore($id)
+    public function restore()
     {
         try {
-            $category = Category::onlyTrashed()->findOrFail($id);
-            $category->restore();
+            $ids = request('ids');
+            Category::onlyTrashed()->whereIn('id', $ids)->restore();
 
             return response()->json(["message" => "Bạn đã phục hồi thành công"], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -283,6 +318,39 @@ class CategoryController extends Controller
                 'message' => 'Lỗi hệ thống',
                 'error' => $th->getMessage()
 
+            ], 500);
+        }
+    }
+
+    public function changeCategory()
+    {
+        try {
+            $ids = request('ids');
+            $invalidCategories = Category::whereIn('id', $ids)
+                ->where(function ($query) {
+                    $query->whereNotNull('parent_id')  // Kiểm tra nếu đã có parent_id
+                        ->orWhereHas('children');  // Kiểm tra nếu đã có danh mục con
+                })
+                ->exists();
+
+            if ($invalidCategories) {
+                return response()->json([
+                    'message' => 'Danh mục không thể cập nhật vì đã có danh mục cha hoặc đang là danh mục con.'
+                ], 400);
+            }
+            $categoryId = request('categoryId');
+
+            $update = Category::whereIn('id', $ids)->update(['parent_id' => $categoryId]);
+
+            return response()->json([
+                'message' => 'Cập nhật thành công',
+                'data' => $update
+            ], 200);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            return response()->json([
+                'message' => 'Cập nhật thất bại',
+                'error' => $th->getMessage()
             ], 500);
         }
     }
