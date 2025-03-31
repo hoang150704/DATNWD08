@@ -93,6 +93,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Giỏ hàng
     require base_path('routes/api/user/carts.php');
 
+    // Bình luận
+    Route::put('/reviews/{id}', [ReviewController::class, 'update']);
+
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
 

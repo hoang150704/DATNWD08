@@ -91,7 +91,4 @@ class ProductDetailController extends Controller
             ], 500);
         }
     }
-    
-     
-    
 }
