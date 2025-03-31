@@ -14,6 +14,8 @@ class Comment extends Model
         'user_id',
         'rating',
         'content',
+        'images',
+        'reply',
         'is_active'
     ];
 

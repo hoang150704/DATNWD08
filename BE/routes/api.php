@@ -48,11 +48,14 @@ Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
+
 //Thanh toán
 Route::post('/checkout', [OrderClientController::class, 'store']);
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
+
 // Lấy thông tin order
 Route::get('/search_order', [OrderClientController::class, 'searchOrderByCode']); // Lấy thông tin order theo mã đơn hàng dành cho khách không đăng nhập vẫn mua hàng
+
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
@@ -60,7 +63,6 @@ Route::get('/categories/{category_id}/products', [ShopController::class, 'getPro
 
 // Đánh giá
 Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
-Route::post('/reviews', [ReviewController::class, 'store']);
 
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
@@ -79,19 +81,27 @@ Route::prefix('voucher')->group(function () {
 // =======================================================================================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
-    //Order
-    require base_path('routes/api/user/orders.php');
     //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
+    
+    //Order
+    require base_path('routes/api/user/orders.php');
+
     //Profile routes
     Route::get('/profile', [ProfileController::class, 'info']);
     Route::post('/change_profile', [ProfileController::class, 'changeProfile']);
+    
     //Address routes
     require base_path('routes/api/user/address_books.php');
+    
     // Giỏ hàng
     require base_path('routes/api/user/carts.php');
+
+    // Đánh giá
+    Route::put('/reviews/{id}', [ReviewController::class, 'update']);
+    Route::post('/reviews', [ReviewController::class, 'store']);
 
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
@@ -108,7 +118,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{notification}', [NotificationController::class, 'markAsRead']);
         });
 
-
         // Require
         require base_path('routes/api/admin/categories.php'); // Danh mục
         require base_path('routes/api/admin/attributes.php'); // Thuộc tính
@@ -120,6 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
         require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
         require base_path('routes/api/admin/users.php'); // Người dùng
     });
+    
     // Chức năng chỉ Staff mới call được api
     Route::prefix('staff')->middleware('staff')->group(function () {
 
