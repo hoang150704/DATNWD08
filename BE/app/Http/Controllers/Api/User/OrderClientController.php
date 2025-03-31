@@ -129,10 +129,24 @@ class OrderClientController extends Controller
                 return response()->json(['message' => 'Tạo đơn hàng thất bại'], 500);
             }
 
-            // Broadcast và Event
-            // event(new OrderEvent($order));
-            // broadcast(new OrderEvent($order));
-            Log::info('Broadcast completed');
+            $voucher = null;
+            if ($request->voucher_code) {
+                $voucher = Voucher::where('code', $request->voucher_code)->first();
+
+                // Kiểm tra nếu voucher tồn tại và còn lượt sử dụng
+                if ($voucher && $voucher->usage_limit > 0) {
+                    // Giảm số lần sử dụng ngay trước khi commit
+                    $voucher->decrement('usage_limit');
+                } else {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Voucher đã đạt giới hạn số lần sử dụng!'
+                    ], 400);
+                }
+            }
+            // Chỉ broadcast khi voucher hợp lệ hoặc không có voucher
+            broadcast(new OrderEvent($order, $voucher));
+            
             // Lưu bảng trạng thái đơn hàng orderstatus
             OrderStatusFlowService::createInitialStatus($order);
             // Lưu bảng thanh toán
@@ -266,21 +280,21 @@ class OrderClientController extends Controller
         $order = Order::where('code', $request['vnp_TxnRef'])->first();
         if (!$order) {
             Transaction::create([
-                'order_id'               => null,
-                'method'                 => 'vnpay',
-                'type'                   => 'payment',
-                'amount'                 => ($request['vnp_Amount'] ?? 0) / 100,
-                'transaction_code'       => $request['vnp_TxnRef'],
-                'vnp_transaction_no'     => $request['vnp_TransactionNo'] ?? null,
-                'vnp_bank_code'          => $request['vnp_BankCode'] ?? null,
-                'vnp_bank_tran_no'       => $request['vnp_BankTranNo'] ?? null,
-                'vnp_card_type'          => $request['vnp_CardType'] ?? null,
-                'vnp_pay_date'           => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
-                'vnp_response_code'      => $request['vnp_ResponseCode'] ?? null,
+                'order_id' => null,
+                'method' => 'vnpay',
+                'type' => 'payment',
+                'amount' => ($request['vnp_Amount'] ?? 0) / 100,
+                'transaction_code' => $request['vnp_TxnRef'],
+                'vnp_transaction_no' => $request['vnp_TransactionNo'] ?? null,
+                'vnp_bank_code' => $request['vnp_BankCode'] ?? null,
+                'vnp_bank_tran_no' => $request['vnp_BankTranNo'] ?? null,
+                'vnp_card_type' => $request['vnp_CardType'] ?? null,
+                'vnp_pay_date' => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
+                'vnp_response_code' => $request['vnp_ResponseCode'] ?? null,
                 'vnp_transaction_status' => $request['vnp_TransactionStatus'] ?? null,
-                'vnp_create_date'        => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
-                'status'                 => 'failed',
-                'note'                   => 'Không tìm thấy đơn hàng',
+                'vnp_create_date' => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
+                'status' => 'failed',
+                'note' => 'Không tìm thấy đơn hàng',
             ]);
 
             return response()->json([
@@ -303,21 +317,21 @@ class OrderClientController extends Controller
 
         if ($secureHash !== $vnp_SecureHash) {
             Transaction::create([
-                'order_id'               => $order?->id, // Có thể null nếu đơn ko tìm thấy
-                'method'                 => 'vnpay',
-                'type'                   => 'payment',
-                'amount'                 => ($request['vnp_Amount'] ?? 0) / 100,
-                'transaction_code'       => $request['vnp_TxnRef'],
-                'vnp_transaction_no'     => $request['vnp_TransactionNo'] ?? null,
-                'vnp_bank_code'          => $request['vnp_BankCode'] ?? null,
-                'vnp_bank_tran_no'       => $request['vnp_BankTranNo'] ?? null,
-                'vnp_card_type'          => $request['vnp_CardType'] ?? null,
-                'vnp_pay_date'           => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
-                'vnp_response_code'      => $request['vnp_ResponseCode'] ?? null,
+                'order_id' => $order?->id, // Có thể null nếu đơn ko tìm thấy
+                'method' => 'vnpay',
+                'type' => 'payment',
+                'amount' => ($request['vnp_Amount'] ?? 0) / 100,
+                'transaction_code' => $request['vnp_TxnRef'],
+                'vnp_transaction_no' => $request['vnp_TransactionNo'] ?? null,
+                'vnp_bank_code' => $request['vnp_BankCode'] ?? null,
+                'vnp_bank_tran_no' => $request['vnp_BankTranNo'] ?? null,
+                'vnp_card_type' => $request['vnp_CardType'] ?? null,
+                'vnp_pay_date' => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
+                'vnp_response_code' => $request['vnp_ResponseCode'] ?? null,
                 'vnp_transaction_status' => $request['vnp_TransactionStatus'] ?? null,
-                'vnp_create_date'        => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
-                'status'                 => 'failed',
-                'note'                   => 'Xác thực chữ ký thất bại',
+                'vnp_create_date' => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
+                'status' => 'failed',
+                'note' => 'Xác thực chữ ký thất bại',
             ]);
             return response()->json([
                 'success' => false,
@@ -339,21 +353,21 @@ class OrderClientController extends Controller
         $status = $request['vnp_ResponseCode'] === '00' ? 'success' : 'failed'; // xem nó thanh toán thành công hay thất bại
 
         Transaction::create([
-            'order_id'               => $order->id,
-            'method'                 => 'vnpay',
-            'type'                   => 'payment',
-            'amount'                 => ($request['vnp_Amount'] ?? 0) / 100,
-            'transaction_code'       => $request['vnp_TxnRef'],
-            'vnp_transaction_no'     => $request['vnp_TransactionNo'] ?? null,
-            'vnp_bank_code'          => $request['vnp_BankCode'] ?? null,
-            'vnp_bank_tran_no'       => $request['vnp_BankTranNo'] ?? null,
-            'vnp_card_type'          => $request['vnp_CardType'] ?? null,
-            'vnp_pay_date'           => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
-            'vnp_response_code'      => $request['vnp_ResponseCode'] ?? null,
+            'order_id' => $order->id,
+            'method' => 'vnpay',
+            'type' => 'payment',
+            'amount' => ($request['vnp_Amount'] ?? 0) / 100,
+            'transaction_code' => $request['vnp_TxnRef'],
+            'vnp_transaction_no' => $request['vnp_TransactionNo'] ?? null,
+            'vnp_bank_code' => $request['vnp_BankCode'] ?? null,
+            'vnp_bank_tran_no' => $request['vnp_BankTranNo'] ?? null,
+            'vnp_card_type' => $request['vnp_CardType'] ?? null,
+            'vnp_pay_date' => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
+            'vnp_response_code' => $request['vnp_ResponseCode'] ?? null,
             'vnp_transaction_status' => $request['vnp_TransactionStatus'] ?? null,
-            'vnp_create_date'        => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
-            'status'                 => $status,
-            'note'                   => $this->paymentVnpay->mapVnpResponseCode($request['vnp_ResponseCode'] ?? null),
+            'vnp_create_date' => isset($request['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $request['vnp_PayDate']) : null,
+            'status' => $status,
+            'note' => $this->paymentVnpay->mapVnpResponseCode($request['vnp_ResponseCode'] ?? null),
         ]);
 
         if ($status === 'success') {
@@ -810,11 +824,11 @@ class OrderClientController extends Controller
             $order->update(['order_status_id' => $toStatusId]);
 
             OrderStatusLog::create([
-                'order_id'       => $order->id,
+                'order_id' => $order->id,
                 'from_status_id' => $fromStatusId,
-                'to_status_id'   => $toStatusId,
-                'changed_by'     => 'user',
-                'changed_at'     => now(),
+                'to_status_id' => $toStatusId,
+                'changed_by' => 'user',
+                'changed_at' => now(),
             ]);
 
             DB::commit();
