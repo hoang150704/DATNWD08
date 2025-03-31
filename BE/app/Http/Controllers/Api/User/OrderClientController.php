@@ -43,12 +43,14 @@ class OrderClientController extends Controller
 {
     use OrderTraits;
     use MaskableTraits;
+
     protected $paymentVnpay;
     protected $ghn;
 
     public function __construct(PaymentVnpay $paymentVnpay, GhnApiService $ghn)
     {
         $this->paymentVnpay = $paymentVnpay;
+
         $this->ghn = $ghn;
     }
 
@@ -624,7 +626,10 @@ class OrderClientController extends Controller
             $fromStatusId = $order->order_status_id;
             $cancelStatusId = OrderStatus::idByCode('cancelled');
             $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            if ($order->payment_method === 'ship_cod') {
+            if ($order->payment_method === 'vnpay') {
+                $paymentStatus = PaymentStatus::idByCode('refunded');
+                $order->payment_status_id = $paymentStatus;
+            }else{
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -693,11 +698,15 @@ class OrderClientController extends Controller
                 $result = $this->paymentVnpay->refundTransaction($refundData);
 
                 // Xử lý kết quả hoàn tiền
-                if (isset($result['vnp_ResponseCode']) && $result['vnp_ResponseCode'] === '00') {
+                if (
+                    isset($result['response_data']['vnp_ResponseCode']) &&
+                    $result['response_data']['vnp_ResponseCode'] === '00'
+                ) {
                     $order->update([
                         'payment_status_id' => PaymentStatus::idByCode('refunded'),
                     ]);
                 }
+                
                 Transaction::create([
                     'order_id' => $order->id,
                     'method' => 'vnpay',
@@ -718,15 +727,40 @@ class OrderClientController extends Controller
 
             // Nếu đã có vận đơn GHN
             if (!in_array($order->shippingStatus->code, ['not_created', 'cancelled'])) {
-                $dataCancelOrderGhn[] = $order->shipment->shipping_code;
+                $dataCancelOrderGhn = [$order->shipment->shipping_code];
+                $result = $this->ghn->cancelOrder($dataCancelOrderGhn);
+
+                if ($result['code'] === 200 && !empty($result['data'])) {
+                    foreach ($result['data'] as $item) {
+                        // Tạo log shipment
+                        ShippingLog::create([
+                            'shipment_id'       => $order->shipment->id,
+                            'ghn_status'        => 'cancel_order',
+                            'mapped_status_id'  => ShippingStatus::idByCode('cancelled'),
+                            'location'          => null,
+                            'note'              => $item['message'] ?? 'Đã huỷ qua GHN',
+                            'timestamp'         => now(),
+                        ]);
+
+                        // Cập nhật shipment status
+                        $order->shipment->update([
+                            'shipping_status_id' => ShippingStatus::idByCode('cancelled')
+                        ]);
+                    }
+                } else {
+                    Log::error('GHN Cancel Failed', [
+                        'order_code' => $order->shipment->shipping_code,
+                        'message' => $result['message'] ?? 'Không rõ lỗi'
+                    ]);
+                }
             }
 
-        DB::commit();
+            DB::commit();
             return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('Cancel Order Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi hủy đơn hàng','errors'=>$th->getMessage()], 500);
+            return response()->json(['message' => 'Lỗi khi hủy đơn hàng', 'errors' => $th->getMessage()], 500);
         }
     }
 
@@ -832,7 +866,7 @@ class OrderClientController extends Controller
     public function retryPaymentVnpay($orderCode)
     {
         $userId = auth('sanctum')->user()->id;
-        
+
 
         $order = Order::where('code', $orderCode)->where('user_id', $userId)->first();
         if (!$order) {

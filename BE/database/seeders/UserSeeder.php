@@ -16,17 +16,47 @@ class UserSeeder extends Seeder
     {
 
         // Tạo người dùng mẫ
-            DB::table('users')->insert([
+        DB::table('users')->insert([
+            [
                 'name' => 'Hoàng',
                 'username' => 'hoang2k4',
-                'email' => fake()->email,
+                'email' => 'phuongminhhoang77@gmail.com',
                 'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
                 'role' => User::ROLE_ADMIN,
                 'password' => Hash::make(12345678),
                 'email_verified_at' => now()
-                
-                
+            ],
+            [
+                'name' => 'Admin',
+                'username' => 'admin',
+                'email' => 'phuongminhhoang777@gmail.com',
+                'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
+                'role' => User::ROLE_ADMIN,
+                'password' => Hash::make(12345678),
+                'email_verified_at' => now()
+            ],
+            [
+                'name' => 'Hoàng Siêu Nhân',
+                'username' => 'hoangsieunhan',
+                'email' => 'phuongminhhoang45@gmail.com',
+                'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
+                'role' => User::ROLE_MEMBER,
+                'password' => Hash::make(12345678),
+                'email_verified_at' => now()
+            ]
+        ]);
+        //
+
+        for ($i = 1; $i < 10; $i++) {
+            DB::table('users')->insert([
+                'name' => fake()->name(),
+                'username' => fake()->userName(),
+                'email' => fake()->email(),
+                'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
+                'role' => User::ROLE_MEMBER,
+                'password' => Hash::make(12345678),
+                'email_verified_at' => now()
             ]);
+        }
     }
 }
-

@@ -106,7 +106,12 @@ class GhnTrackingController extends Controller
      */
     public function postOrderGHN(Request $request, $id)
     {
-
+        // Lấy thông tin order
+        $order = Order::with('items', 'shipment')->findOrFail($id);
+        //kiểm tra xem có thêm được không
+        if($order->order_status_id != 2){
+            return response()->json(['message' => 'Không thể tạo đơn hàng ở trạng thái này'], 400);
+        }
         // Setup data lấy tt shop
         $dataShop  = [
             'offset' => 1,
@@ -128,8 +133,7 @@ class GhnTrackingController extends Controller
         // convert địa chỉ
         $convertAddressShop = $this->convertAddress($infoShop['address']);
         // Lấy ra thông tin shop
-        // Lấy thông tin order
-        $order = Order::with('items')->findOrFail($id);
+
         // Convert địa chỉ
         $addressConvert = $this->convertAddress($order->o_address);
         // Tính cân nặng
@@ -138,6 +142,7 @@ class GhnTrackingController extends Controller
             ->value('total_weight');
         $finalWeight = (int) $totalWeight;
         $service_type_id = $finalWeight < $this->weight_service ? 2 : 5;
+        $codAmount = $order->payment_method == 'vnpay' ? 0 : $order->final_amount;
         $dataValidated = $request->validate(
             [
                 'note' => 'nullable|string|max:5000',
@@ -169,7 +174,7 @@ class GhnTrackingController extends Controller
             "to_ward_name" => $addressConvert['ward'],
             "to_district_name" => $addressConvert['district'],
             "to_province_name" => $addressConvert['province'],
-            "cod_amount" => $order->final_amount,
+            "cod_amount" => $codAmount,
             "weight" =>  (int) $finalWeight,
             "service_type_id" => $service_type_id
 
@@ -195,6 +200,30 @@ class GhnTrackingController extends Controller
 
         $postOrder = $responses['create_order'];
         if ($postOrder['code'] == 200) {
+            $mappedShippingStatus = ShippingStatusMapper::toShipping('ready_to_pick');
+            $mappedShippingStatusId = ShippingStatus::idByCode($mappedShippingStatus);
+            $order->shipment->update([
+                'shipping_code'         => $postOrder['data']['order_code'],
+                'shipping_status_id'    => $mappedShippingStatusId,
+                'shipping_fee'          => (float) $postOrder['data']['total_fee'],
+                'shipping_fee_details'  => json_encode($postOrder['data']['fee']),
+                'sort_code'             => $postOrder['data']['sort_code'] ?? null,
+                'transport_type'        => $postOrder['data']['trans_type'] ?? null,
+                'expected_delivery_time' => Carbon::parse($postOrder['data']['expected_delivery_time']),
+            ]);
+            //
+            $order->update([
+                'shipping_status_id' => $mappedShippingStatusId,
+            ]);
+            // Tạo bản ghi log
+            ShippingLog::create([
+                'shipment_id'       => $order->shipment->id,
+                'ghn_status'        => 'ready_to_pick',
+                'mapped_status_id'  => $mappedShippingStatusId,
+                'location'          => null,
+                'note'              => 'Tạo đơn GHN thành công',
+                'timestamp'         => now(),
+            ]);
         }
         return response()->json($postOrder);
     }
@@ -237,6 +266,10 @@ class GhnTrackingController extends Controller
             if ($shippingStatus && $shipment->shipping_status_id !== $shippingStatus->id) {
                 $shipment->shipping_status_id = $shippingStatus->id;
                 $shipment->save();
+            }
+            if ($order->shipping_status_id !== $shippingStatus->id) {
+                $order->shipping_status_id = $shippingStatus->id;
+                $order->save();
             }
         }
 
