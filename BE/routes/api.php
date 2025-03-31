@@ -67,7 +67,9 @@ Route::get('/categories/{category_id}/products', [ShopController::class, 'getPro
 Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
 
 // Liên hệ
-Route::post('/contacts', [ClientContactController::class, 'store']);
+Route::post('/contacts', [ClientContactController::class, 'store'])
+    ->middleware('throttle:5,1'); // Tối đa 5 request/phút
+
 
 Route::patch('/contacts/{id}/restore', [ContactController::class, 'restore']);
 Route::delete('/contacts/{id}/force', [ContactController::class, 'forceDelete']);
