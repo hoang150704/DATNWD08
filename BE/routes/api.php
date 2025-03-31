@@ -66,11 +66,6 @@ Route::get('/categories/{category_id}/products', [ShopController::class, 'getPro
 // Đánh giá
 Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
 
-// Liên hệ
-Route::post('/contacts', [ClientContactController::class, 'store'])
-    ->middleware('throttle:5,1'); // Tối đa 5 request/phút
-
-
 Route::patch('/contacts/{id}/restore', [ContactController::class, 'restore']);
 Route::delete('/contacts/{id}/force', [ContactController::class, 'forceDelete']);
 
@@ -87,6 +82,10 @@ Route::prefix('voucher')->group(function () {
     Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
     Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
 });
+
+// Liên hệ
+Route::post('/contacts', [ClientContactController::class, 'store'])
+    ->middleware('throttle:5,1'); // Tối đa 5 request/phút
 
 // =======================================================================================================================================
 // Chức năng cần LOGIN
@@ -160,4 +159,5 @@ Route::middleware('auth:sanctum')->group(function () {
         require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
         require base_path('routes/api/admin/users.php'); // Người dùng
     });
+    
 });
