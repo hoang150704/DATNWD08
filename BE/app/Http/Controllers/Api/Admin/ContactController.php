@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
@@ -14,17 +14,18 @@ class ContactController extends Controller
      */
     public function index()
     {
-        $contacts = Contact::latest()->paginate(10);
-        return response()->json($contacts, 200);
-    }
+        try {
+            $contacts = Contact::latest()->paginate(10);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        $contact = Contact::create($request->validated());
-        return response()->json($contact, 201);
+            return response()->json($contacts, 200);
+            
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -32,13 +33,22 @@ class ContactController extends Controller
      */
     public function show(string $id)
     {
-        $contact = Contact::find($id);
+        try {
+            $contact = Contact::find($id);
 
-        if (!$contact) {
-            return response()->json(['message' => 'Contact not found'], 404);
+            if (!$contact) {
+                return response()->json(['message' => 'Contact not found'], 404);
+            }
+
+            return response()->json($contact, 200);
+
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        return response()->json($contact, 200);
     }
 
     /**
@@ -57,7 +67,6 @@ class ContactController extends Controller
             $contact->delete(); // Xóa mềm (chỉ cập nhật deleted_at)
 
             return response()->json(['message' => 'Contact deleted successfully'], 204);
-            
         } catch (\Exception $e) {
             Log::error($e);
             return response()->json([
