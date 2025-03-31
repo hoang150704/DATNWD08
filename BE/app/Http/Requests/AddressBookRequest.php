@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
-class StoreAddressBookRequest extends FormRequest
+class AddressBookRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -27,7 +27,7 @@ class StoreAddressBookRequest extends FormRequest
         return [
             'user_id'   => 'required|integer',
             'name'      => 'required|string|max:255',
-            'phone'     => 'required|string|min:10|max:15',
+            'phone'     => 'required|string|min:10|max:20',
             'address'   => 'required|string|max:255',
             'is_active' => ['nullable', Rule::in([0, 1])]
         ];
