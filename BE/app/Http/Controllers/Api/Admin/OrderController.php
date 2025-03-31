@@ -389,7 +389,10 @@ class OrderController extends Controller
             $fromStatusId = $order->order_status_id;
             $cancelStatusId = OrderStatus::idByCode('cancelled');
             $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            if ($order->payment_method === 'ship_cod') {
+            if ($order->payment_method === 'vnpay') {
+                $paymentStatus = PaymentStatus::idByCode('refunded');
+                $order->payment_status_id = $paymentStatus;
+            }else{
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -483,7 +486,32 @@ class OrderController extends Controller
 
             // Nếu đã có vận đơn GHN
             if (!in_array($order->shippingStatus->code, ['not_created', 'cancelled'])) {
-                $dataCancelOrderGhn[] = $order->shipment->shipping_code;
+                $dataCancelOrderGhn = [$order->shipment->shipping_code];
+                $result = $this->ghn->cancelOrder($dataCancelOrderGhn);
+
+                if ($result['code'] === 200 && !empty($result['data'])) {
+                    foreach ($result['data'] as $item) {
+                        // Tạo log shipment
+                        ShippingLog::create([
+                            'shipment_id'       => $order->shipment->id,
+                            'ghn_status'        => 'cancel_order',
+                            'mapped_status_id'  => ShippingStatus::idByCode('cancelled'),
+                            'location'          => null,
+                            'note'              => $item['message'] ?? 'Đã huỷ qua GHN',
+                            'timestamp'         => now(),
+                        ]);
+
+                        // Cập nhật shipment status
+                        $order->shipment->update([
+                            'shipping_status_id' => ShippingStatus::idByCode('cancelled')
+                        ]);
+                    }
+                } else {
+                    Log::error('GHN Cancel Failed', [
+                        'order_code' => $order->shipment->shipping_code,
+                        'message' => $result['message'] ?? 'Không rõ lỗi'
+                    ]);
+                }
             }
 
             DB::commit();

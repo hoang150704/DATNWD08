@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
+use App\Http\Resources\RefundRequestResource;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Jobs\SendVerifyGuestOrderJob;
 use App\Models\Cart;
@@ -31,6 +32,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\PaymentVnpay;
 use App\Services\TransactionFlowService;
+use App\Traits\MaskableTraits;
 use App\Traits\OrderTraits;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -40,12 +42,15 @@ use Illuminate\Support\Str;
 class OrderClientController extends Controller
 {
     use OrderTraits;
+    use MaskableTraits;
+
     protected $paymentVnpay;
     protected $ghn;
 
     public function __construct(PaymentVnpay $paymentVnpay, GhnApiService $ghn)
     {
         $this->paymentVnpay = $paymentVnpay;
+
         $this->ghn = $ghn;
     }
 
@@ -577,14 +582,7 @@ class OrderClientController extends Controller
                     ];
                 }),
                 // Yêu cầu hoàn hàng (nếu có)
-                'refund_requests' => $order->refundRequests->map(function ($refund) {
-                    return [
-                        'status' => $refund->status,
-                        'reason' => $refund->reason,
-                        'amount' => $refund->amount,
-                        'approved_at' => optional($refund->approved_at),
-                    ];
-                }),
+                'refund_requests' => RefundRequestResource::collection($order->refundRequests),
                 // Timeline trạng thái
                 'status_timelines' => $order->statusLogs->map(function ($log) {
                     return [
@@ -642,7 +640,10 @@ class OrderClientController extends Controller
             $fromStatusId = $order->order_status_id;
             $cancelStatusId = OrderStatus::idByCode('cancelled');
             $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            if ($order->payment_method === 'ship_cod') {
+            if ($order->payment_method === 'vnpay') {
+                $paymentStatus = PaymentStatus::idByCode('refunded');
+                $order->payment_status_id = $paymentStatus;
+            }else{
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -664,7 +665,7 @@ class OrderClientController extends Controller
             ]);
 
             // Nếu thanh toán online (VNPAY) & đã thanh toán
-            if ($order->payment_method === 'vnpay' && $order->payment_status->code === 'paid') {
+            if ($order->payment_method === 'vnpay' && $order->paymentStatus->code === 'paid') {
                 // Tạo bản ghi refund_requests
                 RefundRequest::create([
                     'order_id' => $order->id,
@@ -711,11 +712,15 @@ class OrderClientController extends Controller
                 $result = $this->paymentVnpay->refundTransaction($refundData);
 
                 // Xử lý kết quả hoàn tiền
-                if (isset($result['vnp_ResponseCode']) && $result['vnp_ResponseCode'] === '00') {
+                if (
+                    isset($result['response_data']['vnp_ResponseCode']) &&
+                    $result['response_data']['vnp_ResponseCode'] === '00'
+                ) {
                     $order->update([
                         'payment_status_id' => PaymentStatus::idByCode('refunded'),
                     ]);
                 }
+                
                 Transaction::create([
                     'order_id' => $order->id,
                     'method' => 'vnpay',
@@ -735,9 +740,33 @@ class OrderClientController extends Controller
             }
 
             // Nếu đã có vận đơn GHN
-            if (!in_array($order->shipping_status->code, ['not_created', 'cancelled'])) {
-                $dataCancelOrderGhn[] = $order->shipment->shipping_code;
-                
+            if (!in_array($order->shippingStatus->code, ['not_created', 'cancelled'])) {
+                $dataCancelOrderGhn = [$order->shipment->shipping_code];
+                $result = $this->ghn->cancelOrder($dataCancelOrderGhn);
+
+                if ($result['code'] === 200 && !empty($result['data'])) {
+                    foreach ($result['data'] as $item) {
+                        // Tạo log shipment
+                        ShippingLog::create([
+                            'shipment_id'       => $order->shipment->id,
+                            'ghn_status'        => 'cancel_order',
+                            'mapped_status_id'  => ShippingStatus::idByCode('cancelled'),
+                            'location'          => null,
+                            'note'              => $item['message'] ?? 'Đã huỷ qua GHN',
+                            'timestamp'         => now(),
+                        ]);
+
+                        // Cập nhật shipment status
+                        $order->shipment->update([
+                            'shipping_status_id' => ShippingStatus::idByCode('cancelled')
+                        ]);
+                    }
+                } else {
+                    Log::error('GHN Cancel Failed', [
+                        'order_code' => $order->shipment->shipping_code,
+                        'message' => $result['message'] ?? 'Không rõ lỗi'
+                    ]);
+                }
             }
 
             DB::commit();
@@ -745,7 +774,7 @@ class OrderClientController extends Controller
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('Cancel Order Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi hủy đơn hàng'], 500);
+            return response()->json(['message' => 'Lỗi khi hủy đơn hàng', 'errors' => $th->getMessage()], 500);
         }
     }
 
@@ -756,8 +785,12 @@ class OrderClientController extends Controller
         $request->validate([
             'reason' => 'required|string',
             'images' => 'nullable|array',
-            'images.*' => 'url'
+            'images.*' => 'url',
+            'bank_name' => 'required|string|max:255',
+            'bank_account_name' => 'required|string|max:255',
+            'bank_account_number' => 'required|string|max:50',
         ]);
+
 
         $order = Order::where('code', $code)->where('user_id', $userId)->firstOrFail();
 
@@ -779,7 +812,11 @@ class OrderClientController extends Controller
                 'amount' => $order->final_amount,
                 'status' => 'pending',
                 'images' => $request->images ?? [],
+                'bank_name' => $request->bank_name,
+                'bank_account_name' => $request->bank_account_name,
+                'bank_account_number' => $request->bank_account_number,
             ]);
+
 
             $fromStatusId = $order->order_status_id;
             $toStatusId = OrderStatus::idByCode('return_requested');
@@ -802,12 +839,48 @@ class OrderClientController extends Controller
             return response()->json(['message' => 'Lỗi khi gửi yêu cầu hoàn hàng'], 500);
         }
     }
+    //Hoàn thành đơn hàng
 
+    //Xác nhận đơn hàng
+    public function closeOrder($code)
+    {
+        $order = Order::with('status')->where('code', $code)->firstOrFail();
+
+        // Kiểm tra trạng thái hiện tại có thể chuyển sang 'closed' không
+        if (!OrderStatusFlowService::canChange($order, 'closed')) {
+            return response()->json([
+                'message' => 'Không thể hoàn thành đơn hàng',
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $changed = OrderStatusFlowService::change($order, 'closed', 'admin');
+
+            if (!$changed) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Lỗi khi xác nhận đơn hàng!',
+                ], 500);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Đã xác nhận đơn hàng thành công!',
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Đã xảy ra lỗi!',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
     // Thanh toán lại
-    public function retryPaymentVnpay(Request $request)
+    public function retryPaymentVnpay($orderCode)
     {
         $userId = auth('sanctum')->user()->id;
-        $orderCode = $request->input('code');
+
 
         $order = Order::where('code', $orderCode)->where('user_id', $userId)->first();
         if (!$order) {
@@ -874,8 +947,8 @@ class OrderClientController extends Controller
                 // Thông tin người nhận (ẩn nếu không phải chủ đơn)
                 'payment_method' => $order->payment_method,
                 'o_name' => $order->o_name,
-                'o_phone' => $isOwner ? $order->o_phone : null,
-                'o_email' => $isOwner ? $order->o_mail : null,
+                'o_phone' => $isOwner ? $order->o_phone : $this->maskPhone($order->o_phone),
+                'o_email' => $isOwner ? $order->o_mail : $this->maskEmail($order->o_mail),
                 'o_address' => $order->o_address,
 
                 // Sản phẩm
@@ -993,5 +1066,4 @@ class OrderClientController extends Controller
             'token' => $verifyToken,
         ]);
     }
-
 }
