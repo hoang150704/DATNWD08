@@ -74,8 +74,8 @@ return new class extends Migration
             $table->string('transport_type')->nullable(); // truck / bike / ...
 
             $table->json('shipping_fee_details')->nullable(); // các loại phí chi tiết
-            $table->boolean('return_confirmed')->default(false)->after('shipping_status_id');
-            $table->timestamp('return_confirmed_at')->nullable()->after('return_confirmed');
+            $table->boolean('return_confirmed')->default(false);
+            $table->timestamp('return_confirmed_at')->nullable();
             $table->text('cancel_reason')->nullable(); // nếu bị hủy
             $table->timestamps();
         });

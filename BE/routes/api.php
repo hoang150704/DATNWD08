@@ -38,8 +38,8 @@ Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
     Route::post('/cancel_order', [GhnTrackingController::class, 'cancelOrderGhn']);
+    Route::post('/webhook', [GhnTrackingController::class, 'callBackWebHook']);
 });
-
 // Đăng nhập bằng google
 Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 
