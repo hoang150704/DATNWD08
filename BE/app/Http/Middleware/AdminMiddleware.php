@@ -23,9 +23,14 @@ class AdminMiddleware
             return response()->json(['message' => 'Bạn chưa đăng nhập!'], 401);
         }
 
-        // Kiểm tra quyền admin
-        if ($user->role !== 'admin') {
-            return response()->json(['message' => 'Bạn không có quyền thực hiện hành động này!'], 403);
+        // Nếu là staff đang cố gắng truy cập dashboard, từ chối luôn
+        if ($user->role === 'staff' && $request->is('api/admin/dashboard')) {
+            return response()->json(['message' => 'Staff không có quyền truy cập dashboard!'], 403);
+        }
+
+        // Nếu không phải admin hoặc staff, từ chối truy cập vào admin
+        if (!in_array($user->role, ['admin', 'staff'])) {
+            return response()->json(['message' => 'Bạn không có quyền truy cập admin!'], 403);
         }
         return $next($request);
     }
