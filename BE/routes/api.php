@@ -122,6 +122,22 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     // Chức năng chỉ Staff mới call được api
     Route::prefix('staff')->middleware('staff')->group(function () {
-        Route::apiResource('users', UserController::class)->except([DashboardController::class, 'dashboard']); // Chỉ cho phép admin và staff xem danh sách người dùng
+
+        // Notification
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationController::class, 'index']);
+            Route::patch('/{notification}', [NotificationController::class, 'markAsRead']);
+        });
+
+        // Require
+        require base_path('routes/api/admin/categories.php'); // Danh mục
+        require base_path('routes/api/admin/attributes.php'); // Thuộc tính
+        require base_path('routes/api/admin/attribute_values.php'); // Giá trị thuộc tính
+        require base_path('routes/api/admin/libraries.php'); // Thư viện ảnh sản phẩm
+        require base_path('routes/api/admin/products.php'); // Sản phẩm
+        require base_path('routes/api/admin/orders.php'); // Đơn hàng
+        require base_path('routes/api/admin/comments.php'); // Bình luận
+        require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
+        require base_path('routes/api/admin/users.php'); // Người dùng
     });
 });
