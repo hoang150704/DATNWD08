@@ -10,4 +10,6 @@ class Contact extends Model
     use HasFactory;
 
     protected $fillable = ['name', 'email', 'phone', 'message', 'status'];
+
+    protected $dates = ['deleted_at']; // Đánh dấu ngày xóa mềm
 }

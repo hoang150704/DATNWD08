@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ContactController extends Controller
 {
@@ -22,15 +23,7 @@ class ContactController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|email|max:255',
-            'phone'     => 'required|string|max:20',
-            'message'   => 'required|string'
-        ]);
-
-        $contact = Contact::create($validated);
-
+        $contact = Contact::create($request->validated());
         return response()->json($contact, 201);
     }
 
@@ -39,7 +32,13 @@ class ContactController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $contact = Contact::find($id);
+
+        if (!$contact) {
+            return response()->json(['message' => 'Contact not found'], 404);
+        }
+
+        return response()->json($contact, 200);
     }
 
     /**
@@ -55,6 +54,68 @@ class ContactController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+
+        try {
+            $contact = Contact::find($id);
+
+            if (!$contact) {
+                return response()->json(['message' => 'Contact not found'], 404);
+            }
+
+            $contact->delete(); // Xóa mềm (chỉ cập nhật deleted_at)
+
+            return response()->json(['message' => 'Contact deleted successfully'], 204);
+            
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function restore(string $id)
+    {
+        try {
+            $contact = Contact::withTrashed()->find($id);
+
+            if (!$contact) {
+                return response()->json(['message' => 'Contact not found'], 404);
+            }
+
+            $contact->restore(); // Khôi phục contact
+
+            return response()->json(['message' => 'Contact restored successfully'], 200);
+            
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function forceDelete(string $id)
+    {
+        try {
+            $contact = Contact::withTrashed()->find($id);
+
+            if (!$contact) {
+                return response()->json(['message' => 'Contact not found'], 404);
+            }
+
+            $contact->forceDelete(); // Xóa vĩnh viễn
+
+            return response()->json(['message' => 'Contact permanently deleted'], 204);
+            
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

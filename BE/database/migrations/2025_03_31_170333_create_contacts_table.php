@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->text('message');
             $table->enum('status', ['pending', 'in_progress', 'resolved'])->default('pending');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

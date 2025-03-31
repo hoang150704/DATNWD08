@@ -1,6 +1,5 @@
 <?php
 // ADMIN
-
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Admin\VoucherController;
@@ -18,7 +17,7 @@ use App\Http\Controllers\Api\User\ReviewController;
 use App\Http\Controllers\Api\Services\UploadController;
 use App\Http\Controllers\Api\User\OrderClientController;
 use App\Http\Controllers\Api\User\ProductDetailController;
-
+//
 use App\Http\Controllers\Api\Services\GhnTrackingController;
 use App\Http\Middleware\CheckOrderStatus;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +39,7 @@ Route::prefix('ghn')->group(function () {
     Route::post('/cancel_order', [GhnTrackingController::class, 'cancelOrderGhn']);
     Route::post('/webhook', [GhnTrackingController::class, 'callBackWebHook']);
 });
+
 // Đăng nhập bằng google
 Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 
