@@ -409,7 +409,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'from_status_id' => $fromStatusId,
                 'to_status_id' => $cancelStatusId,
-                'changed_by' => auth()->id(),
+                'changed_by' => auth()->id(), // Lưu ID người hủy đơn
                 'changed_at' => now(),
             ]);
 
@@ -696,7 +696,7 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'from_status_id' => $fromStatusId,
                     'to_status_id' => $refundedStatusId,
-                    'changed_by' => auth()->id(),
+                    'changed_by' => auth()->id(), // Lưu ID người hoàn tiền
                     'changed_at' => now(),
                     'note' => 'Hoàn tiền tự động thành công qua VNPAY',
                 ]);
@@ -753,7 +753,7 @@ class OrderController extends Controller
             'order_id' => $order->id,
             'from_status_id' => $fromStatusId,
             'to_status_id' => $refundedStatusId,
-            'changed_by' => auth()->id(),
+            'changed_by' => auth()->id(), // Lưu ID người hoàn tiền
             'changed_at' => now(),
             'note' => 'Hoàn tiền thủ công đã được thực hiện thành công',
         ]);
@@ -798,7 +798,7 @@ class OrderController extends Controller
                 'txn_date'   => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
                 'txn_no'     => $paymentTransaction->vnp_transaction_no,
                 'type'       => '02',
-                'create_by'  => auth()->id(),
+                'create_by'  => auth()->id(), // ID người thực hiện hoàn tiền
                 'ip'         => request()->ip(),
                 'order_info' => 'Hoàn tiền một phần qua VNPAY',
             ];
@@ -826,7 +826,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'from_status_id' => $order->order_status_id,
                 'to_status_id' => $order->order_status_id, // không đổi
-                'changed_by' => auth()->id(),
+                'changed_by' => auth()->id(), // Lưu ID người hoàn tiền
                 'changed_at' => now(),
                 'note' => 'Hoàn tiền một phần qua VNPAY số tiền: ' . number_format($validated['amount']),
             ]);
