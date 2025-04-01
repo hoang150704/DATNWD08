@@ -14,8 +14,6 @@ class Transaction extends Model
         'status',
         'transaction_code',
         'note',
-
-        // VNPAY
         'vnp_transaction_no',
         'vnp_bank_code',
         'vnp_bank_tran_no',
@@ -25,18 +23,16 @@ class Transaction extends Model
         'vnp_transaction_status',
         'vnp_create_date',
         'vnp_refund_request_id',
-
-        // Ship_cod hoàn tiền thủ công
         'transfer_reference',
         'proof_images',
     ];
 
     protected $casts = [
+        'amount' => 'decimal:2',
         'vnp_pay_date' => 'datetime',
         'vnp_create_date' => 'datetime',
         'proof_images' => 'array',
     ];
-
     public function order()
     {
         return $this->belongsTo(Order::class);

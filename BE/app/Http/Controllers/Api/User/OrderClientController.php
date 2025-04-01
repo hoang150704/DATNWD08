@@ -253,11 +253,11 @@ class OrderClientController extends Controller
 
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
-                $paymentUrl = $this->paymentVnpay->createPaymentUrl($order,$paymentTimeout);
+                $paymentUrl = $this->paymentVnpay->createPaymentUrl($order, $paymentTimeout);
                 $order->update(
                     [
-                        'payment_url'=>$paymentUrl,
-                        'expiried_at'=> now()->addMinutes($paymentTimeout)
+                        'payment_url' => $paymentUrl,
+                        'expiried_at' => now()->addMinutes($paymentTimeout)
                     ]
                 );
                 return response()->json([
@@ -604,7 +604,7 @@ class OrderClientController extends Controller
                 'order_id' => $order->id,
                 'order_code' => $order->code,
                 //Thời gian thanh toán đơn hàng hợp lệ để làm count dơ
-                'expiried_at'=>$order->expiried_at,
+                'expiried_at' => $order->expiried_at,
                 // Trạng thái và subtitle
                 'status' => [
                     'code' => $order->status->code,
@@ -614,10 +614,10 @@ class OrderClientController extends Controller
                 //SHipment
                 'shipment' => $order->shipment ? [
                     'shipping_code' => $order->shipment->shipping_code,
-                        'carrier' => $order->shipment->carrier,
-                        'from_estimate_date' => $order->shipment->from_estimate_date,
-                        'to_estimate_date' => $order->shipment->to_estimate_date,
-                ]: null,
+                    'carrier' => $order->shipment->carrier,
+                    'from_estimate_date' => $order->shipment->from_estimate_date,
+                    'to_estimate_date' => $order->shipment->to_estimate_date,
+                ] : null,
                 //Subtitle
                 'subtitle' => $this->generateOrderSubtitle($order),
                 // Thanh toán + vận chuyển
@@ -716,10 +716,7 @@ class OrderClientController extends Controller
             $fromStatusId = $order->order_status_id;
             $cancelStatusId = OrderStatus::idByCode('cancelled');
             $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            if ($order->payment_method === 'vnpay') {
-                $paymentStatus = PaymentStatus::idByCode('refunded');
-                $order->payment_status_id = $paymentStatus;
-            } else {
+            if ($order->payment_method != 'vnpay') {
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -739,7 +736,6 @@ class OrderClientController extends Controller
                 'changed_by' => 'user',
                 'changed_at' => now(),
             ]);
-
             // Nếu thanh toán online (VNPAY) & đã thanh toán
             if ($order->payment_method === 'vnpay' && $order->paymentStatus->code === 'paid') {
                 // Tạo bản ghi refund_requests
@@ -752,7 +748,7 @@ class OrderClientController extends Controller
                     'approved_by' => 'system',
                     'approved_at' => now()
                 ]);
-
+            
                 // Lấy transaction gốc (thanh toán thành công)
                 $paymentTransaction = $order->transactions()
                     ->where('method', 'vnpay')
@@ -835,7 +831,7 @@ class OrderClientController extends Controller
                         // Cập nhật shipment status
                         $order->shipment->update([
                             'shipping_status_id' => ShippingStatus::idByCode('cancelled'),
-                            'cancel_reason'=>$validated['cancel_reason']
+                            'cancel_reason' => $validated['cancel_reason']
                         ]);
                     }
                 } else {

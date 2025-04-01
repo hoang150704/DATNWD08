@@ -388,13 +388,10 @@ class OrderController extends Controller
             $fromStatusId = $order->order_status_id;
             $cancelStatusId = OrderStatus::idByCode('cancelled');
             $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            if ($order->payment_method === 'vnpay') {
-                $paymentStatus = PaymentStatus::idByCode('refunded');
-                $order->payment_status_id = $paymentStatus;
-            } else {
+            if ($order->payment_method != 'vnpay') {
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
-            }
+            } 
             $order->update([
                 'shipping_status_id' => $cancelStatusShipId,
                 'order_status_id' => $cancelStatusId,

@@ -10,20 +10,21 @@ class Shipment extends Model
         'order_id',
         'shipping_code',
         'shipping_status_id',
-        'shipping_fee',
         'carrier',
         'from_estimate_date',
         'to_estimate_date',
-        'actual_delivery_date',
-        'pickup_time',
+        'shipping_fee_details',
+        'return_confirmed',
+        'return_confirmed_at',
         'cancel_reason',
     ];
 
-    protected $dates = [
-        'from_estimate_date',
-        'to_estimate_date',
-        'actual_delivery_date',
-        'pickup_time',
+    protected $casts = [
+        'from_estimate_date' => 'datetime',
+        'to_estimate_date' => 'datetime',
+        'return_confirmed_at' => 'datetime',
+        'shipping_fee_details' => 'array',
+        'return_confirmed' => 'boolean',
     ];
 
     public function order()
