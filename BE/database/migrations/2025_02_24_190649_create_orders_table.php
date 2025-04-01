@@ -47,6 +47,8 @@ return new class extends Migration
             $table->text('o_phone');
             $table->text('o_mail')->nullable();
             $table->text('note')->nullable();
+            $table->text('payment_url')->nullable();
+            $table->timestamp('expiried_at')->nullable();
             $table->foreignId('order_status_id')->constrained('order_statuses');
             $table->foreignId('payment_status_id')->constrained('payment_statuses');
             $table->foreignId('shipping_status_id')->constrained('shipping_statuses');

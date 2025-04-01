@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Services;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\CompleteOrderJob;
 use App\Models\GhnSetting;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -241,7 +242,7 @@ class GhnTrackingController extends Controller
         $type = strtolower($data['Type'] ?? '');
         $orderCodeGhn = $data['OrderCode'] ?? null;
         $ghnStatus = $data['Status'] ?? null;
-
+        
         if (!$orderCodeGhn || !in_array($type, ['create', 'switch_status'])) {
             return response()->json(['message' => 'Dữ liệu không hợp lệ'], 200);
         }
@@ -257,7 +258,10 @@ class GhnTrackingController extends Controller
         // Mapping trạng thái
         $shippingCode = ShippingStatusMapper::toShipping($ghnStatus);
         $orderCodeMapped = ShippingStatusMapper::toOrder($shippingCode);
-
+        //Nếu trạng thái là đã giao thì gọi job
+        if($ghnStatus == 'delivered'){
+            CompleteOrderJob::dispatch($order->id)->delay(now()->addMinutes(2));
+        }
         // Cập nhật trạng thái vận chuyển
         if ($shippingCode) {
             $shippingStatus = ShippingStatus::where('code', $shippingCode)->first();

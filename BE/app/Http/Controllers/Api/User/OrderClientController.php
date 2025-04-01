@@ -85,6 +85,7 @@ class OrderClientController extends Controller
     {
         $totalWeight = 0;
         $maxWeightGhn = 20000;
+        $paymentTimeout = 60;
         try {
             DB::beginTransaction();
             $validatedData = $request->validated();
@@ -108,7 +109,6 @@ class OrderClientController extends Controller
 
             // Tạo mã đơn hàng
             $orderCode = $this->generateUniqueOrderCode();
-
             // Tạo đơn hàng
             $dataOrder = [
                 'user_id' => $userId,
@@ -253,7 +253,13 @@ class OrderClientController extends Controller
 
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
-                $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
+                $paymentUrl = $this->paymentVnpay->createPaymentUrl($order,$paymentTimeout);
+                $order->updata(
+                    [
+                        'payment_url'=>$paymentUrl,
+                        'expiried_at'=> now()->addMinutes($paymentTimeout)
+                    ]
+                );
                 return response()->json([
                     'message' => 'Thành công',
                     'url' => $paymentUrl,
@@ -566,6 +572,7 @@ class OrderClientController extends Controller
                 'status',
                 'paymentStatus',
                 'shippingStatus',
+                'shipment',
                 'shipment.shippingLogs',
                 'refundRequests',
                 'statusLogs.fromStatus',
@@ -602,6 +609,16 @@ class OrderClientController extends Controller
                     'name' => $order->status->name,
                     'type' => $order->status->type,
                 ],
+                //SHipment
+                'shipment' => $order->shipment->map(function ($item) {
+                    return [
+                        'shipping_code' => $item->shipping_code,
+                        'carrier' => $item->carrier,
+                        'from_estimate_date' => $item->from_estimate_date,
+                        'to_estimate_date' => $item->to_estimate_date,
+                    ];
+                }),
+                //Subtitle
                 'subtitle' => $this->generateOrderSubtitle($order),
                 // Thanh toán + vận chuyển
                 'payment_status' => $order->paymentStatus->name ?? null,
@@ -817,7 +834,8 @@ class OrderClientController extends Controller
 
                         // Cập nhật shipment status
                         $order->shipment->update([
-                            'shipping_status_id' => ShippingStatus::idByCode('cancelled')
+                            'shipping_status_id' => ShippingStatus::idByCode('cancelled'),
+                            'cancel_reason'=>$validated['cancel_reason']
                         ]);
                     }
                 } else {
@@ -977,10 +995,9 @@ class OrderClientController extends Controller
         if ($order->payment_status_id === PaymentStatus::idByCode('paid')) {
             return response()->json(['message' => 'Đơn hàng đã được thanh toán thành công'], 400);
         }
-        $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
         return response()->json([
             'message' => 'Thành công',
-            'url' => $paymentUrl,
+            'url' =>  $order->payment_url,
             'code' => 200
         ], 201);
     }
