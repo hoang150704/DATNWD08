@@ -121,7 +121,8 @@ class OrderController extends Controller
                 'o_mail' => $validatedData['o_mail'] ?? null,
                 'note'  => $validatedData['note'] ?? null,
                 'stt_payment' => 1,
-                'stt_track' => 1
+                'stt_track' => 1,
+                'created_by' => 'system'
             ]);
 
             // Danh sách các sản phẩm trong đơn hàng
@@ -159,8 +160,21 @@ class OrderController extends Controller
             }
             // Thêm nhiều sản phẩm
             OrderItem::insert($orderItems);
+
+            // Cập nhật trạng thái ban đầu của đơn hàng với giá trị hợp lệ
+            $order->statusTimelines()->create([
+                'from' => 'system',
+                'to' => 'Chờ xác nhận',
+                'changed_by' => 'system',
+                'changed_at' => now()->toDateTimeString()
+            ]);
+
+            // Gửi email thông báo đơn hàng thành công
             SendMailSuccessOrderJob::dispatch($order);
+
             DB::commit();
+
+            // Trả về mã đơn hàng
             return response()->json([
                 'message' => 'Bạn đã thêm đơn hàng thành công!',
                 'order_code' => $order->code
@@ -356,7 +370,17 @@ class OrderController extends Controller
             DB::commit();
             return response()->json([
                 'message' => 'Đã xác nhận đơn hàng thành công!',
-            ]);
+                'order' => $order,
+                'confirmed_by' => $order->confirmedBy ? [
+                    'id' => $order->confirmedBy->id,
+                    'name' => $order->confirmedBy->name,
+                    'role' => $order->confirmedBy->role // Lấy role từ bảng users
+                ] : [
+                    'id' => 'system',
+                    'name' => 'Hệ thống',
+                    'role' => 'system' // Đánh dấu rằng hệ thống đã xác nhận đơn
+                ]
+            ], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             return response()->json([
