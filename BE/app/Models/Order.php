@@ -55,6 +55,11 @@ class Order extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+    public function cancelledBy()
+    {
+        return $this->belongsTo(User::class, 'cancel_by');
+    }
+
     public function shipment()
     {
         return $this->hasOne(Shipment::class);
@@ -71,7 +76,6 @@ class Order extends Model
     public function statusLogs()
     {
         return $this->hasMany(OrderStatusLog::class, 'order_id')
-            ->orderBy('changed_at'); 
+            ->orderBy('changed_at');
     }
-
 }
