@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
+use App\Http\Resources\RefundRequestResource;
 use App\Http\Resources\TransactionResource;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
@@ -184,6 +185,7 @@ class OrderController extends Controller
                 'paymentStatus',
                 'shippingStatus',
                 'transactions',
+                'shipment',
                 'shipment.shippingLogs',
                 'shipment.shippingLogsTimeline',
                 'refundRequests',
@@ -232,7 +234,10 @@ class OrderController extends Controller
                 'transactions' => TransactionResource::collection(
                     $order->transactions->sortBy('created_at')
                 ),
+                // Shipment
+                'shipment'=> $order->shipment->map(function ($item){
 
+                }),
                 // Lịch sử vận chuyển theo đúng thứ tự thời gian
                 'shipping_logs' => $order->shipment?->shippingLogsTimeline->map(function ($value) {
                     return [
@@ -244,16 +249,7 @@ class OrderController extends Controller
                 }),
 
                 // Yêu cầu hoàn hàng
-                'refund_requests' => $order->refundRequests->map(function ($refund) {
-                    return [
-                        'status' => $refund->status,
-                        'reason' => $refund->reason,
-                        'amount' => $refund->amount,
-                        'approved_by' => $refund->approved_by,
-                        'approved_at' => optional($refund->approved_at),
-                    ];
-                }),
-
+                'refund_requests' => RefundRequestResource::collection($order->refundRequests),
                 // Timeline trạng thái đơn hàng
                 'status_timelines' => $order->statusLogs->map(function ($statusTimeLine) {
                     return [
@@ -392,7 +388,7 @@ class OrderController extends Controller
             if ($order->payment_method === 'vnpay') {
                 $paymentStatus = PaymentStatus::idByCode('refunded');
                 $order->payment_status_id = $paymentStatus;
-            }else{
+            } else {
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -876,6 +872,8 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Xác nhận hoàn hàng thành công'], 200);
     }
+    // Giao hàng lại
+    public function reshipOrder() {}
 
 
 

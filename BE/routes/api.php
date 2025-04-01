@@ -75,12 +75,12 @@ Route::prefix('voucher')->group(function () {
     Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
     Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
 });
-
+require base_path('routes/api/user/orders.php');
 // =======================================================================================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
     //Order
-    require base_path('routes/api/user/orders.php');
+
     //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);

@@ -142,12 +142,14 @@ class GhnTrackingController extends Controller
             ->value('total_weight');
         $finalWeight = (int) $totalWeight;
         $service_type_id = $finalWeight < $this->weight_service ? 2 : 5;
+        //1 là người bán gửi
+        // 2 là người nhận gửi
+        $payment_type_id = $order->payment_method == 'vnpay' ? 1 : 2;
         $codAmount = $order->payment_method == 'vnpay' ? 0 : $order->final_amount;
         $dataValidated = $request->validate(
             [
                 'note' => 'nullable|string|max:5000',
                 'content' => 'nullable|string|max:2000',
-                'payment_type_id' => 'required|integer|in:1,2',
                 'required_note' => 'required|string|in:CHOTHUHANG,CHOXEMHANGKHONGTHU,KHONGCHOXEMHANG',
             ]
         );
@@ -165,7 +167,7 @@ class GhnTrackingController extends Controller
             "from_province_name" => $convertAddressShop['province'],
             'note' => $dataValidated['note'] ?? "",
             'content' => $dataValidated['content'] ?? "",
-            'payment_type_id' => $dataValidated['payment_type_id'],
+            'payment_type_id' => $payment_type_id,
             'required_note' => $dataValidated['required_note'],
             'client_order_code' => $order->code,
             "to_name" => $order->o_name,
@@ -205,11 +207,7 @@ class GhnTrackingController extends Controller
             $order->shipment->update([
                 'shipping_code'         => $postOrder['data']['order_code'],
                 'shipping_status_id'    => $mappedShippingStatusId,
-                'shipping_fee'          => (float) $postOrder['data']['total_fee'],
-                'shipping_fee_details'  => json_encode($postOrder['data']['fee']),
-                'sort_code'             => $postOrder['data']['sort_code'] ?? null,
-                'transport_type'        => $postOrder['data']['trans_type'] ?? null,
-                'expected_delivery_time' => Carbon::parse($postOrder['data']['expected_delivery_time']),
+                'shipping_fee_details'  => json_encode($postOrder['data']['fee'])
             ]);
             //
             $order->update([

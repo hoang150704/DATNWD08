@@ -61,18 +61,9 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained('orders');
             $table->string('shipping_code')->nullable(); // mã đơn hàng của GHN
             $table->foreignId('shipping_status_id')->constrained('shipping_statuses')->default(1);
-            $table->decimal('shipping_fee', 10, 2)->nullable(); // tổng phí GHN
             $table->string('carrier')->default('ghn');
-
-            $table->timestamp('expected_delivery_time')->nullable(); // thời gian giao dự kiến
             $table->timestamp('from_estimate_date')->nullable(); // khoảng dự kiến (nếu có)
             $table->timestamp('to_estimate_date')->nullable();
-            $table->timestamp('actual_delivery_date')->nullable(); // giao thành công lúc
-            $table->timestamp('pickup_time')->nullable(); // lấy hàng lúc
-
-            $table->string('sort_code')->nullable(); // tuyến phân loại
-            $table->string('transport_type')->nullable(); // truck / bike / ...
-
             $table->json('shipping_fee_details')->nullable(); // các loại phí chi tiết
             $table->boolean('return_confirmed')->default(false);
             $table->timestamp('return_confirmed_at')->nullable();
