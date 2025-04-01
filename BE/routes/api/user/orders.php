@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Api\User\OrderClientController;
 use Illuminate\Support\Facades\Route;
+Route::prefix('orders')->group(function () {
+    Route::get('/', [OrderClientController::class, 'getOrdersForUser']); // /api/orders
+    Route::get('/{code}', [OrderClientController::class, 'getOrderDetail']); // /api/orders/{code}
+    Route::post('/{code}/cancel', [OrderClientController::class, 'cancel']); // /api/orders/{code}/cancel
+    Route::post('/{code}/request-refund', [OrderClientController::class, 'requestRefund']); // /api/orders/{code}/request-refund
+    Route::post('/{code}/retry-payment', [OrderClientController::class, 'retryPaymentVnpay']); // /api/orders/{code}/retry-payment
+});
+
 Route::get('/order_statuses', [OrderClientController::class, 'getOrderStatuses']);
-Route::get('/orders_for_user', [OrderClientController::class, 'getOrdersForUser']);
-Route::get('/order_detail/{code}', [OrderClientController::class, 'getOrderDetail']);
-Route::post('/cancel_order/{code}', [OrderClientController::class, 'cancel']);
-Route::post('/request_refun_order/{code}', [OrderClientController::class, 'requestRefund']);
-Route::post('/retry_payment_order/{code}', [OrderClientController::class, 'retryPaymentVnpay']);
-Route::post('/close_order/{code}', [OrderClientController::class, 'closeOrder']);

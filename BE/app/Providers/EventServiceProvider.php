@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Events\CancelOrderEvent;
 use App\Events\OrderEvent;
 use App\Events\VoucherExpireEvent;
 use App\Listeners\SaveOrderNotification;
