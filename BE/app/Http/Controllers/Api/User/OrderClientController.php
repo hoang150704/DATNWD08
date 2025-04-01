@@ -254,7 +254,7 @@ class OrderClientController extends Controller
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
                 $paymentUrl = $this->paymentVnpay->createPaymentUrl($order,$paymentTimeout);
-                $order->updata(
+                $order->update(
                     [
                         'payment_url'=>$paymentUrl,
                         'expiried_at'=> now()->addMinutes($paymentTimeout)
