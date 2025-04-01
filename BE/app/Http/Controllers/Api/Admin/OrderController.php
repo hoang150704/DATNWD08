@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
+use App\Http\Resources\RefundRequestResource;
+use App\Http\Resources\ShipmentResource;
 use App\Http\Resources\TransactionResource;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
@@ -198,6 +200,7 @@ class OrderController extends Controller
                 'paymentStatus',
                 'shippingStatus',
                 'transactions',
+                'shipment',
                 'shipment.shippingLogs',
                 'shipment.shippingLogsTimeline',
                 'refundRequests',
@@ -246,6 +249,9 @@ class OrderController extends Controller
                 'transactions' => TransactionResource::collection(
                     $order->transactions->sortBy('created_at')
                 ),
+                // Shipment
+                'shipment'=>new ShipmentResource($order->shipment),
+
 
                 // Lịch sử vận chuyển theo đúng thứ tự thời gian
                 'shipping_logs' => $order->shipment?->shippingLogsTimeline->map(function ($value) {
@@ -258,16 +264,7 @@ class OrderController extends Controller
                 }),
 
                 // Yêu cầu hoàn hàng
-                'refund_requests' => $order->refundRequests->map(function ($refund) {
-                    return [
-                        'status' => $refund->status,
-                        'reason' => $refund->reason,
-                        'amount' => $refund->amount,
-                        'approved_by' => $refund->approved_by,
-                        'approved_at' => optional($refund->approved_at),
-                    ];
-                }),
-
+                'refund_requests' => RefundRequestResource::collection($order->refundRequests),
                 // Timeline trạng thái đơn hàng
                 'status_timelines' => $order->statusLogs->map(function ($statusTimeLine) {
                     return [
@@ -396,6 +393,8 @@ class OrderController extends Controller
     // Hủy đơn hàng
     public function cancelOrderByAdmin(Request $request, $code)
     {
+        $user = auth('sanctum')->user();
+        $info = $user->username . '(' .$user->role. ')';
         $validated = $request->validate([
             'cancel_reason' => 'required|string|max:1000'
         ]);
@@ -424,7 +423,7 @@ class OrderController extends Controller
             if ($order->payment_method === 'vnpay') {
                 $paymentStatus = PaymentStatus::idByCode('refunded');
                 $order->payment_status_id = $paymentStatus;
-            } else {
+            }else{
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -432,7 +431,7 @@ class OrderController extends Controller
                 'shipping_status_id' => $cancelStatusShipId,
                 'order_status_id' => $cancelStatusId,
                 'cancel_reason' => $validated['cancel_reason'],
-                'cancel_by' => auth()->id(), // Lưu ID người hủy đơn
+                'cancel_by' => $info,
                 'cancelled_at' => now()
             ]);
 
@@ -441,7 +440,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'from_status_id' => $fromStatusId,
                 'to_status_id' => $cancelStatusId,
-                'changed_by' => auth()->id(), // Lưu ID người hủy đơn
+                'changed_by' => $info,
                 'changed_at' => now(),
             ]);
 
@@ -566,6 +565,8 @@ class OrderController extends Controller
     //1. Đồng ý
     public function approveReturn($code)
     {
+        $user = auth('sanctum')->user();
+        $info = $user->username . '(' .$user->role. ')';
         $order = Order::with('refundRequest')->where('code', $code)->firstOrFail();
 
         if ($order->status->code !== 'return_requested') {
@@ -584,14 +585,14 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'from_status_id' => $fromStatusId,
                 'to_status_id' => $toStatusId,
-                'changed_by' => auth()->id(), // Lưu ID người duyệt
+                'changed_by' => $info,
                 'changed_at' => now(),
             ]);
 
             $order->refundRequest?->update([
                 'status' => 'approved',
                 'approved_at' => now(),
-                'approved_by' => auth()->id(), // Lưu ID người duyệt
+                'approved_by' => $info,
             ]);
 
             Transaction::create([
@@ -610,10 +611,11 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi duyệt hoàn tiền'], 500);
         }
     }
-
     // 2. TỪ chối
     public function rejectReturn(Request $request, $code)
     {
+        $user = auth('sanctum')->user();
+        $info = $user->username . '(' .$user->role. ')';
         $request->validate([
             'reject_reason' => 'required|string|max:1000'
         ]);
@@ -636,7 +638,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'from_status_id' => $fromStatusId,
                 'to_status_id' => $toStatusId,
-                'changed_by' => auth()->id(), // Lưu ID người từ chối
+                'changed_by' => $info,
                 'changed_at' => now(),
             ]);
 
@@ -644,7 +646,7 @@ class OrderController extends Controller
                 'status' => 'rejected',
                 'reject_reason' => $request->reject_reason,
                 'rejected_at' => now(),
-                'rejected_by' => auth()->id(), // Lưu ID người từ chối
+                'rejected_by' => $info,
             ]);
 
             DB::commit();
@@ -654,12 +656,12 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi từ chối hoàn tiền'], 500);
         }
     }
-
     //Hoàn tiền
     // 1 Hoàn tiền vnpay
-
     public function refundAuto($code)
     {
+        $user = auth('sanctum')->user();
+        $info = $user->username . '(' .$user->role. ')';
         $order = Order::with(['transactions', 'refundRequest'])->where('code', $code)->firstOrFail();
 
         if ($order->payment_method !== 'vnpay' || $order->paymentStatus->code !== 'paid') {
@@ -699,7 +701,7 @@ class OrderController extends Controller
                 'txn_date'   => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
                 'txn_no'     => $paymentTransaction->vnp_transaction_no,
                 'type'       => '02',
-                'create_by'  => auth()->id(),
+                'create_by'  => $info,
                 'ip'         => request()->ip(),
                 'order_info' => 'Hoàn tiền sau hoàn hàng',
             ];
@@ -736,7 +738,7 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'from_status_id' => $fromStatusId,
                     'to_status_id' => $refundedStatusId,
-                    'changed_by' => auth()->id(), // Lưu ID người hoàn tiền
+                    'changed_by' => $info,
                     'changed_at' => now(),
                     'note' => 'Hoàn tiền tự động thành công qua VNPAY',
                 ]);
@@ -752,9 +754,6 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi hoàn tiền tự động'], 500);
         }
     }
-
-
-
     //2. Hoàn tiền thủ công
     public function refundManual(Request $request, $code)
     {
@@ -764,7 +763,8 @@ class OrderController extends Controller
             'transfer_reference' => 'nullable|string|max:255',
             'amount' => 'required|numeric|min:1', // nếu cho hoàn 1 phần
         ]);
-
+        $user = auth('sanctum')->user();
+        $info = $user->username . '(' .$user->role. ')';
         $order = Order::where('code', $code)->firstOrFail();
 
         // Tạo mới transaction sucess
@@ -793,7 +793,7 @@ class OrderController extends Controller
             'order_id' => $order->id,
             'from_status_id' => $fromStatusId,
             'to_status_id' => $refundedStatusId,
-            'changed_by' => auth()->id(), // Lưu ID người hoàn tiền
+            'changed_by' => $info,
             'changed_at' => now(),
             'note' => 'Hoàn tiền thủ công đã được thực hiện thành công',
         ]);
@@ -803,13 +803,12 @@ class OrderController extends Controller
             'transaction_id' => $transaction->id,
         ], 200);
     }
-
-
     // 3. Hoàn tiền 1 phần
     public function refundPartial($code, Request $request)
     {
         $order = Order::with(['transactions', 'refundRequest'])->where('code', $code)->firstOrFail();
-
+        $user = auth('sanctum')->user();
+        $info = $user->username . '(' .$user->role. ')';
         if ($order->payment_method !== 'vnpay' || $order->paymentStatus->code !== 'paid') {
             return response()->json(['message' => 'Đơn hàng không hợp lệ để hoàn tiền tự động'], 400);
         }
@@ -838,7 +837,7 @@ class OrderController extends Controller
                 'txn_date'   => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
                 'txn_no'     => $paymentTransaction->vnp_transaction_no,
                 'type'       => '02',
-                'create_by'  => auth()->id(), // ID người thực hiện hoàn tiền
+                'create_by'  => $info,
                 'ip'         => request()->ip(),
                 'order_info' => 'Hoàn tiền một phần qua VNPAY',
             ];
@@ -866,7 +865,7 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'from_status_id' => $order->order_status_id,
                 'to_status_id' => $order->order_status_id, // không đổi
-                'changed_by' => auth()->id(), // Lưu ID người hoàn tiền
+                'changed_by' => $info,
                 'changed_at' => now(),
                 'note' => 'Hoàn tiền một phần qua VNPAY số tiền: ' . number_format($validated['amount']),
             ]);
@@ -882,7 +881,6 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi hoàn tiền một phần'], 500);
         }
     }
-
     //Xác nhận đã nhận hàng
     public function confirmReturnReceived($shipmentId)
     {
@@ -915,6 +913,14 @@ class OrderController extends Controller
         ]);
 
         return response()->json(['message' => 'Xác nhận hoàn hàng thành công'], 200);
+    }
+    // Giao hàng lại
+    public function reshipOrder($code) {
+        $order = Order::where('code', $code)->firstOrFail();
+        if (!$order) {
+            return response()->json(['message' => 'Không tìm thấy đơn hàng'], 400);
+        }
+
     }
 
 

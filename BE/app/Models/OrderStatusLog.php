@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class OrderStatusLog extends Model
 {
     public $timestamps = false;
-
     protected $fillable = [
         'order_id',
         'from_status_id',
@@ -16,7 +15,9 @@ class OrderStatusLog extends Model
         'changed_at',
     ];
 
-    protected $dates = ['changed_at'];
+    protected $casts = [
+        'changed_at' => 'datetime',
+    ];
 
     public function order()
     {

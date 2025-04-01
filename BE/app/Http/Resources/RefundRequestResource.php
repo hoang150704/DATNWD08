@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -10,9 +11,9 @@ class RefundRequestResource extends JsonResource
         $base = [
             'id' => $this->id,
             'type' => $this->type,
+            'amount' => $this->amount,
             'status' => $this->status,
             'reason' => $this->reason,
-            'amount' => $this->amount,
             'images' => $this->images ?? [],
             'bank_name' => $this->bank_name,
             'bank_account_name' => $this->bank_account_name,
@@ -20,23 +21,25 @@ class RefundRequestResource extends JsonResource
             'created_at' => $this->created_at->toDateTimeString(),
         ];
 
-        // Nếu đã được duyệt
-        if ($this->status === 'approved' || $this->status === 'refunded') {
-            $base['approved_by'] = $this->approved_by;
-            $base['approved_at'] = optional($this->approved_at)->toDateTimeString();
+        // Gom thông tin phụ theo trạng thái
+        $details = collect();
+
+        if (in_array($this->status, ['approved', 'refunded'])) {
+            $details->put('Người duyệt', $this->approved_by);
+            $details->put('Thời gian duyệt', optional($this->approved_at)?->toDateTimeString());
         }
 
-        // Nếu bị từ chối
         if ($this->status === 'rejected') {
-            $base['rejected_by'] = $this->rejected_by;
-            $base['rejected_at'] = optional($this->rejected_at)->toDateTimeString();
-            $base['reject_reason'] = $this->reject_reason;
+            $details->put('Người từ chối', $this->rejected_by);
+            $details->put('Thời gian từ chối', optional($this->rejected_at)?->toDateTimeString());
+            $details->put('Lý do từ chối', $this->reject_reason);
         }
 
-        // Nếu đã hoàn tiền
         if ($this->status === 'refunded') {
-            $base['refunded_at'] = optional($this->refunded_at)->toDateTimeString();
+            $details->put('Thời gian hoàn tiền', optional($this->refunded_at)?->toDateTimeString());
         }
+
+        $base['details'] = $details->filter()->toArray();
 
         return $base;
     }
