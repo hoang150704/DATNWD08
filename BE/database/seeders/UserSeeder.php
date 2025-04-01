@@ -22,7 +22,7 @@ class UserSeeder extends Seeder
                 'username' => 'hoang2k4',
                 'email' => 'phuongminhhoang77@gmail.com',
                 'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
-                'role' => User::ROLE_ADMIN,
+                'role' => User::ROLE_MEMBER,
                 'password' => Hash::make(12345678),
                 'email_verified_at' => now()
             ],
@@ -36,11 +36,11 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now()
             ],
             [
-                'name' => 'Hoàng Siêu Nhân',
-                'username' => 'hoangsieunhan',
-                'email' => 'phuongminhhoang45@gmail.com',
+                'name' => 'Lâm Bầu Trời',
+                'username' => 'lambautroi',
+                'email' => 'lamnh.thfitness@gmail.com',
                 'avatar' => 'https://res.cloudinary.com/dkrn3fe2o/image/upload/v1739066958/ovmdtlu6ihcldyx9jckg.jpg',
-                'role' => User::ROLE_MEMBER,
+                'role' => User::ROLE_STAFF,
                 'password' => Hash::make(12345678),
                 'email_verified_at' => now()
             ]

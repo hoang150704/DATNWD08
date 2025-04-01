@@ -521,7 +521,7 @@ class OrderController extends Controller
         }
     }
     //Xử lí yêu cầu trả hàng
-    //1. Đồng ý 
+    //1. Đồng ý
     public function approveReturn($code)
     {
         $user = auth('sanctum')->user();
@@ -745,7 +745,7 @@ class OrderController extends Controller
             'created_at' => now(),
         ]);
 
-        //Cập nhật trạng thái đơn 
+        //Cập nhật trạng thái đơn
         $fromStatusId = $order->order_status_id;
         $refundedStatusId = OrderStatus::idByCode('refunded');
 
@@ -888,7 +888,7 @@ class OrderController extends Controller
         if (!$order) {
             return response()->json(['message' => 'Không tìm thấy đơn hàng'], 400);
         }
-        
+
     }
 
 

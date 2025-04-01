@@ -447,7 +447,7 @@ class OrderClientController extends Controller
 
             $orders = $query->latest()->paginate(10);
 
-            // Nó đỏ nhưng ko lỗi, nó chưa xác định được $orders có phải 1 collection hay không, 
+            // Nó đỏ nhưng ko lỗi, nó chưa xác định được $orders có phải 1 collection hay không,
             // ai thấy đỏ thì đừng hỏi bạn Hoàng nhé
             $data = $orders->map(function ($order) {
                 $items = $order->items;
@@ -512,7 +512,7 @@ class OrderClientController extends Controller
     }
 
 
-    //Tạo map các trạng thái hiển thị 
+    //Tạo map các trạng thái hiển thị
     public function getOrderStatuses()
     {
         $statuses = [
