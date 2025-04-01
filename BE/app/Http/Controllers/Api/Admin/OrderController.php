@@ -259,7 +259,11 @@ class OrderController extends Controller
                     return [
                         'from' => $statusTimeLine->fromStatus->name ?? null,
                         'to' => $statusTimeLine->toStatus->name ?? null,
-                        'changed_by' => $statusTimeLine->changed_by,
+                        'changed_by' => $statusTimeLine->changedByUser ? [
+                            'id' => $statusTimeLine->changedByUser->id,
+                            'name' => $statusTimeLine->changedByUser->name,
+                            'role' => $statusTimeLine->changedByUser->role
+                        ] : null,
                         'changed_at' => $statusTimeLine->changed_at,
                     ];
                 }),
@@ -340,7 +344,7 @@ class OrderController extends Controller
 
         DB::beginTransaction();
         try {
-            $changed = OrderStatusFlowService::change($order, 'confirmed', 'admin');
+            $changed = OrderStatusFlowService::change($order, 'confirmed', auth()->id());
 
             if (!$changed) {
                 DB::rollBack();
@@ -392,7 +396,7 @@ class OrderController extends Controller
             if ($order->payment_method === 'vnpay') {
                 $paymentStatus = PaymentStatus::idByCode('refunded');
                 $order->payment_status_id = $paymentStatus;
-            }else{
+            } else {
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -515,7 +519,15 @@ class OrderController extends Controller
             }
 
             DB::commit();
-            return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
+            return response()->json([
+                'message' => 'Đơn hàng đã được hủy',
+                'order' => $order,
+                'cancelled_by' => $order->cancelledBy ? [
+                    'id' => $order->cancelledBy->id,
+                    'name' => $order->cancelledBy->name,
+                    'role' => $order->cancelledBy->role // Lấy role từ bảng users
+                ] : null
+            ], 200);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('Cancel Order Error: ' . $th->getMessage());
