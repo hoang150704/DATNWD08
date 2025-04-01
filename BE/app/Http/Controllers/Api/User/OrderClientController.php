@@ -610,14 +610,12 @@ class OrderClientController extends Controller
                     'type' => $order->status->type,
                 ],
                 //SHipment
-                'shipment' => $order->shipment->map(function ($item) {
-                    return [
-                        'shipping_code' => $item->shipping_code,
-                        'carrier' => $item->carrier,
-                        'from_estimate_date' => $item->from_estimate_date,
-                        'to_estimate_date' => $item->to_estimate_date,
-                    ];
-                }),
+                'shipment' => $order->shipment ? [
+                    'shipping_code' => $order->shipment->shipping_code,
+                        'carrier' => $order->shipment->carrier,
+                        'from_estimate_date' => $order->shipment->from_estimate_date,
+                        'to_estimate_date' => $order->shipment->to_estimate_date,
+                ]: null,
                 //Subtitle
                 'subtitle' => $this->generateOrderSubtitle($order),
                 // Thanh toán + vận chuyển
