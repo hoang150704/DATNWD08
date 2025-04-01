@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Resources\RefundRequestResource;
+use App\Http\Resources\ShipmentResource;
 use App\Http\Resources\TransactionResource;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
@@ -235,9 +236,9 @@ class OrderController extends Controller
                     $order->transactions->sortBy('created_at')
                 ),
                 // Shipment
-                'shipment'=> $order->shipment->map(function ($item){
+                'shipment'=>new ShipmentResource($order->shipment),
 
-                }),
+             
                 // Lịch sử vận chuyển theo đúng thứ tự thời gian
                 'shipping_logs' => $order->shipment?->shippingLogsTimeline->map(function ($value) {
                     return [
