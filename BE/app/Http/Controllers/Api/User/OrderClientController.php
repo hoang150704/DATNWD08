@@ -607,7 +607,7 @@ class OrderClientController extends Controller
                 'order_id' => $order->id,
                 'order_code' => $order->code,
                 //Thời gian thanh toán đơn hàng hợp lệ để làm count dơ
-                'expiried_at' => $order->expiried_at,
+                'expiried_at' => $order->paymentStatus->code == 'unpaid' ? $order->expiried_at : null,
                 // Trạng thái và subtitle
                 'status' => [
                     'code' => $order->status->code,
