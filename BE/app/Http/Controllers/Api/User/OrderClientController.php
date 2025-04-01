@@ -353,6 +353,9 @@ class OrderClientController extends Controller
         // tránh tạo trùng đơn hàng
         $exists = Transaction::where('transaction_code', $request['vnp_TxnRef'])
             ->where('vnp_transaction_no', $request['vnp_TransactionNo'] ?? null)
+            ->where('status','success')
+            ->where('type','payment')
+            ->where('method','vnpay')
             ->exists();
 
         if ($exists) {

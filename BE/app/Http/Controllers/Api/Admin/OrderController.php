@@ -568,7 +568,6 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi duyệt hoàn tiền'], 500);
         }
     }
-
     // 2. TỪ chối
     public function rejectReturn(Request $request, $code)
     {
@@ -614,10 +613,8 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi từ chối hoàn tiền'], 500);
         }
     }
-
     //Hoàn tiền
     // 1 Hoàn tiền vnpay
-
     public function refundAuto($code)
     {
         $user = auth('sanctum')->user();
@@ -714,9 +711,6 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi hoàn tiền tự động'], 500);
         }
     }
-
-
-
     //2. Hoàn tiền thủ công
     public function refundManual(Request $request, $code)
     {
@@ -766,8 +760,6 @@ class OrderController extends Controller
             'transaction_id' => $transaction->id,
         ], 200);
     }
-
-
     // 3. Hoàn tiền 1 phần
     public function refundPartial($code, Request $request)
     {
@@ -846,7 +838,6 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi hoàn tiền một phần'], 500);
         }
     }
-
     //Xác nhận đã nhận hàng
     public function confirmReturnReceived($shipmentId)
     {
