@@ -146,7 +146,7 @@ class OrderClientController extends Controller
             }
             // Chỉ broadcast khi voucher hợp lệ hoặc không có voucher
             broadcast(new OrderEvent($order, $voucher));
-            
+
             // Lưu bảng trạng thái đơn hàng orderstatus
             OrderStatusFlowService::createInitialStatus($order);
             // Lưu bảng thanh toán
@@ -435,7 +435,7 @@ class OrderClientController extends Controller
 
             $orders = $query->latest()->paginate(10);
 
-            // Nó đỏ nhưng ko lỗi, nó chưa xác định được $orders có phải 1 collection hay không, 
+            // Nó đỏ nhưng ko lỗi, nó chưa xác định được $orders có phải 1 collection hay không,
             // ai thấy đỏ thì đừng hỏi bạn Hoàng nhé
             $data = $orders->map(function ($order) {
                 $items = $order->items;
@@ -500,7 +500,7 @@ class OrderClientController extends Controller
     }
 
 
-    //Tạo map các trạng thái hiển thị 
+    //Tạo map các trạng thái hiển thị
     public function getOrderStatuses()
     {
         $statuses = [
@@ -720,7 +720,7 @@ class OrderClientController extends Controller
                         'payment_status_id' => PaymentStatus::idByCode('refunded'),
                     ]);
                 }
-                
+
                 Transaction::create([
                     'order_id' => $order->id,
                     'method' => 'vnpay',
