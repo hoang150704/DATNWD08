@@ -34,4 +34,8 @@ class OrderStatusLog extends Model
         return $this->belongsTo(OrderStatus::class, 'to_status_id');
     }
 
+    public function changedByUser()
+    {
+        return $this->belongsTo(User::class, 'changed_by');
+    }
 }
