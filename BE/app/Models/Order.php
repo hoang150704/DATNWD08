@@ -22,6 +22,8 @@ class Order extends Model
         'o_phone',
         'o_mail',
         'note',
+        'payment_url',
+        'expiried_at',
         'order_status_id',
         'payment_status_id',
         'shipping_status_id',
@@ -30,7 +32,10 @@ class Order extends Model
         'cancelled_at',
     ];
 
-    protected $dates = ['cancelled_at'];
+    protected $casts = [
+        'expiried_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+    ];
 
     public function status()
     {
