@@ -41,6 +41,12 @@ class GhnApiService
             'order_codes' => $orderCodes
         ]);
     }
+    public function reShipOrder(array $orderCodes): array
+    {
+        return $this->post('/shiip/public-api/v2/switch-status/cancel', [
+            'order_codes' => $orderCodes
+        ]);
+    }
 
     public function getLeadTime(array $data): array
     {

@@ -15,7 +15,7 @@ class PaymentVnpay
     protected $vnp_Refund_Url;
     protected $vnp_ReturnUrl;
     protected $vnp_IpAddr;
-
+    
     public function __construct()
     {
         $this->vnp_TmnCode = env('VNP_TMN_CODE');
@@ -26,7 +26,7 @@ class PaymentVnpay
         $this->vnp_IpAddr = request()->ip();
     }
 
-    public function createPaymentUrl($order)
+    public function createPaymentUrl($order,$expireInMinutes)
     {
         $vnp_TxnRef = $order->code;
         $vnp_OrderInfo = "Thanh toán hóa đơn " . $order->order_code;
@@ -34,7 +34,8 @@ class PaymentVnpay
         $vnp_Amount = $order->final_amount  * 100;
         $vnp_Locale = "VN";
         $vnp_IpAddr = request()->ip();
-
+        $createDate = Carbon::now(); // thời điểm khởi tạo
+        $expireDate = $createDate->copy()->addMinutes($expireInMinutes);
         $inputData = [
             "vnp_Version" => "2.1.0",
             "vnp_TmnCode" => $this->vnp_TmnCode,
@@ -47,7 +48,9 @@ class PaymentVnpay
             "vnp_OrderInfo" => $vnp_OrderInfo,
             "vnp_OrderType" => 'other',
             "vnp_ReturnUrl" => $this->vnp_ReturnUrl,
-            "vnp_TxnRef" => $vnp_TxnRef
+            "vnp_TxnRef" => $vnp_TxnRef,
+            "vnp_CreateDate" => $createDate->format('YmdHis'),
+            "vnp_ExpireDate" => $expireDate->format('YmdHis'),
         ];
 
         ksort($inputData);
@@ -57,10 +60,10 @@ class PaymentVnpay
             $hashdata .= ($hashdata ? '&' : '') . urlencode($key) . "=" . urlencode($value);
             $query .= urlencode($key) . "=" . urlencode($value) . '&';
         }
-        
+
         $vnpSecureHash = hash_hmac('sha512', $hashdata, $this->vnp_HashSecret);
         $query .= 'vnp_SecureHash=' . $vnpSecureHash;
-        
+
         return $this->vnp_Url . "?" . $query;
     }
 
@@ -78,7 +81,7 @@ class PaymentVnpay
         $vnp_CreateDate = now()->format('YmdHis');
         $vnp_IpAddr = $data['ip'] ?? $this->vnp_IpAddr;
         $vnp_OrderInfo = $data['order_info'] ?? "Hoàn tiền cho giao dịch $vnp_TxnRef";
-    
+
         // Tạo chuỗi hash theo thứ tự yêu cầu của VNPAY
         $hashData = implode('|', [
             $vnp_RequestId,
@@ -95,9 +98,9 @@ class PaymentVnpay
             $vnp_IpAddr,
             $vnp_OrderInfo
         ]);
-    
+
         $vnp_SecureHash = hash_hmac('sha512', $hashData, $this->vnp_HashSecret);
-    
+
         $requestData = [
             "vnp_RequestId" => $vnp_RequestId,
             "vnp_Version" => $vnp_Version,
@@ -114,14 +117,14 @@ class PaymentVnpay
             "vnp_OrderInfo" => $vnp_OrderInfo,
             "vnp_SecureHash" => $vnp_SecureHash,
         ];
-    
+
         // Gọi API hoàn tiền
         $response = Http::withHeaders([
             'Content-Type' => 'application/json'
         ])->post("https://sandbox.vnpayment.vn/merchant_webapi/api/transaction", $requestData);
-    
+
         $responseData = $response->json();
-    
+
         // Tạo chuỗi xác thực chữ ký từ VNPAY
         $verifyData = implode('|', [
             $responseData['vnp_ResponseId'] ?? '',
@@ -138,28 +141,28 @@ class PaymentVnpay
             $responseData['vnp_TransactionStatus'] ?? '',
             $responseData['vnp_OrderInfo'] ?? ''
         ]);
-    
+
         $verifyHash = hash_hmac('sha512', $verifyData, $this->vnp_HashSecret);
         $isValid = $verifyHash === ($responseData['vnp_SecureHash'] ?? '');
-    
+
         $error = null;
         if (!$isValid) {
             $error = 'Chữ ký xác thực không hợp lệ.';
         } elseif (($responseData['vnp_ResponseCode'] ?? '') !== '00') {
             $error = 'Lỗi hoàn tiền từ VNPAY: ' . ($responseData['vnp_Message'] ?? 'Không rõ lỗi');
         }
-    
+
         return [
             'request_data' => $requestData,
             'response_data' => $responseData,
-            ' $hashData '=> $hashData ,
+            ' $hashData ' => $hashData,
             'valid_signature' => $isValid,
             'verifyData' =>   $verifyData,
             'error' => $error,
             'success' => $isValid && ($responseData['vnp_ResponseCode'] ?? '') === '00',
         ];
     }
-    
+
     public function mapVnpResponseCode($code)
     {
         return match ($code) {
@@ -173,5 +176,5 @@ class PaymentVnpay
             '99' => 'Các lỗi khác (lỗi còn lại, không có trong danh sách mã lỗi đã liệt kê)',
             default => 'Giao dịch thất bại (mã: ' . $code . ')',
         };
-    }    
+    }
 }

@@ -10,9 +10,9 @@ class RefundRequestResource extends JsonResource
         $base = [
             'id' => $this->id,
             'type' => $this->type,
+            'amount'=>$this->amount,
             'status' => $this->status,
             'reason' => $this->reason,
-            'amount' => $this->amount,
             'images' => $this->images ?? [],
             'bank_name' => $this->bank_name,
             'bank_account_name' => $this->bank_account_name,
