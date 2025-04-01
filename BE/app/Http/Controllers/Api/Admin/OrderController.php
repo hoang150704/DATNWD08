@@ -277,7 +277,11 @@ class OrderController extends Controller
                             'id' => $statusTimeLine->changedByUser->id,
                             'name' => $statusTimeLine->changedByUser->name,
                             'role' => $statusTimeLine->changedByUser->role
-                        ] : null,
+                        ] : [
+                            'id' => 'system',
+                            'name' => 'Hệ thống',
+                            'role' => 'system'
+                        ],
                         'changed_at' => $statusTimeLine->changed_at,
                     ];
                 }),
