@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-class OrderCancelService
+class CancelOrderService
 {
     protected $paymentMedthodVnpay = 'vnpay';
     protected $paymentVnpay;

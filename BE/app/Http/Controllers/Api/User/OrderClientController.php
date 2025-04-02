@@ -28,7 +28,7 @@ use App\Models\Transaction;
 use App\Models\Voucher;
 use App\Services\GhnApiService;
 use App\Services\OrderActionService;
-use App\Services\Orders\Client\OrderCancelService;
+use App\Services\Orders\Client\CancelOrderService;
 use App\Services\OrderStatusFlowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -708,7 +708,7 @@ class OrderClientController extends Controller
             return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại'], 400);
         }
     
-        $result = app(OrderCancelService::class)
+        $result = app(CancelOrderService::class)
             ->handle($order, $validated['cancel_reason'], $request->ip());
     
         return response()->json(['message' => $result['message']], $result['success'] ? 200 : 500);
