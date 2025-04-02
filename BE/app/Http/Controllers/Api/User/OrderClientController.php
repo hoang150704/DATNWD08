@@ -602,6 +602,7 @@ class OrderClientController extends Controller
                             ],
                             'payment_status' => $order->paymentStatus->name ?? null,
                             'shipping_status' => $order->shippingStatus->name ?? null,
+                            'is_verified' => false
                         ],
                         'code' => 200
                     ],
