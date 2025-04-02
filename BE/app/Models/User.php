@@ -14,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable,SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     const ROLE_ADMIN = 'admin';
     const ROLE_STAFF = 'staff';
@@ -81,5 +81,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function library()
     {
         return $this->belongsTo(Library::class, 'avatar', 'id');
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class, 'user_id', 'id');
     }
 }
