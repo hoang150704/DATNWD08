@@ -984,14 +984,14 @@ class OrderClientController extends Controller
         $order = Order::where('code', $request->order_code)->first();
 
         if (!$order || $order->o_mail !== $request->email) {
-            return response()->json(['message' => 'Thông tin đơn hàng không khớp!'], 404);
+            return response()->json(['message' => 'Thông tin đơn hàng không khớp!','code'=>404], 404);
         }
 
         $cacheKey = "verify_order_{$order->code}";
 
         // Giới hạn gửi trong 1 phút
         if (cache()->has($cacheKey)) {
-            return response()->json(['message' => 'Vui lòng chờ 1 phút để gửi lại mã'], 429);
+            return response()->json(['message' => 'Vui lòng chờ 1 phút để gửi lại mã','code'=>429], 429);
         }
 
         // Tạo mã OTP
@@ -1003,7 +1003,7 @@ class OrderClientController extends Controller
         // Gọi job gửi mail
         SendVerifyGuestOrderJob::dispatch($order->o_mail, $order->code, $otp);
 
-        return response()->json(['message' => 'Đã gửi mã xác thực về email. Vui lòng kiểm tra hộp thư'], 200);
+        return response()->json(['message' => 'Đã gửi mã xác thực về email. Vui lòng kiểm tra hộp thư','code'=>200], 200);
     }
     //Xác thức
     public function verifyOrderCode(Request $request)
@@ -1017,7 +1017,7 @@ class OrderClientController extends Controller
         $cachedOtp = cache()->get($cacheKey);
 
         if (!$cachedOtp || $cachedOtp != $request->otp) {
-            return response()->json(['message' => 'Mã xác thực không đúng hoặc đã hết hạn!'], 400);
+            return response()->json(['message' => 'Mã xác thực không đúng hoặc đã hết hạn!','code'=>400], 400);
         }
 
         // Xóa key
@@ -1028,6 +1028,7 @@ class OrderClientController extends Controller
 
         return response()->json([
             'message' => 'Xác thực thành công!',
+            'code'=>200,
             'token' => $verifyToken,
         ]);
     }
