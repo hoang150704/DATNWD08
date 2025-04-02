@@ -40,7 +40,9 @@ class OrderActionService
                     $actions[] = 'cancel'; //Hủy
                     break;
                 case 'confirmed':
-                    $actions[] = 'ship'; // Ship
+                    if ( !$order->shipment->shipping_code) {
+                        $actions[] = 'ship'; // Chỉ hiện nút ship nếu chưa có shipping_code
+                    } // Ship
                     $actions[] = 'cancel'; // Hủy
                     break;
                 case 'return_requested':
@@ -66,7 +68,6 @@ class OrderActionService
                     $actions[] = 'partial_refund'; // Đã xác nhận -> cho hoàn tiền 
                 }
             }
-            
         }
 
         return $actions;

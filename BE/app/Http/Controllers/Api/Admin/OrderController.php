@@ -349,7 +349,8 @@ class OrderController extends Controller
     public function confirmOrder($code)
     {
         $order = Order::with('status')->where('code', $code)->firstOrFail();
-
+        $user = auth('sanctum')->user();
+        $info = $user->username . '(' .$user->role. ')';
         // Kiểm tra trạng thái hiện tại có thể chuyển sang 'confirmed' không
         if (!OrderStatusFlowService::canChange($order, 'confirmed')) {
             return response()->json([
@@ -359,7 +360,7 @@ class OrderController extends Controller
 
         DB::beginTransaction();
         try {
-            $changed = OrderStatusFlowService::change($order, 'confirmed', auth()->id());
+            $changed = OrderStatusFlowService::change($order, 'confirmed', $info);
 
             if (!$changed) {
                 DB::rollBack();
@@ -525,7 +526,7 @@ class OrderController extends Controller
                         // Tạo log shipment
                         ShippingLog::create([
                             'shipment_id'       => $order->shipment->id,
-                            'ghn_status'        => 'cancel_order',
+                            'ghn_status'        => 'cancel',
                             'mapped_status_id'  => ShippingStatus::idByCode('cancelled'),
                             'location'          => null,
                             'note'              => $item['message'] ?? 'Đã huỷ qua GHN',

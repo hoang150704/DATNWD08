@@ -28,6 +28,7 @@ use App\Models\Transaction;
 use App\Models\Voucher;
 use App\Services\GhnApiService;
 use App\Services\OrderActionService;
+use App\Services\Orders\Client\OrderCancelService;
 use App\Services\OrderStatusFlowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -693,170 +694,26 @@ class OrderClientController extends Controller
         $validated = $request->validate([
             'cancel_reason' => 'required|string|max:1000'
         ]);
-
-        $order = Order::with('shipment')
-            ->where('code', $code)
-            ->first();
+    
+        $order = Order::with('shipment')->where('code', $code)->first();
         if (!$order) {
-            return response()->json([
-                'message' => 'Không tìm thấy đơn hàng.'
-            ], 404);
+            return response()->json(['message' => 'Không tìm thấy đơn hàng.'], 404);
         }
-        $isVerified = $this->isVerifiedOrder($request, $order);
-        if (!$isVerified) {
-            return response()->json([
-                'message' => 'Bạn không có quyền hủy đơn hàng này'
-            ], 404);
+    
+        if (!$this->isVerifiedOrder($request, $order)) {
+            return response()->json(['message' => 'Bạn không có quyền hủy đơn hàng này'], 403);
         }
-
+    
         if (!in_array($order->status->code, ['pending', 'confirmed'])) {
             return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại'], 400);
         }
-
-        DB::beginTransaction();
-
-        try {
-            // Cập nhật trạng thái đơn hàng & shipping
-            $fromStatusId = $order->order_status_id;
-            $cancelStatusId = OrderStatus::idByCode('cancelled');
-            $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            if ($order->payment_method != 'vnpay') {
-                $paymentStatus = PaymentStatus::idByCode('cancelled');
-                $order->payment_status_id = $paymentStatus;
-            }
-            $order->update([
-                'shipping_status_id' => $cancelStatusShipId,
-                'order_status_id' => $cancelStatusId,
-                'cancel_reason' => $validated['cancel_reason'],
-                'cancel_by' => 'user',
-                'cancelled_at' => now()
-            ]);
-
-            // Broadcast Cancel Order
-            broadcast(new OrderEvent($order, null));
-
-            // Ghi log trạng thái
-            OrderStatusLog::create([
-                'order_id' => $order->id,
-                'from_status_id' => $fromStatusId,
-                'to_status_id' => $cancelStatusId,
-                'changed_by' => 'user',
-                'changed_at' => now(),
-            ]);
-            // Nếu thanh toán online (VNPAY) & đã thanh toán
-            if ($order->payment_method === 'vnpay' && $order->paymentStatus->code === 'paid') {
-                // Tạo bản ghi refund_requests
-                RefundRequest::create([
-                    'order_id' => $order->id,
-                    'type' => 'not_received',
-                    'reason' => $validated['cancel_reason'],
-                    'amount' => $order->final_amount,
-                    'status' => 'approved',
-                    'approved_by' => 'system',
-                    'approved_at' => now()
-                ]);
-            
-                // Lấy transaction gốc (thanh toán thành công)
-                $paymentTransaction = $order->transactions()
-                    ->where('method', 'vnpay')
-                    ->where('type', 'payment')
-                    ->where('status', 'success')
-                    ->latest()
-                    ->first();
-
-                // Tạo transaction hoàn tiền mới (trạng thái pending)
-                $refundTransaction = Transaction::create([
-                    'order_id' => $order->id,
-                    'method' => 'vnpay',
-                    'type' => 'refund',
-                    'amount' => $order->final_amount,
-                    'status' => 'pending',
-                    'note' => 'Yêu cầu hoàn tiền khi khách huỷ đơn chưa nhận hàng',
-                    'created_at' => now()
-                ]);
-
-                // Chuẩn bị dữ liệu gọi API hoàn tiền
-                $refundData = [
-                    'txn_ref' => $paymentTransaction->transaction_code,
-                    'amount' => $paymentTransaction->amount,
-                    'txn_date' => optional($paymentTransaction->vnp_pay_date)->format('YmdHis'),
-                    'txn_no' => $paymentTransaction->vnp_transaction_no,
-                    'type' => '02',
-                    'create_by' => 'system',
-                    'ip' => $request->ip(),
-                    'order_info' => 'Khách huỷ đơn hàng chưa nhận'
-                ];
-
-                // Gọi API hoàn tiền
-                $result = $this->paymentVnpay->refundTransaction($refundData);
-
-                // Xử lý kết quả hoàn tiền
-                if (
-                    isset($result['response_data']['vnp_ResponseCode']) &&
-                    $result['response_data']['vnp_ResponseCode'] === '00'
-                ) {
-                    $order->update([
-                        'payment_status_id' => PaymentStatus::idByCode('refunded'),
-                    ]);
-                }
-
-                Transaction::create([
-                    'order_id' => $order->id,
-                    'method' => 'vnpay',
-                    'type' => 'refund',
-                    'amount' => $order->final_amount,
-                    'status' => $result['success'] ? 'success' : 'failed',
-                    'transaction_code' => $order->code,
-                    'vnp_transaction_no' => $result['response_data']['vnp_TransactionNo'] ?? null,
-                    'vnp_bank_code' => $result['response_data']['vnp_BankCode'] ?? null,
-                    'vnp_response_code' => $result['response_data']['vnp_ResponseCode'] ?? null,
-                    'vnp_transaction_status' => $result['response_data']['vnp_TransactionStatus'] ?? null,
-                    'vnp_refund_request_id' => $result['response_data']['vnp_ResponseId'] ?? null,
-                    'vnp_pay_date' => isset($result['response_data']['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $result['response_data']['vnp_PayDate']) : now(),
-                    'vnp_create_date' => now(),
-                    'note' => $result['error'] ?? 'Hoàn tiền thành công từ VNPAY',
-                ]);
-            }
-
-            // Nếu đã có vận đơn GHN
-            if (!in_array($order->shippingStatus->code, ['not_created', 'cancelled'])) {
-                $dataCancelOrderGhn = [$order->shipment->shipping_code];
-                $result = $this->ghn->cancelOrder($dataCancelOrderGhn);
-
-                if ($result['code'] === 200 && !empty($result['data'])) {
-                    foreach ($result['data'] as $item) {
-                        // Tạo log shipment
-                        ShippingLog::create([
-                            'shipment_id' => $order->shipment->id,
-                            'ghn_status' => 'cancel_order',
-                            'mapped_status_id' => ShippingStatus::idByCode('cancelled'),
-                            'location' => null,
-                            'note' => $item['message'] ?? 'Đã huỷ qua GHN',
-                            'timestamp' => now(),
-                        ]);
-
-                        // Cập nhật shipment status
-                        $order->shipment->update([
-                            'shipping_status_id' => ShippingStatus::idByCode('cancelled'),
-                            'cancel_reason' => $validated['cancel_reason']
-                        ]);
-                    }
-                } else {
-                    Log::error('GHN Cancel Failed', [
-                        'order_code' => $order->shipment->shipping_code,
-                        'message' => $result['message'] ?? 'Không rõ lỗi'
-                    ]);
-                }
-            }
-
-            DB::commit();
-            return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            Log::error('Cancel Order Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi hủy đơn hàng', 'errors' => $th->getMessage()], 500);
-        }
+    
+        $result = app(OrderCancelService::class)
+            ->handle($order, $validated['cancel_reason'], $request->ip());
+    
+        return response()->json(['message' => $result['message']], $result['success'] ? 200 : 500);
     }
+    
 
     //Yêu cầu hoàn tiền
     public function requestRefund(Request $request, $code)
