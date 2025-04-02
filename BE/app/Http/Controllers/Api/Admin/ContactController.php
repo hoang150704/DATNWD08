@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Contact\replyMailRequest;
 use App\Models\Contact;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\sendMailReplyContactJob;
 
 class ContactController extends Controller
 {
@@ -16,7 +18,7 @@ class ContactController extends Controller
     {
         try {
             $contacts = Contact::latest()->paginate(10);
-
+            
             return response()->json($contacts, 200);
             
         } catch (\Exception $e) {
@@ -67,6 +69,7 @@ class ContactController extends Controller
             $contact->delete(); // Xóa mềm (chỉ cập nhật deleted_at)
 
             return response()->json(['message' => 'Contact deleted successfully'], 204);
+
         } catch (\Exception $e) {
             Log::error($e);
             return response()->json([
@@ -88,7 +91,7 @@ class ContactController extends Controller
             $contact->restore(); // Khôi phục contact
 
             return response()->json(['message' => 'Contact restored successfully'], 200);
-            
+
         } catch (\Exception $e) {
             Log::error($e);
             return response()->json([
@@ -110,7 +113,7 @@ class ContactController extends Controller
             $contact->forceDelete(); // Xóa vĩnh viễn
 
             return response()->json(['message' => 'Contact permanently deleted'], 204);
-            
+
         } catch (\Exception $e) {
             Log::error($e);
             return response()->json([
@@ -119,5 +122,27 @@ class ContactController extends Controller
             ], 500);
         }
     }
-    
+
+    public function reply_mail(replyMailRequest $request)
+    {
+        try { 
+            sendMailReplyContactJob::dispatch($request->email, $request->name, $request->content);
+            
+            $contact = Contact::withTrashed()->find($request->contact_id);
+            
+            $contact->update(['status' => 'resolved']);
+            
+            return response()->json([
+                'message' => 'Trả lời mail thành công',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
