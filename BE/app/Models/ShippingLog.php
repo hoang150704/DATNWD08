@@ -8,6 +8,7 @@ class ShippingLog extends Model
 {
     public $timestamps = false;
 
+  
     protected $fillable = [
         'shipment_id',
         'ghn_status',
@@ -17,7 +18,9 @@ class ShippingLog extends Model
         'timestamp',
     ];
 
-    protected $dates = ['timestamp'];
+    protected $casts = [
+        'timestamp' => 'datetime',
+    ];
 
     public function shipment()
     {

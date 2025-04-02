@@ -35,13 +35,15 @@ class OrderActionService
             switch ($status) {
                 case 'pending':
                     if (!($order->payment_method === 'vnpay' && $payment === 'unpaid')) {
-                        $actions[] = 'confirm';
+                        $actions[] = 'confirm'; // Xác nhận
                     }
-                    $actions[] = 'cancel';
+                    $actions[] = 'cancel'; //Hủy
                     break;
                 case 'confirmed':
-                    $actions[] = 'ship';
-                    $actions[] = 'cancel';
+                    if ( !$order->shipment->shipping_code) {
+                        $actions[] = 'ship'; // Chỉ hiện nút ship nếu chưa có shipping_code
+                    } // Ship
+                    $actions[] = 'cancel'; // Hủy
                     break;
                 case 'return_requested':
                     $actions[] = 'approve_return'; // Đồng ý hoàn tiền
@@ -52,22 +54,20 @@ class OrderActionService
                         $actions[] = 'refund_auto';   // Ưu tiên hoàn tự động
                         $actions[] = 'refund_manual'; // Dự phòng nếu VNPAY lỗi
                     } else {
-                        $actions[] = 'refund_manual';
+                        $actions[] = 'refund_manual'; // Hoàn tiền tự ffoongj
                     }
                     break;
             }
             if ($shipping === 'failed') {
                 $actions[] = 're_ship'; // Giao hàng lại
             }
-
             if ($shipping === 'returned') {
                 if (!$order->shipment->return_confirmed) {
-                    $actions[] = 'mark_return_received'; // Chưa xác nhận → chỉ cho xác nhận
+                    $actions[] = 'mark_return_received'; // Chưa xác nhận -> chỉ cho xác nhận là đã nhận đơn
                 } else {
-                    $actions[] = 'partial_refund'; // Đã xác nhận → cho hoàn tiền
+                    $actions[] = 'partial_refund'; // Đã xác nhận -> cho hoàn tiền 
                 }
             }
-            
         }
 
         return $actions;

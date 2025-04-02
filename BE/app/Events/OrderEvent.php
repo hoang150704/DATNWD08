@@ -55,6 +55,8 @@ class OrderEvent implements ShouldBroadcast
             'final_amount' => $this->order->final_amount,
             'payment_method' => $this->order->payment_method,
             'created_at' => $this->order->created_at,
+            'cancelled_at' => $this->order->cancelled_at,
+            'cancel_reason' => $this->order->cancel_reason,
             'voucher' => $this->voucher ? [
                 'code' => $this->voucher->code,
                 'usage_limit' => $this->voucher->usage_limit,

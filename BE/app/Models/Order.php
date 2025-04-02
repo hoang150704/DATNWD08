@@ -22,6 +22,8 @@ class Order extends Model
         'o_phone',
         'o_mail',
         'note',
+        'payment_url',
+        'expiried_at',
         'order_status_id',
         'payment_status_id',
         'shipping_status_id',
@@ -30,7 +32,10 @@ class Order extends Model
         'cancelled_at',
     ];
 
-    protected $dates = ['cancelled_at'];
+    protected $casts = [
+        'expiried_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+    ];
 
     public function status()
     {
@@ -55,6 +60,11 @@ class Order extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+    public function cancelledBy()
+    {
+        return $this->belongsTo(User::class, 'cancel_by');
+    }
+
     public function shipment()
     {
         return $this->hasOne(Shipment::class);
@@ -71,7 +81,6 @@ class Order extends Model
     public function statusLogs()
     {
         return $this->hasMany(OrderStatusLog::class, 'order_id')
-            ->orderBy('changed_at'); 
+            ->orderBy('changed_at');
     }
-
 }

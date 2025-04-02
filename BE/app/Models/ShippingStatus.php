@@ -15,8 +15,8 @@ class ShippingStatus extends Model
         'name',
     ];
     public static function idByCode($code)
-{
-    return static::where('code', $code)->value('id');
-}
+    {
+        return static::where('code', $code)->value('id');
+    }
 
 }

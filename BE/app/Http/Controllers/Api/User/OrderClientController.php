@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\User;
 
+use App\Events\CancelOrderEvent;
 use App\Events\OrderEvent;
 use App\Http\Controllers\Controller;
 
@@ -27,6 +28,8 @@ use App\Models\Transaction;
 use App\Models\Voucher;
 use App\Services\GhnApiService;
 use App\Services\OrderActionService;
+use App\Services\Orders\Client\CancelOrderService;
+use App\Services\Orders\Client\OrderCancelService;
 use App\Services\OrderStatusFlowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +49,13 @@ class OrderClientController extends Controller
 
     protected $paymentVnpay;
     protected $ghn;
-
+    protected int $maxWeightGhn = 20000;
+    protected int $defaultServiceTypeId = 2;
+    protected int $heavyServiceTypeId = 5;
+    protected string $carrier = 'ghn';
+    protected string $defaultOrderStatus = 'pending';
+    protected string $defaultPaymentStatus = 'unpaid';
+    protected string $defaultShippingStatus = 'not_created';
     public function __construct(PaymentVnpay $paymentVnpay, GhnApiService $ghn)
     {
         $this->paymentVnpay = $paymentVnpay;
@@ -78,6 +87,8 @@ class OrderClientController extends Controller
     public function store(OrderClientRequest $request)
     {
         $totalWeight = 0;
+        $maxWeightGhn = 20000;
+        $paymentTimeout = 60;
         try {
             DB::beginTransaction();
             $validatedData = $request->validated();
@@ -101,7 +112,6 @@ class OrderClientController extends Controller
 
             // Tạo mã đơn hàng
             $orderCode = $this->generateUniqueOrderCode();
-
             // Tạo đơn hàng
             $dataOrder = [
                 'user_id' => $userId,
@@ -146,7 +156,7 @@ class OrderClientController extends Controller
             }
             // Chỉ broadcast khi voucher hợp lệ hoặc không có voucher
             broadcast(new OrderEvent($order, $voucher));
-            
+
             // Lưu bảng trạng thái đơn hàng orderstatus
             OrderStatusFlowService::createInitialStatus($order);
             // Lưu bảng thanh toán
@@ -170,7 +180,6 @@ class OrderClientController extends Controller
                 [
                     'order_id' => $order->id,
                     'shipping_status_id' => ShippingStatus::idByCode('not_created'),
-                    'shipping_fee' => $order->shipping,
                     'carrier' => 'ghn',
                     'from_estimate_date' => $validatedData['from_estimate_date'] ?? null,
                     'to_estimate_date' => $validatedData['to_estimate_date'] ?? null,
@@ -212,7 +221,7 @@ class OrderClientController extends Controller
                 // Giảm số lượng tồn kho
                 $variant->decrement('stock_quantity', (int) $product['quantity']);
             }
-            if ($totalWeight >= 20000) {
+            if ($totalWeight >= $maxWeightGhn) {
                 DB::rollBack();
                 return response()->json([
                     'message' => 'Tổng cân nặng của đơn hạng đã vượt quá mức cho phép, vui lòng chia đơn hàng này thành 2 đơn nhỏ'
@@ -247,7 +256,13 @@ class OrderClientController extends Controller
 
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
-                $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
+                $paymentUrl = $this->paymentVnpay->createPaymentUrl($order, $paymentTimeout);
+                $order->update(
+                    [
+                        'payment_url' => $paymentUrl,
+                        'expiried_at' => now()->addMinutes($paymentTimeout)
+                    ]
+                );
                 return response()->json([
                     'message' => 'Thành công',
                     'url' => $paymentUrl,
@@ -341,6 +356,9 @@ class OrderClientController extends Controller
         // tránh tạo trùng đơn hàng
         $exists = Transaction::where('transaction_code', $request['vnp_TxnRef'])
             ->where('vnp_transaction_no', $request['vnp_TransactionNo'] ?? null)
+            ->where('status','success')
+            ->where('type','payment')
+            ->where('method','vnpay')
             ->exists();
 
         if ($exists) {
@@ -435,7 +453,7 @@ class OrderClientController extends Controller
 
             $orders = $query->latest()->paginate(10);
 
-            // Nó đỏ nhưng ko lỗi, nó chưa xác định được $orders có phải 1 collection hay không, 
+            // Nó đỏ nhưng ko lỗi, nó chưa xác định được $orders có phải 1 collection hay không,
             // ai thấy đỏ thì đừng hỏi bạn Hoàng nhé
             $data = $orders->map(function ($order) {
                 $items = $order->items;
@@ -500,7 +518,7 @@ class OrderClientController extends Controller
     }
 
 
-    //Tạo map các trạng thái hiển thị 
+    //Tạo map các trạng thái hiển thị
     public function getOrderStatuses()
     {
         $statuses = [
@@ -519,34 +537,98 @@ class OrderClientController extends Controller
             'data' => $statuses,
         ]);
     }
+    //
+    private function isVerifiedOrder(Request $request, Order $order)
+    {
+        $user = auth('sanctum')->user();
+        if ($user && $order->user_id === $user->id) {
+            return true;
+        }
+        if ($request->hasHeader('X-Order-Access-Token')) {
+            try {
+                $decrypted = decrypt($request->header('X-Order-Access-Token'));
+                if ($decrypted === "verified_order_{$order->code}") {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Xác thực token đơn hàng thất bại: " . $e->getMessage());
+            }
+        }
+        return false;
+    }
+    //
+    private function checkOrderAccessOrFail(?Order $order, bool $isVerified, string $action = 'thao tác'): void
+    {
+        if (!$order) {
+            abort(404, 'Không tìm thấy đơn hàng.');
+        }
+
+        if (!$isVerified) {
+            abort(403, "Bạn không có quyền {$action} đơn hàng này.");
+        }
+    }
 
 
     //Lấy chi tiết
-    public function getOrderDetail($code)
+    public function getOrderDetail($code, Request $request)
     {
         try {
-            $userId = auth('sanctum')->user()->id;
-
             $order = Order::with([
                 'items',
                 'status',
                 'paymentStatus',
                 'shippingStatus',
+                'shipment',
                 'shipment.shippingLogs',
                 'refundRequests',
                 'statusLogs.fromStatus',
                 'statusLogs.toStatus',
-            ])->where('code', $code)->where('user_id', $userId)->firstOrFail();
-
+            ])->where('code', $code)->first();
+            if(!$order){
+                return response()->json(['message'=>'Không timg thấy đơn hàng'],404);
+            }
+            //Check quyền
+            $isVerified = $this->isVerifiedOrder($request, $order);
+            if (!$isVerified) {
+                return response()->json(
+                    [
+                        'message' => "Success",
+                        'data' => [
+                            'order_code' => $order->code,
+                            'status' => [
+                                'code' => $order->status->code,
+                                'name' => $order->status->name,
+                                'type' => $order->status->type,
+                            ],
+                            'payment_status' => $order->paymentStatus->name ?? null,
+                            'shipping_status' => $order->shippingStatus->name ?? null,
+                            'is_verified' => false
+                        ],
+                        'code' => 200
+                    ],
+                    200
+                );
+            }
+            //Data
             $data = [
                 'order_id' => $order->id,
                 'order_code' => $order->code,
+                //Thời gian thanh toán đơn hàng hợp lệ để làm count dơ
+                'expiried_at' => $order->paymentStatus->code == 'unpaid' ? $order->expiried_at : null,
                 // Trạng thái và subtitle
                 'status' => [
                     'code' => $order->status->code,
                     'name' => $order->status->name,
                     'type' => $order->status->type,
                 ],
+                //SHipment
+                'shipment' => $order->shipment ? [
+                    'shipping_code' => $order->shipment->shipping_code,
+                    'carrier' => $order->shipment->carrier,
+                    'from_estimate_date' => $order->shipment->from_estimate_date,
+                    'to_estimate_date' => $order->shipment->to_estimate_date,
+                ] : null,
+                //Subtitle
                 'subtitle' => $this->generateOrderSubtitle($order),
                 // Thanh toán + vận chuyển
                 'payment_status' => $order->paymentStatus->name ?? null,
@@ -592,7 +674,9 @@ class OrderClientController extends Controller
                     ];
                 }),
                 // Các hành động khả dụng cho user
-                'actions' => OrderActionService::availableActions($order, 'user')
+                'actions' => OrderActionService::availableActions($order, 'user'),
+                //Đã xác thực thành công hay chưa
+                'is_verified' => true
             ];
 
             return response()->json([
@@ -612,176 +696,33 @@ class OrderClientController extends Controller
     //Hủy đơn hàng
     public function cancel(Request $request, $code)
     {
-        $userId = auth('sanctum')->user()->id;
-
         $validated = $request->validate([
             'cancel_reason' => 'required|string|max:1000'
         ]);
-
-        $order = Order::with('shipment')
-            ->where('code', $code)
-            ->where('user_id', $userId)
-            ->first();
-
+    
+        $order = Order::with('shipment')->where('code', $code)->first();
         if (!$order) {
-            return response()->json([
-                'message' => 'Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn này'
-            ], 404);
+            return response()->json(['message' => 'Không tìm thấy đơn hàng.'], 404);
         }
-
+    
+        if (!$this->isVerifiedOrder($request, $order)) {
+            return response()->json(['message' => 'Bạn không có quyền hủy đơn hàng này'], 403);
+        }
+    
         if (!in_array($order->status->code, ['pending', 'confirmed'])) {
             return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại'], 400);
         }
-
-        DB::beginTransaction();
-
-        try {
-            // Cập nhật trạng thái đơn hàng & shipping
-            $fromStatusId = $order->order_status_id;
-            $cancelStatusId = OrderStatus::idByCode('cancelled');
-            $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            if ($order->payment_method === 'vnpay') {
-                $paymentStatus = PaymentStatus::idByCode('refunded');
-                $order->payment_status_id = $paymentStatus;
-            }else{
-                $paymentStatus = PaymentStatus::idByCode('cancelled');
-                $order->payment_status_id = $paymentStatus;
-            }
-            $order->update([
-                'shipping_status_id' => $cancelStatusShipId,
-                'order_status_id' => $cancelStatusId,
-                'cancel_reason' => $validated['cancel_reason'],
-                'cancel_by' => 'user',
-                'cancelled_at' => now()
-            ]);
-
-            // Ghi log trạng thái
-            OrderStatusLog::create([
-                'order_id' => $order->id,
-                'from_status_id' => $fromStatusId,
-                'to_status_id' => $cancelStatusId,
-                'changed_by' => 'user',
-                'changed_at' => now(),
-            ]);
-
-            // Nếu thanh toán online (VNPAY) & đã thanh toán
-            if ($order->payment_method === 'vnpay' && $order->paymentStatus->code === 'paid') {
-                // Tạo bản ghi refund_requests
-                RefundRequest::create([
-                    'order_id' => $order->id,
-                    'type' => 'not_received',
-                    'reason' => $validated['cancel_reason'],
-                    'amount' => $order->final_amount,
-                    'status' => 'approved',
-                    'approved_by' => 'system',
-                    'approved_at' => now()
-                ]);
-
-                // Lấy transaction gốc (thanh toán thành công)
-                $paymentTransaction = $order->transactions()
-                    ->where('method', 'vnpay')
-                    ->where('type', 'payment')
-                    ->where('status', 'success')
-                    ->latest()
-                    ->first();
-
-                // Tạo transaction hoàn tiền mới (trạng thái pending)
-                $refundTransaction = Transaction::create([
-                    'order_id' => $order->id,
-                    'method' => 'vnpay',
-                    'type' => 'refund',
-                    'amount' => $order->final_amount,
-                    'status' => 'pending',
-                    'note' => 'Yêu cầu hoàn tiền khi khách huỷ đơn chưa nhận hàng',
-                    'created_at' => now()
-                ]);
-
-                // Chuẩn bị dữ liệu gọi API hoàn tiền
-                $refundData = [
-                    'txn_ref' => $paymentTransaction->transaction_code,
-                    'amount' => $paymentTransaction->amount,
-                    'txn_date' => optional($paymentTransaction->vnp_pay_date)->format('YmdHis'),
-                    'txn_no' => $paymentTransaction->vnp_transaction_no,
-                    'type' => '02',
-                    'create_by' => 'system',
-                    'ip' => $request->ip(),
-                    'order_info' => 'Khách huỷ đơn hàng chưa nhận'
-                ];
-
-                // Gọi API hoàn tiền
-                $result = $this->paymentVnpay->refundTransaction($refundData);
-
-                // Xử lý kết quả hoàn tiền
-                if (
-                    isset($result['response_data']['vnp_ResponseCode']) &&
-                    $result['response_data']['vnp_ResponseCode'] === '00'
-                ) {
-                    $order->update([
-                        'payment_status_id' => PaymentStatus::idByCode('refunded'),
-                    ]);
-                }
-                
-                Transaction::create([
-                    'order_id' => $order->id,
-                    'method' => 'vnpay',
-                    'type' => 'refund',
-                    'amount' => $order->final_amount,
-                    'status' => $result['success'] ? 'success' : 'failed',
-                    'transaction_code' => $order->code,
-                    'vnp_transaction_no' => $result['response_data']['vnp_TransactionNo'] ?? null,
-                    'vnp_bank_code' => $result['response_data']['vnp_BankCode'] ?? null,
-                    'vnp_response_code' => $result['response_data']['vnp_ResponseCode'] ?? null,
-                    'vnp_transaction_status' => $result['response_data']['vnp_TransactionStatus'] ?? null,
-                    'vnp_refund_request_id' => $result['response_data']['vnp_ResponseId'] ?? null,
-                    'vnp_pay_date' => isset($result['response_data']['vnp_PayDate']) ? Carbon::createFromFormat('YmdHis', $result['response_data']['vnp_PayDate']) : now(),
-                    'vnp_create_date' => now(),
-                    'note' => $result['error'] ?? 'Hoàn tiền thành công từ VNPAY',
-                ]);
-            }
-
-            // Nếu đã có vận đơn GHN
-            if (!in_array($order->shippingStatus->code, ['not_created', 'cancelled'])) {
-                $dataCancelOrderGhn = [$order->shipment->shipping_code];
-                $result = $this->ghn->cancelOrder($dataCancelOrderGhn);
-
-                if ($result['code'] === 200 && !empty($result['data'])) {
-                    foreach ($result['data'] as $item) {
-                        // Tạo log shipment
-                        ShippingLog::create([
-                            'shipment_id'       => $order->shipment->id,
-                            'ghn_status'        => 'cancel_order',
-                            'mapped_status_id'  => ShippingStatus::idByCode('cancelled'),
-                            'location'          => null,
-                            'note'              => $item['message'] ?? 'Đã huỷ qua GHN',
-                            'timestamp'         => now(),
-                        ]);
-
-                        // Cập nhật shipment status
-                        $order->shipment->update([
-                            'shipping_status_id' => ShippingStatus::idByCode('cancelled')
-                        ]);
-                    }
-                } else {
-                    Log::error('GHN Cancel Failed', [
-                        'order_code' => $order->shipment->shipping_code,
-                        'message' => $result['message'] ?? 'Không rõ lỗi'
-                    ]);
-                }
-            }
-
-            DB::commit();
-            return response()->json(['message' => 'Đơn hàng đã được hủy'], 200);
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            Log::error('Cancel Order Error: ' . $th->getMessage());
-            return response()->json(['message' => 'Lỗi khi hủy đơn hàng', 'errors' => $th->getMessage()], 500);
-        }
+    
+        $result = app(CancelOrderService::class)
+            ->handle($order, $validated['cancel_reason'], $request->ip());
+    
+        return response()->json(['message' => $result['message']], $result['success'] ? 200 : 500);
     }
+    
 
     //Yêu cầu hoàn tiền
     public function requestRefund(Request $request, $code)
     {
-        $userId = auth('sanctum')->user()->id;
         $request->validate([
             'reason' => 'required|string',
             'images' => 'nullable|array',
@@ -792,8 +733,18 @@ class OrderClientController extends Controller
         ]);
 
 
-        $order = Order::where('code', $code)->where('user_id', $userId)->firstOrFail();
-
+        $order = Order::where('code', $code)->firstOrFail();
+        if (!$order) {
+            return response()->json([
+                'message' => 'Không tìm thấy đơn hàng.'
+            ], 404);
+        }
+        $isVerified = $this->isVerifiedOrder($request, $order);
+        if (!$isVerified) {
+            return response()->json([
+                'message' => 'Bạn không có quyền yêu cầu hoàn tiền với đơn hàng này'
+            ], 404);
+        }
         if (!in_array($order->status->code, ['completed'])) {
             return response()->json(['message' => 'Không thể yêu cầu hoàn tiền ở trạng thái hiện tại'], 400);
         }
@@ -842,10 +793,20 @@ class OrderClientController extends Controller
     //Hoàn thành đơn hàng
 
     //Xác nhận đơn hàng
-    public function closeOrder($code)
+    public function closeOrder($code, Request $request)
     {
         $order = Order::with('status')->where('code', $code)->firstOrFail();
-
+        if (!$order) {
+            return response()->json([
+                'message' => 'Không tìm thấy đơn hàng.'
+            ], 404);
+        }
+        $isVerified = $this->isVerifiedOrder($request, $order);
+        if (!$isVerified) {
+            return response()->json([
+                'message' => 'Bạn không có quyền hủy đơn hàng này'
+            ], 404);
+        }
         // Kiểm tra trạng thái hiện tại có thể chuyển sang 'closed' không
         if (!OrderStatusFlowService::canChange($order, 'closed')) {
             return response()->json([
@@ -877,14 +838,19 @@ class OrderClientController extends Controller
         }
     }
     // Thanh toán lại
-    public function retryPaymentVnpay($orderCode)
+    public function retryPaymentVnpay($orderCode, Request $request)
     {
-        $userId = auth('sanctum')->user()->id;
-
-
-        $order = Order::where('code', $orderCode)->where('user_id', $userId)->first();
+        $order = Order::where('code', $orderCode)->first();
         if (!$order) {
-            return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+            return response()->json([
+                'message' => 'Không tìm thấy đơn hàng.'
+            ], 404);
+        }
+        $isVerified = $this->isVerifiedOrder($request, $order);
+        if (!$isVerified) {
+            return response()->json([
+                'message' => 'Bạn không có quyền hủy đơn hàng này'
+            ], 404);
         }
 
         if (!$order->payment_method == 'vnpay') {
@@ -894,10 +860,9 @@ class OrderClientController extends Controller
         if ($order->payment_status_id === PaymentStatus::idByCode('paid')) {
             return response()->json(['message' => 'Đơn hàng đã được thanh toán thành công'], 400);
         }
-        $paymentUrl = $this->paymentVnpay->createPaymentUrl($order);
         return response()->json([
             'message' => 'Thành công',
-            'url' => $paymentUrl,
+            'url' =>  $order->payment_url,
             'code' => 200
         ], 201);
     }
@@ -992,7 +957,7 @@ class OrderClientController extends Controller
                 }),
 
                 // Hành động (nếu có user)
-                'actions' =>  OrderActionService::availableActions($order, 'user'),
+                'actions' => OrderActionService::availableActions($order, 'user'),
             ];
 
             return response()->json([
@@ -1015,31 +980,36 @@ class OrderClientController extends Controller
             'order_code' => 'required',
             'email' => 'required|email',
         ]);
-
+    
         $order = Order::where('code', $request->order_code)->first();
-
+    
         if (!$order || $order->o_mail !== $request->email) {
-            return response()->json(['message' => 'Thông tin đơn hàng không khớp!'], 404);
+            return response()->json(['message' => 'Thông tin đơn hàng không khớp!', 'code' => 404], 404);
         }
-
-        $cacheKey = "verify_order_{$order->code}";
-
-        // Giới hạn gửi trong 1 phút
-        if (cache()->has($cacheKey)) {
-            return response()->json(['message' => 'Vui lòng chờ 1 phút để gửi lại mã'], 429);
+    
+        $cacheKey = "verify_order_{$order->code}_otp";
+        $limitKey = "verify_order_{$order->code}_limit";
+    
+        // Kiểm tra giới hạn gửi trong 1 phút
+        if (cache()->has($limitKey)) {
+            return response()->json(['message' => 'Vui lòng chờ 1 phút để gửi lại mã', 'code' => 429], 429);
         }
-
-        // Tạo mã OTP
+    
+        // Tạo mã OTP mới
         $otp = mt_rand(100000, 999999);
-
-        // Lưu vào cache trong 5 p
+        
+        // Ghi đè cache mã OTP (mã cũ bị xóa ngay lập tức)
         cache()->put($cacheKey, $otp, now()->addMinutes(5));
-
+    
+        // Lưu giới hạn gửi OTP (chỉ cho phép gửi lại sau 1 phút)
+        cache()->put($limitKey, true, now()->addSeconds(10));
+    
         // Gọi job gửi mail
         SendVerifyGuestOrderJob::dispatch($order->o_mail, $order->code, $otp);
-
-        return response()->json(['message' => 'Đã gửi mã xác thực về email. Vui lòng kiểm tra hộp thư'], 200);
+    
+        return response()->json(['message' => 'Đã gửi mã xác thực về email. Vui lòng kiểm tra hộp thư', 'code' => 200], 200);
     }
+    
     //Xác thức
     public function verifyOrderCode(Request $request)
     {
@@ -1047,23 +1017,25 @@ class OrderClientController extends Controller
             'order_code' => 'required',
             'otp' => 'required|digits:6',
         ]);
-
-        $cacheKey = "verify_order_{$request->order_code}";
+    
+        $cacheKey = "verify_order_{$request->order_code}_otp"; // Đồng bộ với hàm gửi OTP
         $cachedOtp = cache()->get($cacheKey);
-
+    
         if (!$cachedOtp || $cachedOtp != $request->otp) {
-            return response()->json(['message' => 'Mã xác thực không đúng hoặc đã hết hạn!'], 400);
+            return response()->json(['message' => 'Mã xác thực không đúng hoặc đã hết hạn!', 'code' => 400], 400);
         }
-
-        // Xóa key
+    
+        // Xóa OTP khỏi cache ngay sau khi xác thực thành công
         cache()->forget($cacheKey);
-
-        // tạo tọken
+    
+        // Tạo token xác thực đơn hàng
         $verifyToken = encrypt("verified_order_{$request->order_code}");
-
+    
         return response()->json([
             'message' => 'Xác thực thành công!',
+            'code' => 200,
             'token' => $verifyToken,
         ]);
     }
+    
 }
