@@ -7,6 +7,7 @@ use App\Http\Requests\ContactRequest;
 use App\Models\Contact;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
 
 class ContactController extends Controller
 {
@@ -24,10 +25,8 @@ class ContactController extends Controller
     public function store(ContactRequest $request)
     {
         try {
-            $contact = Contact::create($request->validated());
-            
+            $contact = Contact::create($request->all());
             return response()->json($contact, 201);
-            
         } catch (\Exception $e) {
             Log::error($e);
             return response()->json([
@@ -36,4 +35,30 @@ class ContactController extends Controller
             ], 500);
         }
     }
+
+    public function history(Request $request)
+    {
+        try {
+            $user = User::find($request->user_id);
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
+            }
+            // Lấy danh sách contact theo user_id
+            $contactsByUserId = Contact::where('user_id', $request->user_id);
+            // Lấy danh sách contact theo email (loại trừ những contact đã lấy bằng user_id để tránh trùng lặp)
+            $contactsByEmail = Contact::where('email', $user->email)
+                ->whereNotIn('id', $contactsByUserId->pluck('id'));
+            // Kết hợp hai truy vấn lại
+            $contacts = $contactsByUserId->union($contactsByEmail)->paginate(10);
+            
+            return response()->json($contacts, 200);
+            
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+            ], 500);
+        }
+    }
+
 }
