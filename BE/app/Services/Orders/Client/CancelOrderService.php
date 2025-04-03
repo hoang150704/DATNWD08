@@ -4,6 +4,7 @@ namespace App\Services\Orders\Client;
 use App\Enums\OrderStatusEnum;
 use App\Enums\PaymentStatusEnum;
 use App\Enums\ShippingStatusEnum;
+use App\Events\OrderEvent;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\PaymentStatus;
@@ -24,7 +25,8 @@ class CancelOrderService
     protected $paymentVnpay;
     protected $ghn;
 
-    public function __construct(PaymentVnpay $paymentVnpay, GhnApiService $ghn) {
+    public function __construct(PaymentVnpay $paymentVnpay, GhnApiService $ghn)
+    {
         $this->paymentVnpay = $paymentVnpay;
         $this->ghn = $ghn;
     }
@@ -66,6 +68,8 @@ class CancelOrderService
             'cancel_by' => $cancelBy,
             'cancelled_at' => now(),
         ]);
+
+        broadcast(new OrderEvent($order, null));
     }
 
     private function logStatusChange(Order $order, string $cancelBy): void

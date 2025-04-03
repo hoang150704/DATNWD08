@@ -14,6 +14,10 @@ return new class extends Migration {
             $table->id();
             $table->string('title');
             $table->text('message');
+            $table->unsignedBigInteger('order_id')->nullable();
+            $table->foreign('order_id')->references('id')->on('orders')->nullOnDelete()->cascadeOnUpdate();
+            $table->unsignedBigInteger('voucher_id')->nullable();
+            $table->foreign('voucher_id')->references('id')->on('vouchers')->nullOnDelete()->cascadeOnUpdate();
             $table->boolean('is_read')->default(false);
             $table->timestamps();
         });
