@@ -11,6 +11,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class OrderEvent implements ShouldBroadcast
 {
@@ -58,6 +59,7 @@ class OrderEvent implements ShouldBroadcast
             'cancelled_at' => $this->order->cancelled_at,
             'cancel_reason' => $this->order->cancel_reason,
             'voucher' => $this->voucher ? [
+                'id' => $this->voucher->id,
                 'code' => $this->voucher->code,
                 'usage_limit' => $this->voucher->usage_limit,
                 'expiry_date' => $this->voucher->expiry_date
