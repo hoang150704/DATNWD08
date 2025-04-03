@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\User;
 
+use App\Enums\ShippingStatusEnum;
 use App\Events\CancelOrderEvent;
 use App\Events\OrderEvent;
 use App\Http\Controllers\Controller;
@@ -55,7 +56,7 @@ class OrderClientController extends Controller
     protected string $carrier = 'ghn';
     protected string $defaultOrderStatus = 'pending';
     protected string $defaultPaymentStatus = 'unpaid';
-    protected string $defaultShippingStatus = 'not_created';
+    protected string $defaultShippingStatus = ShippingStatusEnum::NOT_CREATED;
     public function __construct(PaymentVnpay $paymentVnpay, GhnApiService $ghn)
     {
         $this->paymentVnpay = $paymentVnpay;
@@ -128,7 +129,7 @@ class OrderClientController extends Controller
                 'note' => strip_tags($validatedData['note'] ?? ''),
                 'order_status_id' => OrderStatus::idByCode('pending'),
                 'payment_status_id' => PaymentStatus::idByCode('unpaid'),
-                'shipping_status_id' => ShippingStatus::idByCode('not_created'),
+                'shipping_status_id' => ShippingStatus::idByCode(ShippingStatusEnum::NOT_CREATED),
             ];
             //
             $order = Order::create($dataOrder);
@@ -179,10 +180,10 @@ class OrderClientController extends Controller
             Shipment::create(
                 [
                     'order_id' => $order->id,
-                    'shipping_status_id' => ShippingStatus::idByCode('not_created'),
+                    'shipping_status_id' => ShippingStatus::idByCode(ShippingStatusEnum::NOT_CREATED),
                     'carrier' => 'ghn',
-                    'from_estimate_date' => $validatedData['from_estimate_date'] ?? null,
-                    'to_estimate_date' => $validatedData['to_estimate_date'] ?? null,
+                    'from_estimate_date' => $validatedData['time']['from_estimate_date'] ?? null,
+                    'to_estimate_date' => $validatedData['time']['to_estimate_date'] ?? null,
                 ]
             );
             //
@@ -719,7 +720,7 @@ class OrderClientController extends Controller
         return response()->json(['message' => $result['message']], $result['success'] ? 200 : 500);
     }
     
-
+ 
     //Yêu cầu hoàn tiền
     public function requestRefund(Request $request, $code)
     {
