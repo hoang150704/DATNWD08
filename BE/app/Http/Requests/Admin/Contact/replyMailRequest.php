@@ -22,10 +22,10 @@ class replyMailRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string',
-            'email' => 'required|email|max:255',
-            'content' => 'required|string',
-            'contact_id' => 'required',
+            'contact_id'    => 'required|exists:contacts,id',
+            'email'         => 'required|email|max:255',
+            'name'          => 'required|string|max:255',
+            'content'       => 'required',
         ];
     }
 }
