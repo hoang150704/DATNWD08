@@ -39,7 +39,7 @@ class ContactController extends Controller
             $contact = Contact::find($id);
 
             if (!$contact) {
-                return response()->json(['message' => 'Contact not found'], 404);
+                return response()->json(['message' => 'Không tìm thấy liên hệ'], 404);
             }
 
             return response()->json($contact, 200);
@@ -63,7 +63,7 @@ class ContactController extends Controller
             $contact = Contact::find($id);
 
             if (!$contact) {
-                return response()->json(['message' => 'Contact not found'], 404);
+                return response()->json(['message' => 'Không tìm thấy liên hệ'], 404);
             }
 
             $contact->delete(); // Xóa mềm (chỉ cập nhật deleted_at)
@@ -85,7 +85,7 @@ class ContactController extends Controller
             $contact = Contact::withTrashed()->find($id);
 
             if (!$contact) {
-                return response()->json(['message' => 'Contact not found'], 404);
+                return response()->json(['message' => 'Không tìm thấy liên hệ'], 404);
             }
 
             $contact->restore(); // Khôi phục contact
@@ -107,7 +107,7 @@ class ContactController extends Controller
             $contact = Contact::withTrashed()->find($id);
 
             if (!$contact) {
-                return response()->json(['message' => 'Contact not found'], 404);
+                return response()->json(['message' => 'Không tìm thấy liên hệ'], 404);
             }
 
             $contact->forceDelete(); // Xóa vĩnh viễn
@@ -126,15 +126,64 @@ class ContactController extends Controller
     public function reply_mail(replyMailRequest $request)
     {
         try { 
+            $contact = Contact::find($request->contact_id);
+    
+            // Kiểm tra nếu contact
+            if (!$contact) {
+                return response()->json(['message' => 'Liên hệ không tồn tại hoặc đã bị xóa'], 404);
+            }
+    
+            // Chỉ cho phép gửi mail nếu trạng thái là 'in_progress'
+            if ($contact->status !== 'in_progress') {
+                return response()->json([
+                    'message' => 'Chỉ được phép gửi mail khi trạng thái là "Đang xử lý"',
+                    'current_status' => $contact->status
+                ], 400);
+            }
+    
+            // Gửi mail và cập nhật trạng thái thành 'resolved'
             sendMailReplyContactJob::dispatch($request->email, $request->name, $request->content);
-            
-            $contact = Contact::withTrashed()->find($request->contact_id);
-            
             $contact->update(['status' => 'resolved']);
-            
+    
             return response()->json([
                 'message' => 'Trả lời mail thành công',
             ]);
+    
+        } catch (\Exception $e) {
+            Log::error($e);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function startProcessing(string $id)
+    {
+        try {
+            $contact = Contact::find($id);
+
+            if (!$contact) {
+                return response()->json(['message' => 'Không tìm thấy liên hệ'], 404);
+            }
+
+            // Kiểm tra nếu trạng thái hiện tại là 'pending' mới cho phép cập nhật
+            if ($contact->status !== 'pending') {
+                return response()->json([
+                    'message' => 'Chỉ có thể cập nhật trạng thái từ PENDING sang IN_PROGRESS',
+                    'current_status' => $contact->status
+                ], 400);
+            }
+
+            // Cập nhật trạng thái và lưu thời gian bắt đầu xử lý (nếu cần)
+            $contact->update([
+                'status' => 'in_progress',
+            ]);
+
+            return response()->json([
+                'message' => 'Cập nhật trạng thái thành công: Đang xử lý',
+                'contact' => $contact
+            ], 200);
 
         } catch (\Exception $e) {
             Log::error($e);
