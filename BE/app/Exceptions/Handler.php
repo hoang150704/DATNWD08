@@ -4,7 +4,7 @@ namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
-
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 class Handler extends ExceptionHandler
 {
     /**
@@ -12,7 +12,7 @@ class Handler extends ExceptionHandler
      *
      * @var array<class-string<\Throwable>, \Psr\Log\LogLevel::*>
      */
-    
+
     protected $levels = [
         //
     ];
@@ -54,7 +54,13 @@ class Handler extends ExceptionHandler
                 'trace' => $exception->getTrace()
             ], 500);
         }
-    
+
+        if ($exception instanceof TooManyRequestsHttpException) {
+            return response()->json([
+                'message' => 'Bạn đã gửi quá nhiều yêu cầu, vui lòng thử lại sau!'
+            ], 429);
+        }
+
         return parent::render($request, $exception);
     }
 
@@ -63,5 +69,5 @@ class Handler extends ExceptionHandler
     {
         return true;
     }
-    
+
 }

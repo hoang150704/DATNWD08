@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreAddressBookRequest;
-use App\Http\Requests\UpdateAddressBookRequest;
+use App\Http\Requests\AddressBookRequest;
 use App\Models\AddressBook;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +23,7 @@ class AddressBookController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreAddressBookRequest $request)
+    public function store(AddressBookRequest $request)
     {
         try {
             DB::transaction(function () use ($request) {
@@ -73,7 +72,7 @@ class AddressBookController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateAddressBookRequest $request, AddressBook $addressBook)
+    public function update(AddressBookRequest $request, AddressBook $addressBook)
     {
         try {
             $data = $request->validated();

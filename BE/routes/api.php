@@ -8,8 +8,10 @@ use App\Http\Controllers\Api\Admin\CommentController;
 use App\Http\Controllers\Api\Admin\NotificationController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Auth\ProfileController;
+use App\Http\Controllers\Api\Admin\ContactController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
+use App\Http\Controllers\Api\User\ContactController as ClientContactController;
 use App\Http\Controllers\Api\User\CartController;
 use App\Http\Controllers\Api\User\HomeController;
 use App\Http\Controllers\Api\User\ShopController;
@@ -24,7 +26,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\ProductVariation;
 
 // =======================================================================================================================================
-// Các chức năng KHÔNG LOGIN
+// Các chức năng KHÔNG phải LOGIN
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify_email', [AuthController::class, 'verifyEmail']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -63,7 +65,8 @@ Route::get('/categories/{category_id}/products', [ShopController::class, 'getPro
 
 // Đánh giá
 Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
-Route::post('/reviews', [ReviewController::class, 'store']);
+Route::patch('/contacts/{id}/restore', [ContactController::class, 'restore']);
+Route::delete('/contacts/{id}/force', [ContactController::class, 'forceDelete']);
 
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
@@ -78,29 +81,36 @@ Route::prefix('voucher')->group(function () {
     Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
     Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
 });
-require base_path('routes/api/user/orders.php');
+
+// Liên hệ
+Route::post('/contacts/history', [ClientContactController::class, 'history']);
+Route::post('/contacts', [ClientContactController::class, 'store'])
+    ->middleware('throttle:5,1,ip'); // Tối đa 5 request/phút/theo dõi ip người gửi
+
 // =======================================================================================================================================
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
-    //Order
-
     //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
-    
+
     //Order
     require base_path('routes/api/user/orders.php');
-    
+
     //Profile routes
     Route::get('/profile', [ProfileController::class, 'info']);
     Route::post('/change_profile', [ProfileController::class, 'changeProfile']);
-    
+
     //Address routes
     require base_path('routes/api/user/address_books.php');
-    
+
     // Giỏ hàng
     require base_path('routes/api/user/carts.php');
+
+    // Đánh giá
+    Route::put('/reviews/{id}', [ReviewController::class, 'update']);
+    Route::post('/reviews', [ReviewController::class, 'store']);
 
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);
@@ -127,8 +137,9 @@ Route::middleware('auth:sanctum')->group(function () {
         require base_path('routes/api/admin/comments.php'); // Bình luận
         require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
         require base_path('routes/api/admin/users.php'); // Người dùng
+        require base_path('routes/api/admin/contact.php'); //contact
     });
-    
+
     // Chức năng chỉ Staff mới call được api
     Route::prefix('staff')->middleware('staff')->group(function () {
 
@@ -149,4 +160,5 @@ Route::middleware('auth:sanctum')->group(function () {
         require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
         require base_path('routes/api/admin/users.php'); // Người dùng
     });
+
 });

@@ -93,6 +93,9 @@ class VoucherController extends Controller
             if (!$voucher->expiry_date || Carbon::parse($voucher->expiry_date)->isBefore(now())) {
                 return response()->json(['message' => 'Voucher đã hết hạn'], 400);
             }
+            if (!$voucher->start_date || Carbon::parse($voucher->start_date)->isAfter(now())) {
+                return response()->json(['message' => 'Voucher không khả dụng'], 400);
+            }
 
             // Kiểm tra số lượt sử dụng còn lại
             if ($voucher->usage_limit && $voucher->usage_limit = 0) {

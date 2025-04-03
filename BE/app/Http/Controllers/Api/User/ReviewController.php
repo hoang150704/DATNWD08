@@ -90,7 +90,7 @@ class ReviewController extends Controller
         ]);
     
         // Gửi thông báo đến admin để duyệt bình luận
-        event(new NewCommentSubmitted($comment));
+        // event(new NewCommentSubmitted($comment));
     
         return response()->json([
             'message' => 'Bình luận của bạn đã được gửi thành công!',

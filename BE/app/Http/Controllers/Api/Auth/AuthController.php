@@ -414,7 +414,7 @@ class AuthController extends Controller
                 'user' => $user,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Lỗi đăng nhập','errors'=>$e->getMessage()], 401);
+            return response()->json(['message' => 'Lỗi đăng nhập', 'errors' => $e->getMessage()], 401);
         }
     }
 
@@ -423,7 +423,7 @@ class AuthController extends Controller
         // Xác thực
         $request->validate([
             'old_password' => 'required',
-            'new_password' => 'required|min:8|confirmed', 
+            'new_password' => 'required|min:8|confirmed',
         ]);
 
         $user = $request->user();
@@ -436,7 +436,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->new_password),
         ]);
         $user->currentAccessToken()->delete();
-    
+
         return response()->json(['message' => 'Đổi mật khẩu thành công, vui lòng đăng nhập lại'], 200);
     }
 }
