@@ -72,23 +72,24 @@ class ReviewController extends Controller
             return response()->json(['message' => 'Bạn cần đăng nhập để bình luận!'], 401);
         }
     
-        // Lấy danh sách đơn hàng đã mua của user
-        $order = DB::table('orders')
-            ->where('user_id', $userId)
-            ->pluck('id'); // Lấy danh sách order_id
-    
-        if ($order->isEmpty()) {
+        // Lấy danh sách các đơn hàng có chứa product_id của user
+        $orderIds = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.user_id', $userId)
+            ->where('order_items.product_id', $validated['product_id'])
+            ->pluck('orders.id');
+
+        if ($orderIds->isEmpty()) {
             return response()->json(['message' => 'Bạn chưa mua sản phẩm này!'], 403);
         }
-    
-        // Kiểm tra trạng thái đơn hàng
-        $completedStatusId = 5;
-        $orderStatus = DB::table('order_histories')
-            ->whereIn('order_id', $order)
-            ->orderBy('id', 'desc')
-            ->first();
 
-        if (!$orderStatus || $orderStatus->status_id != $completedStatusId) {
+        // Kiểm tra xem có đơn hàng nào có trạng thái "completed" (id = 4)
+        $isCompleted = DB::table('orders')
+            ->whereIn('id', $orderIds)
+            ->where('order_status_id', 4) // 4 là ID của trạng thái "completed"
+            ->exists();
+
+        if (!$isCompleted) {
             return response()->json(['message' => 'Bạn chỉ có thể bình luận sau khi đơn hàng đã hoàn thành.'], 403);
         }
 
