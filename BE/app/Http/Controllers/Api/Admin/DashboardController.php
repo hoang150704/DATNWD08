@@ -15,12 +15,12 @@ class DashboardController extends Controller
 {
     public function dashboard(Request $request)
     {
-        // Mặc định là 7 ngày
-        $statisticBy = $request->query('statisticBy', '7day');
 
         // Thời gian thống kê
-        $startDate = $request->query('startDate', now()->subDays(7)->toDateString());
-        $endDate = $request->query('endDate', now()->toDateString());
+        $startDate = $request->query('startDate', now()->subDays(7)->toDateString()); // Mặc định 7 ngày trước
+        // Nếu chỉ truyền startDate thì endDate sẽ là ngày hiện tại
+        // Nếu không truyền startDate thì startDate sẽ là ngày tước endDate 7 ngày
+        $endDate = $request->query('endDate', now()->toDateString()); // Ngày hiện tại
 
         // Thống kê doanh số bán hàng theo khoảng thời gian động
         $salesData = $this->getSalesStatistics($startDate, $endDate);
@@ -136,15 +136,18 @@ class DashboardController extends Controller
     // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($startDate, $endDate)
     {
-        return OrderItem::select(
-            DB::raw('DATE(created_at) as date'),
-            DB::raw('SUM(quantity) as totalSales')
+        return Order::select(
+            DB::raw('DATE(created_at) as date'), // Lấy ngày
+            DB::raw('SUM(final_amount) as totalRevenue'), // Tính tổng doanh thu
+            DB::raw('COUNT(id) as totalOrders') // Đếm số lượng đơn hàng
         )
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->groupBy('date')
-            ->orderBy('date', 'ASC')
+            ->where('payment_status_id', 1) // Chỉ lấy đơn hàng đã thanh toán
+            ->groupBy('date') // Nhóm theo ngày
+            ->orderBy('date', 'ASC')    // Sắp xếp theo ngày tăng dần
             ->get();
     }
+
 
 
     // Lấy danh sách sản phẩm bán chạy nhất (top 5)
@@ -154,7 +157,7 @@ class DashboardController extends Controller
             ->groupBy('product_id') // Nhóm theo sản phẩm
             ->orderByDesc('total_sold') // Sắp xếp theo số lượng bán được
             ->take(5)
-            ->with('product:id,name,main_image')
+            ->with('product:id,name,main_image') // Lấy thông tin sản phẩm
             ->get();
     }
 
@@ -171,31 +174,5 @@ class DashboardController extends Controller
             ->take(5) // Lấy top 5
             ->with('user:id,name,email') // Lấy thông tin user
             ->get();
-    }
-
-
-    // Lấy thống kê doanh thu theo thời gian
-    private function getRevenueStatistics($period = 'daily', $year = null)
-    {
-        $year = $year ?? now()->year; // Nếu không truyền năm, mặc định lấy năm hiện tại
-
-        $query = Order::select([
-            DB::raw(
-                match ($period) {
-                    'daily' => "DATE(created_at) as period", // Lấy ngày
-                    'weekly' => "YEARWEEK(created_at, 1) as period", // Lấy tuần
-                    'monthly' => "DATE_FORMAT(created_at, '%Y-%m') as period", // Lấy tháng
-                    'yearly' => "YEAR(created_at) as period", // Lấy năm
-                    default => "DATE(created_at) as period", // Mặc định lấy ngày
-                }
-            ),
-            DB::raw('SUM(final_amount) as totalRevenue') // Tính tổng doanh thu
-        ])
-            ->whereYear('created_at', $year) // Lọc theo năm
-            ->where('payment_status_id', 1)   // Chỉ lấy đơn hàng đã thanh toán
-            ->groupBy('period') // Nhóm theo thời gian
-            ->orderBy('period', 'ASC'); // Sắp xếp tăng dần theo thời gian
-
-        return $query->get();
     }
 }
