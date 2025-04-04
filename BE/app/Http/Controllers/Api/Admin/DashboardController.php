@@ -18,8 +18,12 @@ class DashboardController extends Controller
         // Mặc định là 7 ngày
         $statisticBy = $request->query('statisticBy', '7day');
 
-        // Thống kê doanh số bán hàng
-        $salesData = $this->getSalesStatistics($statisticBy);
+        // Thời gian thống kê
+        $startDate = $request->query('startDate', now()->subDays(7)->toDateString());
+        $endDate = $request->query('endDate', now()->toDateString());
+
+        // Thống kê doanh số bán hàng theo khoảng thời gian động
+        $salesData = $this->getSalesStatistics($startDate, $endDate);
 
         // Top 5 sản phẩm bán chạy nhất
         $topSellingProducts = $this->getTopSellingProducts();
@@ -64,9 +68,6 @@ class DashboardController extends Controller
                 // Top 5 sản phẩm bán chạy nhất
                 "topSellingProducts" => $topSellingProducts,
 
-                // Thống kê doanh số bán hàng
-                "salesStatistics" => $salesData,
-
                 // Thống kê số lượng đánh giá theo từng mức rating
                 "ratingStatistics" => $ratingStatistics,
 
@@ -79,14 +80,10 @@ class DashboardController extends Controller
                 // Top 5 sản phẩm được đánh giá cao nhất
                 "topRatedProducts" => $topRatedProducts,
 
-                // Thống kê doanh thu
-                "revenueStatistics" => [
-                    "daily" => $this->getRevenueStatistics('daily', $year), // Thống kê doanh thu theo ngày
-                    "weekly" => $this->getRevenueStatistics('weekly', $year), // Thống kê doanh thu theo tuần
-                    "monthly" => $this->getRevenueStatistics('monthly', $year), // Thống kê doanh thu theo tháng
-                    "yearly" => $this->getRevenueStatistics('yearly', $year), // Thống kê doanh thu theo năm
-                ],
-                "statisticBy" => $statisticBy // Thời gian thống kê
+                // Thống kê doanh số bán hàng
+                "salesStatistics" => $salesData,
+                "startDate" => $startDate,
+                "endDate" => $endDate,
             ]
         ], 200);
     }
@@ -137,29 +134,18 @@ class DashboardController extends Controller
 
 
     // Thống kê doanh số bán hàng theo thời gian
-    private function getSalesStatistics($period)
+    private function getSalesStatistics($startDate, $endDate)
     {
-        $query = OrderItem::select(
-            DB::raw('DATE(created_at) as date'), // Lấy ngày từ trường created_at
-            DB::raw('SUM(quantity) as totalSales') // Tính tổng số lượng sản phẩm bán ra
+        return OrderItem::select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('SUM(quantity) as totalSales')
         )
-            ->groupBy('date') // Nhóm theo ngày
-            ->orderBy('date', 'ASC'); // Sắp xếp tăng dần theo ngày
-
-        switch ($period) {
-            case '7day':
-                $query->where('created_at', '>=', now()->subDays(7)); // Lấy dữ liệu trong 7 ngày gần nhất
-                break;
-            case '1month':
-                $query->where('created_at', '>=', now()->subMonth()); // Lấy dữ liệu trong 1 tháng gần nhất
-                break;
-            case '12month':
-                $query->where('created_at', '>=', now()->subMonths(12)); // Lấy dữ liệu trong 12 tháng gần nhất
-                break;
-        }
-
-        return $query->get();
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date')
+            ->orderBy('date', 'ASC')
+            ->get();
     }
+
 
     // Lấy danh sách sản phẩm bán chạy nhất (top 5)
     private function getTopSellingProducts()
