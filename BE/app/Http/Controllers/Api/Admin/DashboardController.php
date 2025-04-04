@@ -15,12 +15,12 @@ class DashboardController extends Controller
 {
     public function dashboard(Request $request)
     {
-        // Mặc định là 7 ngày
-        $statisticBy = $request->query('statisticBy', '7day');
 
         // Thời gian thống kê
-        $startDate = $request->query('startDate', now()->subDays(7)->toDateString());
-        $endDate = $request->query('endDate', now()->toDateString());
+        $startDate = $request->query('startDate', now()->subDays(7)->toDateString()); // Mặc định 7 ngày trước
+        // Nếu chỉ truyền startDate thì endDate sẽ là ngày hiện tại
+        // Nếu không truyền startDate thì startDate sẽ là ngày tước endDate 7 ngày
+        $endDate = $request->query('endDate', now()->toDateString()); // Ngày hiện tại
 
         // Thống kê doanh số bán hàng theo khoảng thời gian động
         $salesData = $this->getSalesStatistics($startDate, $endDate);
@@ -137,14 +137,14 @@ class DashboardController extends Controller
     private function getSalesStatistics($startDate, $endDate)
     {
         return Order::select(
-            DB::raw('DATE(created_at) as date'),
-            DB::raw('SUM(final_amount) as totalRevenue'),
+            DB::raw('DATE(created_at) as date'), // Lấy ngày
+            DB::raw('SUM(final_amount) as totalRevenue'), // Tính tổng doanh thu
             DB::raw('COUNT(id) as totalOrders') // Đếm số lượng đơn hàng
         )
             ->whereBetween('created_at', [$startDate, $endDate])
             ->where('payment_status_id', 1) // Chỉ lấy đơn hàng đã thanh toán
-            ->groupBy('date')
-            ->orderBy('date', 'ASC')
+            ->groupBy('date') // Nhóm theo ngày
+            ->orderBy('date', 'ASC')    // Sắp xếp theo ngày tăng dần
             ->get();
     }
 
@@ -157,7 +157,7 @@ class DashboardController extends Controller
             ->groupBy('product_id') // Nhóm theo sản phẩm
             ->orderByDesc('total_sold') // Sắp xếp theo số lượng bán được
             ->take(5)
-            ->with('product:id,name,main_image')
+            ->with('product:id,name,main_image') // Lấy thông tin sản phẩm
             ->get();
     }
 
