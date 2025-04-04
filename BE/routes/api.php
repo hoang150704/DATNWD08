@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\NotificationController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Admin\ContactController;
+use App\Http\Controllers\Api\Admin\ProductController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\User\ContactController as ClientContactController;
@@ -86,6 +87,9 @@ Route::prefix('voucher')->group(function () {
 Route::post('/contacts/history', [ClientContactController::class, 'history']);
 Route::post('/contacts', [ClientContactController::class, 'store'])
     ->middleware('throttle:5,1,ip'); // Tối đa 5 request/phút/theo dõi ip người gửi
+//
+//Order
+require base_path('routes/api/user/orders.php');
 
 // =======================================================================================================================================
 // Chức năng cần LOGIN
@@ -94,9 +98,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
     Route::post('/verify_new_email', [AuthController::class, 'verifyNewEmail']);
-
-    //Order
-    require base_path('routes/api/user/orders.php');
 
     //Profile routes
     Route::get('/profile', [ProfileController::class, 'info']);
@@ -160,5 +161,4 @@ Route::middleware('auth:sanctum')->group(function () {
         require base_path('routes/api/admin/vouchers.php'); // Mã giảm giá
         require base_path('routes/api/admin/users.php'); // Người dùng
     });
-
 });

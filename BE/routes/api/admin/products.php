@@ -15,6 +15,8 @@ Route::prefix('products')->group(function () {
     Route::delete('/', [ProductController::class, 'destroy']); // Xóa sản phẩm
     Route::delete('/hard-delete', [ProductController::class, 'hardDelete']); // Xóa cứng sản phẩm
 
+    // Export và import sản phẩm
+    Route::get('/export', [ProductController::class, 'export']); // Export file sản phẩm
     //Route danh sách sản phẩm dành cho đặt hàng (Tránh xung đột với {id})
     //Nhóm route cho biến thể sản phẩm (Variants)
     Route::prefix('{idProduct}/variants')->group(function () {
