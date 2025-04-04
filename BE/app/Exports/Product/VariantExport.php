@@ -10,13 +10,14 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithTitle;
 
-class VariantExport implements FromQuery, WithHeadings, WithMapping,WithTitle, ShouldAutoSize
+class VariantExport implements FromQuery, WithHeadings, WithMapping, WithTitle, ShouldAutoSize
 {
     public function query()
     {
         return Product::query()
             ->with(['categories', 'variants.attributeValues'])
-            ->where('type', '0');
+            ->where('type', 0)
+            ->get();
     }
 
     public function map($product): array

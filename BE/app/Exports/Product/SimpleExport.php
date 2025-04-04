@@ -14,7 +14,7 @@ class SimpleExport implements FromQuery, WithMapping, WithHeadings, WithTitle, S
 {
     public function query()
     {
-        return Product::query()->with(['categories', 'variants'])->where('type', '1');
+        return Product::query()->with(['categories', 'variants'])->where('type', 1)->get();
     }
 
     public function map($product): array
