@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\NotificationController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Admin\ContactController;
+use App\Http\Controllers\Api\Admin\ProductController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\User\ContactController as ClientContactController;

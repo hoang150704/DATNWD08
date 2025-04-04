@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Exports\Product\ProductExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Product\StoreProductRequest;
 use App\Http\Requests\Admin\Product\UpdateProductRequest;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use Maatwebsite\Excel\Facades\Excel;
 
 class ProductController extends Controller
 {
@@ -378,5 +379,10 @@ class ProductController extends Controller
 
             ], 500);
         }
+    }
+
+    public function export()
+    {
+        return Excel::download(new ProductExport, 'product.xlsx', \Maatwebsite\Excel\Excel::XLSX);
     }
 }
