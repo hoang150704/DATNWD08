@@ -136,15 +136,18 @@ class DashboardController extends Controller
     // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($startDate, $endDate)
     {
-        return OrderItem::select(
+        return Order::select(
             DB::raw('DATE(created_at) as date'),
-            DB::raw('SUM(quantity) as totalSales')
+            DB::raw('SUM(final_amount) as totalRevenue'),
+            DB::raw('COUNT(id) as totalOrders') // Đếm số lượng đơn hàng
         )
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('payment_status_id', 1) // Chỉ lấy đơn hàng đã thanh toán
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get();
     }
+
 
 
     // Lấy danh sách sản phẩm bán chạy nhất (top 5)
