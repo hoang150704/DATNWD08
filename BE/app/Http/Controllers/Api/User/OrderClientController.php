@@ -357,9 +357,9 @@ class OrderClientController extends Controller
         // tránh tạo trùng đơn hàng
         $exists = Transaction::where('transaction_code', $request['vnp_TxnRef'])
             ->where('vnp_transaction_no', $request['vnp_TransactionNo'] ?? null)
-            ->where('status','success')
-            ->where('type','payment')
-            ->where('method','vnpay')
+            ->where('status', 'success')
+            ->where('type', 'payment')
+            ->where('method', 'vnpay')
             ->exists();
 
         if ($exists) {
@@ -394,6 +394,8 @@ class OrderClientController extends Controller
                 $order->update([
                     'payment_status_id' => PaymentStatus::idByCode('paid'),
                 ]);
+
+                broadcast(new OrderEvent($order, null));
             }
 
             return response()->json([
@@ -585,8 +587,8 @@ class OrderClientController extends Controller
                 'statusLogs.fromStatus',
                 'statusLogs.toStatus',
             ])->where('code', $code)->first();
-            if(!$order){
-                return response()->json(['message'=>'Không timg thấy đơn hàng'],404);
+            if (!$order) {
+                return response()->json(['message' => 'Không timg thấy đơn hàng'], 404);
             }
             //Check quyền
             $isVerified = $this->isVerifiedOrder($request, $order);
@@ -700,27 +702,27 @@ class OrderClientController extends Controller
         $validated = $request->validate([
             'cancel_reason' => 'required|string|max:1000'
         ]);
-    
+
         $order = Order::with('shipment')->where('code', $code)->first();
         if (!$order) {
             return response()->json(['message' => 'Không tìm thấy đơn hàng.'], 404);
         }
-    
+
         if (!$this->isVerifiedOrder($request, $order)) {
             return response()->json(['message' => 'Bạn không có quyền hủy đơn hàng này'], 403);
         }
-    
+
         if (!in_array($order->status->code, ['pending', 'confirmed'])) {
             return response()->json(['message' => 'Không thể hủy đơn hàng ở trạng thái hiện tại'], 400);
         }
-    
+
         $result = app(CancelOrderService::class)
             ->handle($order, $validated['cancel_reason'], $request->ip());
-    
+
         return response()->json(['message' => $result['message']], $result['success'] ? 200 : 500);
     }
-    
- 
+
+
     //Yêu cầu hoàn tiền
     public function requestRefund(Request $request, $code)
     {
@@ -863,7 +865,7 @@ class OrderClientController extends Controller
         }
         return response()->json([
             'message' => 'Thành công',
-            'url' =>  $order->payment_url,
+            'url' => $order->payment_url,
             'code' => 200
         ], 201);
     }
@@ -981,36 +983,36 @@ class OrderClientController extends Controller
             'order_code' => 'required',
             'email' => 'required|email',
         ]);
-    
+
         $order = Order::where('code', $request->order_code)->first();
-    
+
         if (!$order || $order->o_mail !== $request->email) {
             return response()->json(['message' => 'Thông tin đơn hàng không khớp!', 'code' => 404], 404);
         }
-    
+
         $cacheKey = "verify_order_{$order->code}_otp";
         $limitKey = "verify_order_{$order->code}_limit";
-    
+
         // Kiểm tra giới hạn gửi trong 1 phút
         if (cache()->has($limitKey)) {
             return response()->json(['message' => 'Vui lòng chờ 1 phút để gửi lại mã', 'code' => 429], 429);
         }
-    
+
         // Tạo mã OTP mới
         $otp = mt_rand(100000, 999999);
-        
+
         // Ghi đè cache mã OTP (mã cũ bị xóa ngay lập tức)
         cache()->put($cacheKey, $otp, now()->addMinutes(5));
-    
+
         // Lưu giới hạn gửi OTP (chỉ cho phép gửi lại sau 1 phút)
         cache()->put($limitKey, true, now()->addSeconds(10));
-    
+
         // Gọi job gửi mail
         SendVerifyGuestOrderJob::dispatch($order->o_mail, $order->code, $otp);
-    
+
         return response()->json(['message' => 'Đã gửi mã xác thực về email. Vui lòng kiểm tra hộp thư', 'code' => 200], 200);
     }
-    
+
     //Xác thức
     public function verifyOrderCode(Request $request)
     {
@@ -1018,25 +1020,25 @@ class OrderClientController extends Controller
             'order_code' => 'required',
             'otp' => 'required|digits:6',
         ]);
-    
+
         $cacheKey = "verify_order_{$request->order_code}_otp"; // Đồng bộ với hàm gửi OTP
         $cachedOtp = cache()->get($cacheKey);
-    
+
         if (!$cachedOtp || $cachedOtp != $request->otp) {
             return response()->json(['message' => 'Mã xác thực không đúng hoặc đã hết hạn!', 'code' => 400], 400);
         }
-    
+
         // Xóa OTP khỏi cache ngay sau khi xác thực thành công
         cache()->forget($cacheKey);
-    
+
         // Tạo token xác thực đơn hàng
         $verifyToken = encrypt("verified_order_{$request->order_code}");
-    
+
         return response()->json([
             'message' => 'Xác thực thành công!',
             'code' => 200,
             'token' => $verifyToken,
         ]);
     }
-    
+
 }

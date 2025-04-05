@@ -10,13 +10,13 @@ Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'index']); // Lấy danh sách sản phẩm
     Route::post('/', [ProductController::class, 'store']); // Thêm sản phẩm mới
     Route::get('/trash', [ProductController::class, 'trash']); // Thùng rác
+    // Export và import sản phẩm
+    Route::get('/export', [ProductController::class, 'export']); // Export file sản phẩm
     Route::get('/{id}', [ProductController::class, 'show']); // Xem chi tiết sản phẩm
     Route::put('/{id}', [ProductController::class, 'update']); // Cập nhật sản phẩm
     Route::delete('/', [ProductController::class, 'destroy']); // Xóa sản phẩm
     Route::delete('/hard-delete', [ProductController::class, 'hardDelete']); // Xóa cứng sản phẩm
 
-    // Export và import sản phẩm
-    Route::get('/export', [ProductController::class, 'export']); // Export file sản phẩm
     //Route danh sách sản phẩm dành cho đặt hàng (Tránh xung đột với {id})
     //Nhóm route cho biến thể sản phẩm (Variants)
     Route::prefix('{idProduct}/variants')->group(function () {

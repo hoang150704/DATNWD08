@@ -91,9 +91,13 @@ Route::post('/contacts', [ClientContactController::class, 'store'])
 //Order
 require base_path('routes/api/user/orders.php');
 
+// Route::get('/export', [ProductController::class, 'export']); // Export file sản phẩm
+
 // =======================================================================================================================================
+// Route::get('/export', [ProductController::class, 'export']);
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
+    
     //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
