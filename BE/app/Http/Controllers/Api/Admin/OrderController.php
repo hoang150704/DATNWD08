@@ -121,7 +121,7 @@ class OrderController extends Controller
                 'o_address' => $validatedData['o_address'],
                 'o_phone' => $validatedData['o_phone'],
                 'o_mail' => $validatedData['o_mail'] ?? null,
-                'note'  => $validatedData['note'] ?? null,
+                'note' => $validatedData['note'] ?? null,
                 'stt_payment' => 1,
                 'stt_track' => 1,
                 'created_by' => 'system'
@@ -141,7 +141,7 @@ class OrderController extends Controller
                     ], 400);
                 }
                 //
-                $variation =  $variant->getFormattedVariation();
+                $variation = $variant->getFormattedVariation();
                 // Thêm sản phẩm vào danh sách orderItems
                 $orderItems[] = [
                     'order_id' => $order->id,
@@ -250,7 +250,7 @@ class OrderController extends Controller
                     $order->transactions->sortBy('created_at')
                 ),
                 // Shipment
-                'shipment'=>new ShipmentResource($order->shipment),
+                'shipment' => new ShipmentResource($order->shipment),
 
 
                 // Lịch sử vận chuyển theo đúng thứ tự thời gian
@@ -299,38 +299,50 @@ class OrderController extends Controller
         }
     }
 
-    public function search()
+    public function search(Request $request)
     {
         try {
-            $userName = request('username');
-            $orderDate = request('orderDate');
-            $status = request('status');
+            $order_code = request('order_code');
+            $order_name = request('order_name');
+            $order_phone = request('order_phone');
+            $order_status = request('order_status');
+            $payment_status = request('payment_status');
+            $shipping_status = request('shipping_status');
+            $start_day = request('start_day');
+            $end_day = request('end_day');
 
             $query = Order::query();
 
-            if (!$userName && !$orderDate && !$status) {
+            if (!$order_code && !$order_status && !$payment_status && !$shipping_status && !$order_name && !$order_phone) {
                 return response()->json([
                     'message' => 'Không tìm thấy kết quả'
                 ], 404);
             } else {
-                if ($userName) {
-                    $query->where('o_name', 'like', "%{$userName}%");
+                if ($order_code) {
+                    $query->where('code', 'like', "%{$order_code}%");
                 }
-
-                if ($orderDate) {
-                    $query->whereDate('created_at', '=', $orderDate);
+                if ($order_name) {
+                    $query->where('o_name', 'like', "%{$order_name}%");
                 }
-
-                if ($status) {
-                    $query->where('stt_track', $status);
+                if ($order_phone) {
+                    $query->where('o_phone', 'like', "%{$order_phone}%");
+                }
+                if ($order_status) {
+                    $query->where('order_status_id', $order_status);
+                }
+                if ($payment_status) {
+                    $query->where('payment_status_id', $payment_status);
+                }
+                if ($shipping_status) {
+                    $query->where('shipping_status_id', $shipping_status);
+                }
+                if ($start_day && $end_day) {
+                    $query->whereBetween('created_at', [$start_day, $end_day]);
                 }
             }
 
-            $orders = $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'stt_payment', 'stt_track', 'created_at')
-                ->with([
-                    'stt_track:id,name,next_status_allowed',
-                    'stt_payment:id,name'
-                ])
+            $orders = $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
+                ->with('status:id,code,name', 'paymentStatus:id,code,name', 'shippingStatus:id,code,name')
                 ->orderByDesc('orders.created_at')
                 ->paginate(10);
 
@@ -350,7 +362,7 @@ class OrderController extends Controller
     {
         $order = Order::with('status')->where('code', $code)->firstOrFail();
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         // Kiểm tra trạng thái hiện tại có thể chuyển sang 'confirmed' không
         if (!OrderStatusFlowService::canChange($order, 'confirmed')) {
             return response()->json([
@@ -395,7 +407,7 @@ class OrderController extends Controller
     public function cancelOrderByAdmin(Request $request, $code)
     {
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $validated = $request->validate([
             'cancel_reason' => 'required|string|max:1000'
         ]);
@@ -424,7 +436,7 @@ class OrderController extends Controller
             if ($order->payment_method === 'vnpay') {
                 $paymentStatus = PaymentStatus::idByCode('refunded');
                 $order->payment_status_id = $paymentStatus;
-            }else{
+            } else {
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -473,7 +485,7 @@ class OrderController extends Controller
                     'type' => 'refund',
                     'amount' => $order->final_amount,
                     'status' => 'pending',
-                    'note' =>  $validated['cancel_reason'],
+                    'note' => $validated['cancel_reason'],
                     'created_at' => now()
                 ]);
 
@@ -525,12 +537,12 @@ class OrderController extends Controller
                     foreach ($result['data'] as $item) {
                         // Tạo log shipment
                         ShippingLog::create([
-                            'shipment_id'       => $order->shipment->id,
-                            'ghn_status'        => 'cancel',
-                            'mapped_status_id'  => ShippingStatus::idByCode('cancelled'),
-                            'location'          => null,
-                            'note'              => $item['message'] ?? 'Đã huỷ qua GHN',
-                            'timestamp'         => now(),
+                            'shipment_id' => $order->shipment->id,
+                            'ghn_status' => 'cancel',
+                            'mapped_status_id' => ShippingStatus::idByCode('cancelled'),
+                            'location' => null,
+                            'note' => $item['message'] ?? 'Đã huỷ qua GHN',
+                            'timestamp' => now(),
                         ]);
 
                         // Cập nhật shipment status
@@ -567,7 +579,7 @@ class OrderController extends Controller
     public function approveReturn($code)
     {
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $order = Order::with('refundRequest')->where('code', $code)->firstOrFail();
 
         if ($order->status->code !== 'return_requested') {
@@ -597,12 +609,12 @@ class OrderController extends Controller
             ]);
 
             Transaction::create([
-                'order_id'   => $order->id,
-                'method'     => $order->payment_method,
-                'type'       => 'refund',
-                'amount'     => $order->final_amount,
-                'status'     => 'pending',
-                'note'       => 'Duyệt hoàn tiền sau khi nhận hàng',
+                'order_id' => $order->id,
+                'method' => $order->payment_method,
+                'type' => 'refund',
+                'amount' => $order->final_amount,
+                'status' => 'pending',
+                'note' => 'Duyệt hoàn tiền sau khi nhận hàng',
                 'created_at' => now(),
             ]);
             DB::commit();
@@ -616,7 +628,7 @@ class OrderController extends Controller
     public function rejectReturn(Request $request, $code)
     {
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $request->validate([
             'reject_reason' => 'required|string|max:1000'
         ]);
@@ -662,7 +674,7 @@ class OrderController extends Controller
     public function refundAuto($code)
     {
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $order = Order::with(['transactions', 'refundRequest'])->where('code', $code)->firstOrFail();
 
         if ($order->payment_method !== 'vnpay' || $order->paymentStatus->code !== 'paid') {
@@ -697,13 +709,13 @@ class OrderController extends Controller
 
             // Gọi API hoàn tiền
             $refundData = [
-                'txn_ref'    => $paymentTransaction->transaction_code,
-                'amount'     => $paymentTransaction->amount,
-                'txn_date'   => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
-                'txn_no'     => $paymentTransaction->vnp_transaction_no,
-                'type'       => '02',
-                'create_by'  => $info,
-                'ip'         => request()->ip(),
+                'txn_ref' => $paymentTransaction->transaction_code,
+                'amount' => $paymentTransaction->amount,
+                'txn_date' => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
+                'txn_no' => $paymentTransaction->vnp_transaction_no,
+                'type' => '02',
+                'create_by' => $info,
+                'ip' => request()->ip(),
                 'order_info' => 'Hoàn tiền sau hoàn hàng',
             ];
 
@@ -765,7 +777,7 @@ class OrderController extends Controller
             'amount' => 'required|numeric|min:1', // nếu cho hoàn 1 phần
         ]);
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $order = Order::where('code', $code)->firstOrFail();
 
         // Tạo mới transaction sucess
@@ -809,7 +821,7 @@ class OrderController extends Controller
     {
         $order = Order::with(['transactions', 'refundRequest'])->where('code', $code)->firstOrFail();
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         if ($order->payment_method !== 'vnpay' || $order->paymentStatus->code !== 'paid') {
             return response()->json(['message' => 'Đơn hàng không hợp lệ để hoàn tiền tự động'], 400);
         }
@@ -833,13 +845,13 @@ class OrderController extends Controller
             }
 
             $refundData = [
-                'txn_ref'    => $paymentTransaction->transaction_code,
-                'amount'     => $validated['amount'],
-                'txn_date'   => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
-                'txn_no'     => $paymentTransaction->vnp_transaction_no,
-                'type'       => '02',
-                'create_by'  => $info,
-                'ip'         => request()->ip(),
+                'txn_ref' => $paymentTransaction->transaction_code,
+                'amount' => $validated['amount'],
+                'txn_date' => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
+                'txn_no' => $paymentTransaction->vnp_transaction_no,
+                'type' => '02',
+                'create_by' => $info,
+                'ip' => request()->ip(),
                 'order_info' => 'Hoàn tiền một phần qua VNPAY',
             ];
 
@@ -916,7 +928,8 @@ class OrderController extends Controller
         return response()->json(['message' => 'Xác nhận hoàn hàng thành công'], 200);
     }
     // Giao hàng lại
-    public function reshipOrder($code) {
+    public function reshipOrder($code)
+    {
         $order = Order::where('code', $code)->firstOrFail();
         if (!$order) {
             return response()->json(['message' => 'Không tìm thấy đơn hàng'], 400);
