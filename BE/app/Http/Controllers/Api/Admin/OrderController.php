@@ -302,42 +302,33 @@ class OrderController extends Controller
     public function search(Request $request)
     {
         try {
-            $order_code = request('order_code');
-            $order_name = request('order_name');
-            $order_phone = request('order_phone');
-            $order_status = request('order_status');
-            $payment_status = request('payment_status');
-            $shipping_status = request('shipping_status');
-            $start_day = request('start_day');
-            $end_day = request('end_day');
-
             $query = Order::query();
 
-            if (!$order_code && !$order_status && !$payment_status && !$shipping_status && !$order_name && !$order_phone) {
+            if (!$request['order_code'] && !$request['order_status'] && !$request['payment_status'] && !$request['shipping_status'] && !$request['order_name'] && !$request['order_phone']) {
                 return response()->json([
                     'message' => 'Không tìm thấy kết quả'
                 ], 404);
             } else {
-                if ($order_code) {
-                    $query->where('code', 'like', "%{$order_code}%");
+                if ($request['order_code']) {
+                    $query->where('code', 'like', "%{$request['order_code']}%");
                 }
-                if ($order_name) {
-                    $query->where('o_name', 'like', "%{$order_name}%");
+                if ($request['order_name']) {
+                    $query->where('o_name', 'like', "%{$request['order_name']}%");
                 }
-                if ($order_phone) {
-                    $query->where('o_phone', 'like', "%{$order_phone}%");
+                if ($request['order_phone']) {
+                    $query->where('o_phone', 'like', "%{$request['order_phone']}%");
                 }
-                if ($order_status) {
-                    $query->where('order_status_id', $order_status);
+                if ($request['order_status']) {
+                    $query->where('order_status_id', $request['order_status']);
                 }
-                if ($payment_status) {
-                    $query->where('payment_status_id', $payment_status);
+                if ($request['payment_status']) {
+                    $query->where('payment_status_id', $request['payment_status']);
                 }
-                if ($shipping_status) {
-                    $query->where('shipping_status_id', $shipping_status);
+                if ($request['shipping_status']) {
+                    $query->where('shipping_status_id', $request['shipping_status']);
                 }
-                if ($start_day && $end_day) {
-                    $query->whereBetween('created_at', [$start_day, $end_day]);
+                if ($request['start_day'] && $request['end_day']) {
+                    $query->whereBetween('created_at', [$request['start_day'], $request['end_day']]);
                 }
             }
 
