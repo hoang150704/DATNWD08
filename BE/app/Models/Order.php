@@ -74,9 +74,9 @@ class Order extends Model
         return $this->hasMany(Transaction::class);
     }
 
-    public function refundRequests()
+    public function refundRequest()
     {
-        return $this->hasMany(RefundRequest::class);
+        return $this->hasOne(RefundRequest::class)->latest();
     }
     public function statusLogs()
     {

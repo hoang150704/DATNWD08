@@ -443,7 +443,7 @@ class OrderClientController extends Controller
                     $query->where(function ($q) {
                         $q->whereHas('status', function ($s) {
                             $s->whereIn('code', ['return_requested', 'return_approved', 'refunded']);
-                        })->orWhereHas('refundRequests', function ($r) {
+                        })->orWhereHas('refundRequest', function ($r) {
                             $r->whereIn('status', ['pending', 'approved', 'rejected', 'refunded']);
                         });
                     });
@@ -583,7 +583,7 @@ class OrderClientController extends Controller
                 'shippingStatus',
                 'shipment',
                 'shipment.shippingLogs',
-                'refundRequests',
+                'refundRequest',
                 'statusLogs.fromStatus',
                 'statusLogs.toStatus',
             ])->where('code', $code)->first();
@@ -667,7 +667,9 @@ class OrderClientController extends Controller
                     ];
                 }),
                 // Yêu cầu hoàn hàng (nếu có)
-                'refund_requests' => RefundRequestResource::collection($order->refundRequests),
+                'refund_request' => $order->refundRequest
+                    ? new RefundRequestResource($order->refundRequest)
+                    : null,
                 // Timeline trạng thái
                 'status_timelines' => $order->statusLogs->map(function ($log) {
                     return [
@@ -870,110 +872,8 @@ class OrderClientController extends Controller
         ], 201);
     }
 
-    //Lấy chi tiết cho khách không đăng nhập
-    public function getGuestOrderDetail($code)
-    {
-        try {
-            $user = auth('sanctum')->user();
-
-            $order = Order::with([
-                'items',
-                'status',
-                'paymentStatus',
-                'shippingStatus',
-                'shipment.shippingLogs',
-                'refundRequests',
-                'statusLogs.fromStatus',
-                'statusLogs.toStatus',
-            ])->where('code', $code)->firstOrFail();
-
-            // Nếu là khách, hoặc user không trùng -> ẩn thông tin
-            $isOwner = $order->user_id && $user && $order->user_id === $user->id;
-
-            $data = [
-                'order_id' => $order->id,
-                'order_code' => $order->code,
-
-                // Trạng thái và subtitle
-                'status' => [
-                    'code' => $order->status->code,
-                    'name' => $order->status->name,
-                    'type' => $order->status->type,
-                ],
-                'subtitle' => $this->generateOrderSubtitle($order),
-
-                // Thanh toán + vận chuyển
-                'payment_status' => $order->paymentStatus->name ?? null,
-                'shipping_status' => $order->shippingStatus->name ?? null,
-
-                // Số tiền
-                'total_amount' => $order->total_amount,
-                'final_amount' => $order->final_amount,
-                'discount_amount' => $order->discount_amount,
-                'shipping_fee' => $order->shipping,
-
-                // Thông tin người nhận (ẩn nếu không phải chủ đơn)
-                'payment_method' => $order->payment_method,
-                'o_name' => $order->o_name,
-                'o_phone' => $isOwner ? $order->o_phone : $this->maskPhone($order->o_phone),
-                'o_email' => $isOwner ? $order->o_mail : $this->maskEmail($order->o_mail),
-                'o_address' => $order->o_address,
-
-                // Sản phẩm
-                'items' => $order->items->map(function ($item) {
-                    return [
-                        'product_name' => $item->product_name,
-                        'quantity' => $item->quantity,
-                        'price' => $item->price,
-                        'image' => $item->image,
-                        'variation' => $item->variation,
-                    ];
-                }),
-
-                // Giao hàng
-                'shipping_logs' => $order->shipment?->shippingLogs->map(function ($log) {
-                    return [
-                        'status' => $log->ghn_status,
-                        'location' => $log->location,
-                        'note' => $log->note,
-                        'created_at' => $log->timestamp,
-                    ];
-                }),
-
-                // Hoàn hàng
-                'refund_requests' => $order->refundRequests->map(function ($refund) {
-                    return [
-                        'status' => $refund->status,
-                        'reason' => $refund->reason,
-                        'amount' => $refund->amount,
-                        'approved_at' => optional($refund->approved_at),
-                    ];
-                }),
-
-                // Timeline
-                'status_timelines' => $order->statusLogs->map(function ($log) {
-                    return [
-                        'from' => $log->fromStatus->name ?? null,
-                        'to' => $log->toStatus->name ?? null,
-                        'changed_at' => $log->changed_at,
-                    ];
-                }),
-
-                // Hành động (nếu có user)
-                'actions' => OrderActionService::availableActions($order, 'user'),
-            ];
-
-            return response()->json([
-                'message' => 'Lấy đơn hàng thành công',
-                'data' => $data
-            ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Không thể lấy đơn hàng',
-                'error' => $th->getMessage()
-            ], 500);
-        }
-    }
+    //Đánh giá
+    public function reviewProduct() {}
 
     //Xác thực đơn
     //Gưi mail
@@ -1040,5 +940,4 @@ class OrderClientController extends Controller
             'token' => $verifyToken,
         ]);
     }
-
 }
