@@ -121,7 +121,7 @@ class OrderController extends Controller
                 'o_address' => $validatedData['o_address'],
                 'o_phone' => $validatedData['o_phone'],
                 'o_mail' => $validatedData['o_mail'] ?? null,
-                'note'  => $validatedData['note'] ?? null,
+                'note' => $validatedData['note'] ?? null,
                 'stt_payment' => 1,
                 'stt_track' => 1,
                 'created_by' => 'system'
@@ -141,7 +141,7 @@ class OrderController extends Controller
                     ], 400);
                 }
                 //
-                $variation =  $variant->getFormattedVariation();
+                $variation = $variant->getFormattedVariation();
                 // Thêm sản phẩm vào danh sách orderItems
                 $orderItems[] = [
                     'order_id' => $order->id,
@@ -301,38 +301,41 @@ class OrderController extends Controller
         }
     }
 
-    public function search()
+    public function search(Request $request)
     {
         try {
-            $userName = request('username');
-            $orderDate = request('orderDate');
-            $status = request('status');
-
             $query = Order::query();
 
-            if (!$userName && !$orderDate && !$status) {
+            if (!$request['order_code'] && !$request['order_status'] && !$request['payment_status'] && !$request['shipping_status'] && !$request['order_name'] && !$request['order_phone']) {
                 return response()->json([
                     'message' => 'Không tìm thấy kết quả'
                 ], 404);
             } else {
-                if ($userName) {
-                    $query->where('o_name', 'like', "%{$userName}%");
+                if ($request['order_code']) {
+                    $query->where('code', 'like', "%{$request['order_code']}%");
                 }
-
-                if ($orderDate) {
-                    $query->whereDate('created_at', '=', $orderDate);
+                if ($request['order_name']) {
+                    $query->where('o_name', 'like', "%{$request['order_name']}%");
                 }
-
-                if ($status) {
-                    $query->where('stt_track', $status);
+                if ($request['order_phone']) {
+                    $query->where('o_phone', 'like', "%{$request['order_phone']}%");
+                }
+                if ($request['order_status']) {
+                    $query->where('order_status_id', $request['order_status']);
+                }
+                if ($request['payment_status']) {
+                    $query->where('payment_status_id', $request['payment_status']);
+                }
+                if ($request['shipping_status']) {
+                    $query->where('shipping_status_id', $request['shipping_status']);
+                }
+                if ($request['start_day'] && $request['end_day']) {
+                    $query->whereBetween('created_at', [$request['start_day'], $request['end_day']]);
                 }
             }
 
-            $orders = $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'stt_payment', 'stt_track', 'created_at')
-                ->with([
-                    'stt_track:id,name,next_status_allowed',
-                    'stt_payment:id,name'
-                ])
+            $orders = $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
+                ->with('status:id,code,name', 'paymentStatus:id,code,name', 'shippingStatus:id,code,name')
                 ->orderByDesc('orders.created_at')
                 ->paginate(10);
 
@@ -475,7 +478,7 @@ class OrderController extends Controller
                     'type' => 'refund',
                     'amount' => $order->final_amount,
                     'status' => 'pending',
-                    'note' =>  $validated['cancel_reason'],
+                    'note' => $validated['cancel_reason'],
                     'created_at' => now()
                 ]);
 
@@ -527,12 +530,12 @@ class OrderController extends Controller
                     foreach ($result['data'] as $item) {
                         // Tạo log shipment
                         ShippingLog::create([
-                            'shipment_id'       => $order->shipment->id,
-                            'ghn_status'        => 'cancel',
-                            'mapped_status_id'  => ShippingStatus::idByCode('cancelled'),
-                            'location'          => null,
-                            'note'              => $item['message'] ?? 'Đã huỷ qua GHN',
-                            'timestamp'         => now(),
+                            'shipment_id' => $order->shipment->id,
+                            'ghn_status' => 'cancel',
+                            'mapped_status_id' => ShippingStatus::idByCode('cancelled'),
+                            'location' => null,
+                            'note' => $item['message'] ?? 'Đã huỷ qua GHN',
+                            'timestamp' => now(),
                         ]);
 
                         // Cập nhật shipment status
@@ -599,12 +602,12 @@ class OrderController extends Controller
             ]);
 
             Transaction::create([
-                'order_id'   => $order->id,
-                'method'     => $order->payment_method,
-                'type'       => 'refund',
-                'amount'     => $order->final_amount,
-                'status'     => 'pending',
-                'note'       => 'Duyệt hoàn tiền sau khi nhận hàng',
+                'order_id' => $order->id,
+                'method' => $order->payment_method,
+                'type' => 'refund',
+                'amount' => $order->final_amount,
+                'status' => 'pending',
+                'note' => 'Duyệt hoàn tiền sau khi nhận hàng',
                 'created_at' => now(),
             ]);
             DB::commit();
@@ -699,13 +702,13 @@ class OrderController extends Controller
 
             // Gọi API hoàn tiền
             $refundData = [
-                'txn_ref'    => $paymentTransaction->transaction_code,
-                'amount'     => $paymentTransaction->amount,
-                'txn_date'   => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
-                'txn_no'     => $paymentTransaction->vnp_transaction_no,
-                'type'       => '02',
-                'create_by'  => $info,
-                'ip'         => request()->ip(),
+                'txn_ref' => $paymentTransaction->transaction_code,
+                'amount' => $paymentTransaction->amount,
+                'txn_date' => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
+                'txn_no' => $paymentTransaction->vnp_transaction_no,
+                'type' => '02',
+                'create_by' => $info,
+                'ip' => request()->ip(),
                 'order_info' => 'Hoàn tiền sau hoàn hàng',
             ];
 
@@ -835,13 +838,13 @@ class OrderController extends Controller
             }
 
             $refundData = [
-                'txn_ref'    => $paymentTransaction->transaction_code,
-                'amount'     => $validated['amount'],
-                'txn_date'   => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
-                'txn_no'     => $paymentTransaction->vnp_transaction_no,
-                'type'       => '02',
-                'create_by'  => $info,
-                'ip'         => request()->ip(),
+                'txn_ref' => $paymentTransaction->transaction_code,
+                'amount' => $validated['amount'],
+                'txn_date' => optional($paymentTransaction->vnp_pay_date)?->format('YmdHis'),
+                'txn_no' => $paymentTransaction->vnp_transaction_no,
+                'type' => '02',
+                'create_by' => $info,
+                'ip' => request()->ip(),
                 'order_info' => 'Hoàn tiền một phần qua VNPAY',
             ];
 

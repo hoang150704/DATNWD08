@@ -16,8 +16,7 @@ class VariantExport implements FromQuery, WithHeadings, WithMapping, WithTitle, 
     {
         return Product::query()
             ->with(['categories', 'variants.attributeValues'])
-            ->where('type', 0)
-            ->get();
+            ->where('type', 0);
     }
 
     public function map($product): array

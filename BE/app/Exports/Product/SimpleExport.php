@@ -3,6 +3,7 @@
 namespace App\Exports\Product;
 
 use App\Models\Product;
+use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -14,7 +15,7 @@ class SimpleExport implements FromQuery, WithMapping, WithHeadings, WithTitle, S
 {
     public function query()
     {
-        return Product::query()->with(['categories', 'variants'])->where('type', 1)->get();
+        return Product::query()->with(['categories', 'variants'])->where('type', 1);
     }
 
     public function map($product): array
