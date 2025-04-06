@@ -35,8 +35,8 @@ class CancelOrderService
     {
         DB::beginTransaction();
         try {
-            $this->updateOrderStatuses($order, $reason, $cancelBy);
-            $this->logStatusChange($order, $cancelBy);
+            $fromStatusId = $this->updateOrderStatuses($order, $reason, $cancelBy);
+            $this->logStatusChange($order, $cancelBy, $fromStatusId);
 
             if ($this->checkRefund($order)) {
                 $this->createRefundAndTransactions($order, $reason, $ip);
@@ -55,8 +55,9 @@ class CancelOrderService
         }
     }
 
-    private function updateOrderStatuses(Order $order, string $reason, string $cancelBy): void
+    private function updateOrderStatuses(Order $order, string $reason, string $cancelBy)
     {
+        $fromStatusId = $order->order_status_id;
         if ($order->payment_method !== $this->paymentMedthodVnpay) {
             $order->payment_status_id = PaymentStatus::idByCode(PaymentStatusEnum::CANCELLED);
         }
@@ -70,13 +71,14 @@ class CancelOrderService
         ]);
 
         broadcast(new OrderEvent($order, null));
+        return $fromStatusId;
     }
 
-    private function logStatusChange(Order $order, string $cancelBy): void
+    private function logStatusChange(Order $order, string $cancelBy, $fromStatusId): void
     {
         OrderStatusLog::create([
             'order_id' => $order->id,
-            'from_status_id' => $order->order_status_id,
+            'from_status_id' => $fromStatusId,
             'to_status_id' => OrderStatus::idByCode(OrderStatusEnum::CANCELLED),
             'changed_by' => $cancelBy,
             'changed_at' => now(),

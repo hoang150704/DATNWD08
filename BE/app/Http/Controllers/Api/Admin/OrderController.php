@@ -203,7 +203,7 @@ class OrderController extends Controller
                 'shipment',
                 'shipment.shippingLogs',
                 'shipment.shippingLogsTimeline',
-                'refundRequests',
+                'refundRequest',
                 'statusLogs.fromStatus',
                 'statusLogs.toStatus',
             ])->findOrFail($id);
@@ -250,7 +250,7 @@ class OrderController extends Controller
                     $order->transactions->sortBy('created_at')
                 ),
                 // Shipment
-                'shipment'=>new ShipmentResource($order->shipment),
+                'shipment' => new ShipmentResource($order->shipment),
 
 
                 // Lịch sử vận chuyển theo đúng thứ tự thời gian
@@ -264,7 +264,9 @@ class OrderController extends Controller
                 }),
 
                 // Yêu cầu hoàn hàng
-                'refund_requests' => RefundRequestResource::collection($order->refundRequests),
+                'refund_request' => $order->refundRequest
+                    ? new RefundRequestResource($order->refundRequest)
+                    : null,
                 // Timeline trạng thái đơn hàng
                 'status_timelines' => $order->statusLogs->map(function ($statusTimeLine) {
                     return [
@@ -350,7 +352,7 @@ class OrderController extends Controller
     {
         $order = Order::with('status')->where('code', $code)->firstOrFail();
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         // Kiểm tra trạng thái hiện tại có thể chuyển sang 'confirmed' không
         if (!OrderStatusFlowService::canChange($order, 'confirmed')) {
             return response()->json([
@@ -395,7 +397,7 @@ class OrderController extends Controller
     public function cancelOrderByAdmin(Request $request, $code)
     {
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $validated = $request->validate([
             'cancel_reason' => 'required|string|max:1000'
         ]);
@@ -424,7 +426,7 @@ class OrderController extends Controller
             if ($order->payment_method === 'vnpay') {
                 $paymentStatus = PaymentStatus::idByCode('refunded');
                 $order->payment_status_id = $paymentStatus;
-            }else{
+            } else {
                 $paymentStatus = PaymentStatus::idByCode('cancelled');
                 $order->payment_status_id = $paymentStatus;
             }
@@ -567,7 +569,7 @@ class OrderController extends Controller
     public function approveReturn($code)
     {
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $order = Order::with('refundRequest')->where('code', $code)->firstOrFail();
 
         if ($order->status->code !== 'return_requested') {
@@ -616,7 +618,7 @@ class OrderController extends Controller
     public function rejectReturn(Request $request, $code)
     {
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $request->validate([
             'reject_reason' => 'required|string|max:1000'
         ]);
@@ -662,7 +664,7 @@ class OrderController extends Controller
     public function refundAuto($code)
     {
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $order = Order::with(['transactions', 'refundRequest'])->where('code', $code)->firstOrFail();
 
         if ($order->payment_method !== 'vnpay' || $order->paymentStatus->code !== 'paid') {
@@ -765,7 +767,7 @@ class OrderController extends Controller
             'amount' => 'required|numeric|min:1', // nếu cho hoàn 1 phần
         ]);
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         $order = Order::where('code', $code)->firstOrFail();
 
         // Tạo mới transaction sucess
@@ -809,7 +811,7 @@ class OrderController extends Controller
     {
         $order = Order::with(['transactions', 'refundRequest'])->where('code', $code)->firstOrFail();
         $user = auth('sanctum')->user();
-        $info = $user->username . '(' .$user->role. ')';
+        $info = $user->username . '(' . $user->role . ')';
         if ($order->payment_method !== 'vnpay' || $order->paymentStatus->code !== 'paid') {
             return response()->json(['message' => 'Đơn hàng không hợp lệ để hoàn tiền tự động'], 400);
         }
@@ -916,12 +918,12 @@ class OrderController extends Controller
         return response()->json(['message' => 'Xác nhận hoàn hàng thành công'], 200);
     }
     // Giao hàng lại
-    public function reshipOrder($code) {
+    public function reshipOrder($code)
+    {
         $order = Order::where('code', $code)->firstOrFail();
         if (!$order) {
             return response()->json(['message' => 'Không tìm thấy đơn hàng'], 400);
         }
-
     }
 
 
