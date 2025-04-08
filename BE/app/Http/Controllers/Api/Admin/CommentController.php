@@ -71,10 +71,10 @@ class CommentController extends Controller
         }
     }
 
-    public function show(Comment $comment)
+    public function show(Comment $comment,$id)
     {
         try {
-            $comment = Comment::with(['user', 'order', 'orderItem'])->findOrFail($comment->id);
+            $comment = Comment::with(['user', 'order', 'orderItem'])->findOrFail($id);
 
             $reviewerName = $comment->user?->name ?? $comment->customer_name ?? '[Ẩn danh]';
             $reviewerEmail = $comment->user?->email ?? $comment->customer_mail ?? '[Không có email]';
