@@ -79,46 +79,46 @@ class CommentController extends Controller
             $reviewerName = $comment->user?->name ?? $comment->customer_name ?? '[Ẩn danh]';
             $reviewerEmail = $comment->user?->email ?? $comment->customer_mail ?? '[Không có email]';
             $avatar = $comment->user?->avatar
-                ? asset('storage/' . $comment->user->avatar)
-                : 'https://ui-avatars.com/api/?name=' . urlencode($reviewerName) . '&background=random';
+                ? $comment->user->avatar
+                : 'https://png.pngtree.com/png-clipart/20210608/ourlarge/pngtree-dark-gray-simple-avatar-png-image_3418404.jpg';
+            $data = [
+                'id' => $comment->id,
+                'reviewer_name' => $reviewerName,
+                'reviewer_email' => $reviewerEmail,
+                'avatar' => $avatar,
+                'user_type' => $comment->user_id ? 'Tài khoản' : 'Khách mua hàng',
 
+                'order' => [
+                    'code' => $comment->order->code ?? null,
+                    // 'created_at' =>$comment->order->created_at->format('d/m/Y H:i'),
+                    'status' => $comment->order->status->name ?? null,
+                ],
+
+                'product' => [
+                    'name' => $comment->orderItem->product_name ?? '[Không có]',
+                    'image' => $comment->orderItem->product_image ?? null,
+                    'sku' => $comment->orderItem->product_sku ?? null,
+                    'price' => $comment->orderItem->unit_price ?? null,
+                ],
+
+                'review' => [
+                    'rating' => $comment->rating,
+                    'content' => $comment->content,
+                    'images' => $comment->images ?? [],
+                    'is_updated' => $comment->is_updated,
+                    'created_at' => $comment->created_at->format('d/m/Y H:i'),
+                ],
+
+                'moderation' => [
+                    'is_active' => $comment->is_active,
+                    'hidden_reason' => $comment->hidden_reason,
+                    'reply' => $comment->reply,
+                    'reply_at' => $comment->reply_at ? $comment->reply_at->format('d/m/Y H:i') : null,
+                ]
+            ];
             return response()->json([
                 'message' => 'Success',
-                'data' => [
-                    'id' => $comment->id,
-                    'reviewer_name' => $reviewerName,
-                    'reviewer_email' => $reviewerEmail,
-                    'avatar' => $avatar,
-                    'user_type' => $comment->user_id ? 'Tài khoản' : 'Khách mua hàng',
-
-                    'order' => [
-                        'code' => $comment->order->code ?? null,
-                        // 'created_at' =>$comment->order->created_at->format('d/m/Y H:i'),
-                        'status' => $comment->order->status->name ?? null,
-                    ],
-
-                    'product' => [
-                        'name' => $comment->orderItem->product_name ?? '[Không có]',
-                        'image' => $comment->orderItem->product_image ?? null,
-                        'sku' => $comment->orderItem->product_sku ?? null,
-                        'price' => $comment->orderItem->unit_price ?? null,
-                    ],
-
-                    'review' => [
-                        'rating' => $comment->rating,
-                        'content' => $comment->content,
-                        'images' => $comment->images ?? [],
-                        'is_updated' => $comment->is_updated,
-                        'created_at' => $comment->created_at->format('d/m/Y H:i'),
-                    ],
-
-                    'moderation' => [
-                        'is_active' => $comment->is_active,
-                        'hidden_reason' => $comment->hidden_reason,
-                        'reply' => $comment->reply,
-                        'reply_at' => $comment->reply_at ? $comment->reply_at->format('d/m/Y H:i') : null,
-                    ]
-                ]
+                'data' => $data
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
