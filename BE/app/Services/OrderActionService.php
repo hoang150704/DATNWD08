@@ -15,7 +15,7 @@ class OrderActionService
         $payment = $order->paymentStatus->code ?? null;
         $shipping = $order->shippingStatus->code ?? null;
         $completedLog = OrderStatusLog::where('order_id', $order->id)
-            ->where('status_code', 'completed')
+            ->where('to_status_id', 4)
             ->latest('created_at')
             ->first();
         $actions = [];
