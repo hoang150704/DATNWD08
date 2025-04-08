@@ -113,7 +113,7 @@ class CommentController extends Controller
                     'is_active' => $comment->is_active,
                     'hidden_reason' => $comment->hidden_reason,
                     'reply' => $comment->reply,
-                    'reply_at' => $comment->reply_at ? $comment->reply_at->format('d/m/Y H:i') : null,
+                    'reply_at' => $comment->reply_at ? Carbon::parse($comment->reply_at)->format('d/m/Y H:i') : null,
                 ]
             ];
             return response()->json([
