@@ -10,6 +10,7 @@ Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi. Dưới �
 - **Địa chỉ giao hàng:** {{ $order->o_address }}
 - **Số điện thoại:** {{ $order->o_phone }}
 - **Phương thức thanh toán:** {{ $order->payment_method }}
+- **Trạng thái thanh toán:** {{ $order->payment_status_id }}
 - **Tổng tiền:** **{{ number_format($order->final_amount, 0, ',', '.') }}   VNĐ**
 
 ## Danh sách sản phẩm:

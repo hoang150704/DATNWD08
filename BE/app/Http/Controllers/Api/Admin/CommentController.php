@@ -11,40 +11,40 @@ class CommentController extends Controller
 
     protected function search($keyword = null, $rating = null, $isActive = null)
     {
-        try {
-            $query = Comment::query();
-
-            if ($keyword) {
-                $query->where('content', 'like', "%{$keyword}%");
-            }
-
-            if ($rating) {
-                $query->where('rating', $rating);
-            }
-
-            if ($isActive !== null) {
-                $query->where('is_active', $isActive);
-            }
-
-            return $query
-                ->with(['user:id,name', 'product:id,name',])
-                ->paginate(10);
-
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Failed'
-            ], 404);
+        $query = Comment::query();
+    
+        if ($keyword) {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('content', 'like', "%{$keyword}%")
+                  ->orWhere('customer_name', 'like', "%{$keyword}%")
+                  ->orWhere('customer_email', 'like', "%{$keyword}%");
+            });
         }
+    
+        if ($rating) {
+            $query->where('rating', $rating);
+        }
+    
+        if (!is_null($isActive)) {
+            $query->where('is_active', $isActive);
+        }
+    
+        return $query
+            ->with('user:name,email')
+            ->orderByDesc('id')
+            ->paginate(10);
     }
+    
 
 
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $keyword = request('keyword');
-            $rating = request('rating');
-
-            $comments = $this->search($keyword, $rating, 1);
+            $keyword = $request->input('keyword');
+            $rating = $request->input('rating');
+            $isActive = $request->has('is_active') ? (int)$request->input('is_active') : null;
+    
+            $comments = $this->search($keyword, $rating, $isActive);
 
             return response()->json([
                 'message' => 'Success',
@@ -60,7 +60,7 @@ class CommentController extends Controller
     public function show(Comment $comment)
     {
         try {
-            $comment = Comment::with(['user:id,name', 'product:id,name'])->findOrFail($comment->id);
+            $comment = Comment::with(['user:id,name,main_image', 'product:id,name'])->findOrFail($comment->id);
 
             return response()->json([
                 'message' => 'Success',
