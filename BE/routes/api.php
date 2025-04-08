@@ -55,6 +55,7 @@ Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
+Route::get('/discount-product', [HomeController::class, 'discountProduct']);
 
 //Thanh toán
 Route::post('/checkout', [OrderClientController::class, 'store']);
