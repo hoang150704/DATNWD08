@@ -651,11 +651,14 @@ class OrderClientController extends Controller
                 // Sản phẩm
                 'items' => $order->items->map(function ($item) {
                     return [
+                        'id'=>$item->id,
+                        'product_id'=>$item->product_id,
                         'product_name' => $item->product_name,
                         'quantity' => $item->quantity,
                         'price' => $item->price,
                         'image' => $item->image,
                         'variation' => $item->variation,
+                        'review'=>$item->productReview 
                     ];
                 }),
                 // Lịch sử giao hàng
