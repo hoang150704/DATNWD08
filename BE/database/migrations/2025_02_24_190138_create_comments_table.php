@@ -10,19 +10,32 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('comments', function (Blueprint $table) {
+        Schema::create('product_reviews', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('order_id');
+            $table->unsignedBigInteger('order_item_id');
             $table->unsignedBigInteger('product_id');
-            $table->foreign('product_id')->references('id')->on('products')->cascadeOnDelete()->noActionOnUpdate();
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete()->noActionOnUpdate();
+            // $table->foreign('order_id')->references('id')->on('orders')->cascadeOnDelete();
+            // $table->foreign('order_item_id')->references('id')->on('order_items')->cascadeOnDelete();
+            // $table->foreign('product_id')->references('id')->on('products')->cascadeOnDelete();
+            // $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('customer_name')->nullable();
+            $table->string('customer_mail')->nullable(); 
             $table->tinyInteger('rating')->unsigned();
             $table->text('content');
+            $table->json('images')->nullable(); 
             $table->text('reply')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->string('hidden_reason')->nullable();
+            $table->boolean('is_updated')->default(false);
+            $table->timestamp('reply_at');
             $table->timestamps();
+    
+
         });
     }
+    
 
     /**
      * Reverse the migrations.
