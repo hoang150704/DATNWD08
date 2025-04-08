@@ -16,7 +16,7 @@ class OrderActionService
         $shipping = $order->shippingStatus->code ?? null;
         $completedLog = OrderStatusLog::where('order_id', $order->id)
             ->where('to_status_id', 4)
-            ->latest('created_at')
+            ->latest('changed_at')
             ->first();
         $actions = [];
 
@@ -39,7 +39,7 @@ class OrderActionService
             if (
                 in_array($status, ['completed', 'closed']) &&
                 $completedLog &&
-                Carbon::parse($completedLog->created_at)->diffInDays(now()) <= 15
+                Carbon::parse($completedLog->changed_at)->diffInDays(now()) <= 15
             ) {
                 foreach ($order->items as $item) {
                     $review = Comment::where('order_item_id', $item->id)->first();
