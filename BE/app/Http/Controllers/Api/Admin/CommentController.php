@@ -44,7 +44,7 @@ class CommentController extends Controller
         try {
             $keyword = $request->input('keyword');
             $rating = $request->input('rating');
-            $isActive = $request->has('is_active');
+            $isActive = $request->input('is_active');
 
             $comments = $this->search($keyword, $rating, $isActive);
             $comments->transform(function ($comment) {
