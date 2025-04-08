@@ -27,8 +27,8 @@ class CommentController extends Controller
             $query->where('rating', $rating);
         }
 
-        if (!is_null($isActive)) {
-            $query->where('is_active', $isActive);
+        if (in_array($isActive, ['0', '1', 0, 1], true)) {
+            $query->where('is_active', (bool)$isActive);
         }
 
         return $query
@@ -44,7 +44,7 @@ class CommentController extends Controller
         try {
             $keyword = $request->input('keyword');
             $rating = $request->input('rating');
-            $isActive = $request->has('is_active') ? (int)$request->input('is_active') : null;
+            $isActive = $request->has('is_active');
 
             $comments = $this->search($keyword, $rating, $isActive);
             $comments->transform(function ($comment) {
