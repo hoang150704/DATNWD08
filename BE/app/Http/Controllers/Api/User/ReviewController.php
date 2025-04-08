@@ -37,7 +37,7 @@ class ReviewController extends Controller
 
             return [
                 'id'         => $comment->id,
-                'name'       => $this->maskName($name),
+                'name'       => $name,
                 'email'      => $this->maskEmail($email),
                 'avatar'     => $comment->user?->avatar
                     ?: 'https://png.pngtree.com/png-clipart/20210608/ourlarge/pngtree-dark-gray-simple-avatar-png-image_3418404.jpg',
