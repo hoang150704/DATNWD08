@@ -264,23 +264,35 @@ class ProductController extends Controller
     public function destroy()
     {
         try {
-
             $ids = request('ids');
 
-            $products = Product::whereIn('id', $ids)->get();
+            $products = Product::whereIn('id', $ids)->with(['variants', 'variants.orderItems.order'])->get();
 
-            $products->each(function ($product) {
-                // Xóa tất cả giá trị thuộc tính của biến thể
+            foreach ($products as $product) {
+
+                // Kiểm tra nếu sản phẩm có trong order_items của đơn hàng chưa thanh toán online
+                foreach ($product->variants as $variant) {
+                    foreach ($variant->orderItems as $orderItem) {
+                        $order = $orderItem->order;
+                        if ($order && $order->payment_method === 'vnpay' && $order->payment_status_id == 1) {
+                            return response()->json([
+                                'message' => "Không thể xoá sản phẩm '{$product->name}' vì đang chờ thanh toán online."
+                            ], 403);
+                        }
+                    }
+                }
+
+                // Xoá giá trị thuộc tính của biến thể
                 $product->variants->each(function ($variant) {
-                    $variant->values()->delete(); // Xóa các giá trị thuộc tính liên quan
+                    $variant->values()->delete();
                 });
 
-                // Xóa tất cả biến thể
+                // Xoá các biến thể
                 $product->variants()->delete();
 
-                // Xóa mềm sản phẩm
+                // Xoá mềm sản phẩm
                 $product->delete();
-            });
+            }
 
             return response()->json(['message' => 'Sản phẩm đã được xóa'], 200);
         } catch (ModelNotFoundException $e) {
