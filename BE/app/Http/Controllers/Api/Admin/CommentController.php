@@ -18,8 +18,12 @@ class CommentController extends Controller
         if ($keyword) {
             $query->where(function ($q) use ($keyword) {
                 $q->where('content', 'like', "%{$keyword}%")
-                    ->orWhere('customer_name', 'like', "%{$keyword}%")
-                    ->orWhere('customer_email', 'like', "%{$keyword}%");
+                  ->orWhere('customer_name', 'like', "%{$keyword}%")
+                  ->orWhere('customer_mail', 'like', "%{$keyword}%")
+                  ->orWhereHas('user', function ($userQuery) use ($keyword) {
+                      $userQuery->where('name', 'like', "%{$keyword}%")
+                                ->orWhere('email', 'like', "%{$keyword}%");
+                  });
             });
         }
 
