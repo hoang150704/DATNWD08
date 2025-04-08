@@ -306,7 +306,18 @@ class OrderController extends Controller
         try {
             $query = Order::query();
 
-            if (!$request['order_code'] && !$request['order_status'] && !$request['payment_status'] && !$request['shipping_status'] && !$request['order_name'] && !$request['order_phone']) {
+            $filters = [
+                'order_code' => $request->order_code,
+                'order_status' => $request->order_status,
+                'payment_status' => $request->payment_status,
+                'shipping_status' => $request->shipping_status,
+                'order_name' => $request->order_name,
+                'order_phone' => $request->order_phone,
+                'start_day' => $request->start_day,
+                'end_day' => $request->end_day,
+            ];
+
+            if (empty(array_filter($filters))) {
                 return response()->json([
                     'message' => 'Không tìm thấy kết quả'
                 ], 404);

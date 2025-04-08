@@ -26,6 +26,10 @@ class Product extends Model
     {
         return $this->hasMany(ProductVariation::class);
     }
+    public function orders()
+    {
+        return $this->hasMany(OrderItem::class, 'product_id', 'id');
+    }
     public function categories()
     {
         return $this->belongsToMany(Category::class, 'product_category_relations');

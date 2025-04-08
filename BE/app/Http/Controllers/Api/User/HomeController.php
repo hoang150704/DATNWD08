@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\Product;
+use App\Models\ProductVariation;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -36,6 +37,23 @@ class HomeController extends Controller
         // Lấy tất cả danh mục cha (parent_id = null)
         $categories = Category::whereNull('parent_id')->get();
         return response()->json($categories, 200);
+    }
+
+    public function discountProduct()
+    {
+        try {
+            $product = ProductVariation::with('product:id,name,main_image,short_description')->whereNotNull('sale_price')->orderBy('sale_price')->first();
+            return response()->json([
+                'message' => 'Success',
+                'data' => $product
+            ], 200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json([
+                'message' => 'Failed',
+                'error' => $th->getMessage()
+            ], 500);
+        }
     }
 
     public function getProductsByCategory($category_id)

@@ -35,6 +35,10 @@ Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+Route::prefix('reviews')->group(function () {
+    Route::get('{productId}/reviews', [ReviewController::class, 'getReviewsByProduct']);
+    Route::get('{productId}/reviews/statistics', [ReviewController::class, 'getReviewDashborad']);
+});
 
 Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
@@ -51,6 +55,7 @@ Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
 Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
+Route::get('/discount-product', [HomeController::class, 'discountProduct']);
 
 //Thanh toán
 Route::post('/checkout', [OrderClientController::class, 'store']);

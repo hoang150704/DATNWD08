@@ -54,4 +54,9 @@ class ProductVariation extends Model
             return [$value->attribute->name => $value->name];
         });
     }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class,'variation_id','id');
+    }
 }

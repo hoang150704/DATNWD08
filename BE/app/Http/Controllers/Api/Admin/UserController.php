@@ -19,9 +19,38 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+
+    protected function search($name = null, $username = null, $email = null, $isActive)
     {
-        $data = User::latest('id')->paginate(10);
+        $query = User::query();
+
+        if ($name) {
+            $query->where('name', 'LIKE', "%{$name}%");
+        }
+
+        if ($username) {
+            $query->where('username', 'LIKE', "%{$username}%");
+        }
+
+        if ($email) {
+            $query->where('email', $email);
+        }
+
+        if (!is_null($isActive)) {
+            $query->where('is_active', $isActive);
+        }
+
+        return $query->latest('id')->paginate(10);
+    }
+
+    public function index(Request $request)
+    {
+        $name = $request->input('name');
+        $username = $request->input('username');
+        $email = $request->input('email');
+        $isActive = $request->has('is_active') ? (int) $request->input('is_active') : null;
+
+        $data = $this->search($name, $username, $email, $isActive);
         foreach ($data as $key => $value) {
 
             if ($value->avatar == null) {
@@ -42,17 +71,17 @@ class UserController extends Controller
         try {
             DB::transaction(function () use ($request) {
                 $data = [
-                    'name'      => $request->name,
-                    'username'  => $request->username,
-                    'email'     => $request->email,
-                    'password'  => bcrypt($request->password),
-                    'role'   => $request->role,
+                    'name' => $request->name,
+                    'username' => $request->username,
+                    'email' => $request->email,
+                    'password' => bcrypt($request->password),
+                    'role' => $request->role,
                 ];
-        
+
                 $user = User::query()->create($data);
                 SendEmailVerificationUserJob::dispatch($user);
             });
-            
+
             return response()->json([
                 'message' => 'Thêm mới thành công!',
             ], 201);
@@ -74,7 +103,7 @@ class UserController extends Controller
     {
         return response()->json($user);
     }
-    
+
 
     /**
      * Update the specified resource in storage.
@@ -84,7 +113,7 @@ class UserController extends Controller
         try {
             $data = $request->validated();
             // Kiểm tra xem người dùng có đổi email không
-            if($user->email != $data['email']){
+            if ($user->email != $data['email']) {
                 $data['email_verified_at'] = null;
                 $user->update($data);
                 SendEmailVerificationUserJob::dispatch($user);
@@ -92,37 +121,39 @@ class UserController extends Controller
                     'message' => 'Cập nhật thành công! Vui lòng xác thực email',
                     'user' => $user,
                 ], 200);
-            };
+            }
+            ;
             $user->update($data);
             return response()->json([
                 'message' => 'Cập nhật thành công!',
                 'user' => $user,
             ], 200);
-            
+
         } catch (\Exception $e) {
             Log::error($e->getMessage());
-    
+
             return response()->json([
                 'message' => 'Đã có lỗi xảy ra!',
             ], 500);
         }
-    }    
+    }
 
     //
-    public function changeActive(Request $request,$id){
+    public function changeActive(Request $request, $id)
+    {
         try {
             //code...
             $user = User::findOrFail($id);
-            
+
             $data = [
-                "is_active"=>!$user->is_active,
+                "is_active" => !$user->is_active,
                 "reason" => $user->is_active ? $request->reason ?? null : null,
             ];
             $user->update($data);
-            return response()->json(['message'=>'Bạn đã thay đổi trạng thái thành công'],200);
+            return response()->json(['message' => 'Bạn đã thay đổi trạng thái thành công'], 200);
         } catch (\Throwable $th) {
             //throw $th;
-            return response()->json(['message'=>'Bạn đã thay đổi trạng thái thất bại','errors'=>$th->getMessage()],500);
+            return response()->json(['message' => 'Bạn đã thay đổi trạng thái thất bại', 'errors' => $th->getMessage()], 500);
         }
 
     }

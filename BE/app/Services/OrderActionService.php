@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Comment;
 use App\Models\Order;
+use App\Models\OrderStatusLog;
+use Carbon\Carbon;
 
 class OrderActionService
 {
@@ -11,7 +14,10 @@ class OrderActionService
         $status = $order->status->code ?? null;
         $payment = $order->paymentStatus->code ?? null;
         $shipping = $order->shippingStatus->code ?? null;
-
+        $completedLog = OrderStatusLog::where('order_id', $order->id)
+            ->where('to_status_id', 4)
+            ->latest('changed_at')
+            ->first();
         $actions = [];
 
         if ($role === 'user') {
@@ -29,6 +35,28 @@ class OrderActionService
             if ($payment === 'unpaid' && $order->payment_method === 'vnpay') {
                 $actions[] = 'pay';
             }
+            //XỬ lí đánh giá 
+            if (
+                in_array($status, ['completed', 'closed']) &&
+                $completedLog &&
+                Carbon::parse($completedLog->changed_at)->diffInDays(now()) <= 15
+            ) {
+                foreach ($order->items as $item) {
+                    $review = Comment::where('order_item_id', $item->id)->first();
+
+                    if (!$review) {
+                        $actions[] = [
+                            'action' => 'review',
+                            'order_item_id' => $item->id,
+                        ];
+                    } elseif (!$review->is_updated) {
+                        $actions[] = [
+                            'action' => 'update_review',
+                            'order_item_id' => $item->id,
+                        ];
+                    }
+                }
+            }
         }
 
         if ($role === 'admin') {
@@ -40,7 +68,7 @@ class OrderActionService
                     $actions[] = 'cancel'; //Hủy
                     break;
                 case 'confirmed':
-                    if ( !$order->shipment->shipping_code) {
+                    if (!$order->shipment->shipping_code) {
                         $actions[] = 'ship'; // Chỉ hiện nút ship nếu chưa có shipping_code
                     } // Ship
                     $actions[] = 'cancel'; // Hủy
