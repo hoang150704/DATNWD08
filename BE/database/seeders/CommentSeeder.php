@@ -19,7 +19,7 @@ class CommentSeeder extends Seeder
                 'product_id' => rand(1, 10),
                 'user_id' => $hasUser ? rand(1, 2) : null,
                 'customer_name' => $hasUser ? null : fake()->name(),
-                'customer_email' => $hasUser ? null : fake()->safeEmail(),
+                'customer_mail' => $hasUser ? null : fake()->safeEmail(),
                 'rating' => rand(1, 5),
                 'content' => fake()->realText(100),
                 'images' => json_encode([

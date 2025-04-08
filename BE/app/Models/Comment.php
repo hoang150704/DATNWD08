@@ -21,6 +21,7 @@ class Comment extends Model
         'content',
         'images',
         'reply',
+        'reply_at',
         'hidden_reason',
         'is_active',
         'is_updated',
@@ -49,9 +50,5 @@ class Comment extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class)->withDefault(function ($user) {
-            $user->name = '[Người dùng đã xoá]';
-            $user->email = '[Email đã bị ẩn]';
-        });
-    }
+        return $this->belongsTo(User::class, 'user_id', 'id');}
 }

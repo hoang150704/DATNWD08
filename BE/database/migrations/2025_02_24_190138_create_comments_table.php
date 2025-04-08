@@ -29,6 +29,7 @@ return new class extends Migration {
             $table->boolean('is_active')->default(true);
             $table->string('hidden_reason')->nullable();
             $table->boolean('is_updated')->default(false);
+            $table->timestamp('reply_at');
             $table->timestamps();
     
 
