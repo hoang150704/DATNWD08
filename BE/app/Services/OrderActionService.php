@@ -96,6 +96,16 @@ class OrderActionService
                     $actions[] = 'partial_refund'; // Đã xác nhận -> cho hoàn tiền 
                 }
             }
+            $latestRefund = $order->transactions()
+                ->where('type', 'refund')
+                ->latest()
+                ->first();
+            if ($latestRefund && $latestRefund->status === 'failed') {
+                if ($order->payment_method === 'vnpay') {
+                    $actions[] = 'refund_auto';
+                }
+                $actions[] = 'refund_manual';
+            }
         }
 
         return $actions;

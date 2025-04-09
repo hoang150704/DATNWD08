@@ -13,7 +13,7 @@ Route::prefix('orders')->group(function () {
     Route::post('/{code}/cancel', [OrderController::class, 'cancelOrderByAdmin']); // Hủy
     Route::post('/{code}/approve_return', [OrderController::class, 'approveReturn']); //Đồng ý hoàn hàng
     Route::post('/{code}/reject_return', [OrderController::class, 'rejectReturn']); // Từ chối
-    Route::post('/{code}/refun_auto', [OrderController::class, 'refundAuto']);
+    Route::post('/{code}/refund_auto', [OrderController::class, 'refundAuto']);
     Route::post('/{code}/refund_manual', [OrderController::class, 'refundManual']);
     Route::post('/{code}/refund_partial', [OrderController::class, 'refundPartial']);
     Route::post('/{code}/confirm_return_received', [OrderController::class, 'confirmReturnReceived']);
