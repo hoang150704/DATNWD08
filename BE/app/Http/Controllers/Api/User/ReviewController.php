@@ -42,7 +42,7 @@ class ReviewController extends Controller
                 'avatar'     => $comment->user?->avatar
                     ?: 'https://png.pngtree.com/png-clipart/20210608/ourlarge/pngtree-dark-gray-simple-avatar-png-image_3418404.jpg',
                 'rating'     => $comment->rating,
-                'variation'=>$comment->orderItem->variation,
+                'variation'=> json_encode($comment->orderItem->variation),
                 'content'    => $comment->content,
                 'is_updated'=> $comment->is_updated,
                 'images'     => $comment->images ?? [],

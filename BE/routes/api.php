@@ -36,8 +36,8 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
 Route::prefix('reviews')->group(function () {
-    Route::get('{productId}/reviews', [ReviewController::class, 'getReviewsByProduct']);
-    Route::get('{productId}/reviews/statistics', [ReviewController::class, 'getReviewDashborad']);
+    Route::get('{productId}', [ReviewController::class, 'getReviewsByProduct']);
+    Route::get('{productId}/statistics', [ReviewController::class, 'getReviewDashboard']);
 });
 
 Route::prefix('ghn')->group(function () {
@@ -69,10 +69,6 @@ Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
 Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
 
-// Đánh giá
-Route::get('/products/{product_id}/reviews', [ReviewController::class, 'getReviewsByProduct']);
-Route::patch('/contacts/{id}/restore', [ContactController::class, 'restore']);
-Route::delete('/contacts/{id}/force', [ContactController::class, 'forceDelete']);
 
 //Chi tiết sản phẩm
 Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
