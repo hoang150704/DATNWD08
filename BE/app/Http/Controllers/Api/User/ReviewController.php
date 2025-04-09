@@ -69,7 +69,7 @@ class ReviewController extends Controller
         return $nameMasked . '@' . $domain;
     }
     //
-    public function getReviewDashborad($productId)
+    public function getReviewDashboard($productId)
     {
         $query = Comment::where('product_id', $productId)->where('is_active', true);
 
