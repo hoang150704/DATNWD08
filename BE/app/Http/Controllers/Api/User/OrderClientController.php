@@ -874,93 +874,104 @@ class OrderClientController extends Controller
     //Đánh giá
     public function reviewProduct($code, Request $request)
     {
-        $request->validate([
-            'order_item_id' => 'required|integer|exists:order_items,id',
-            'product_id' => 'required|integer|exists:products,id',
-            'rating' => 'required|integer|min:1|max:5',
-            'content' => 'required|string|min:5|max:3000',
-            'images' => 'nullable|array',
-            'images.*' => 'string|url',
-        ], [
-            'order_item_id.required' => 'Thiếu thông tin sản phẩm trong đơn hàng.',
-            'order_item_id.integer' => 'Mã sản phẩm không hợp lệ',
-            'order_item_id.exists' => 'Sản phẩm trong đơn hàng không tồn tại',
-
-            'product_id.required' => 'Thiếu mã sản phẩm',
-            'product_id.integer' => 'Mã sản phẩm không hợp lệ',
-            'product_id.exists' => 'Sản phẩm không tồn tại',
-
-            'rating.required' => 'Vui lòng chọn số sao đánh giá',
-            'rating.integer' => 'Số sao phải là số nguyên',
-            'rating.min' => 'Số sao tối thiểu là 1',
-            'rating.max' => 'Số sao tối đa là 5',
-
-            'content.required' => 'Vui lòng nhập nội dung đánh giá',
-            'content.string' => 'Nội dung đánh giá không hợp lệ',
-            'content.min' => 'Nội dung đánh giá quá ngắn (tối thiểu 5 ký tự)',
-            'content.max' => 'Nội dung đánh giá không được vượt quá 3000 ký tự',
-
-            'images.array' => 'Danh sách ảnh phải ở dạng mảng',
-            'images.*.string' => 'Ảnh phải ở dạng đường dẫn hợp lệ',
-            'images.*.url' => 'Ảnh phải là một đường dẫn URL hợp lệ',
-        ]);
-
-        $order = Order::with(['items'])->where('code', $code)->first();
-
-        if (!$order) {
-            return response()->json(['message' => 'Không tìm thấy đơn hàng.'], 404);
-        }
-
-        if (!$this->isVerifiedOrder($request, $order)) {
-            return response()->json(['message' => 'Bạn không có quyền đánh giá đơn hàng này'], 403);
-        }
-
-        if (!in_array($order->status->code, ['completed', 'closed'])) {
-            return response()->json(['message' => 'Bạn không thể đánh giá khi đơn hàng ở trạng thái này'], 400);
-        }
-
-        // Tìm item trong đơn
-        $orderItem = $order->items->firstWhere('id', $request->order_item_id);
-        if (!$orderItem) {
-            return response()->json(['message' => 'Không tìm thấy sản phẩm trong đơn hàng'], 404);
-        }
-
-        // Kiểm tra đã đánh giá chưa
-        $existing = ModelsComment::where('order_item_id', $orderItem->id)->first();
-        if ($existing) {
-            if ($existing->is_updated) {
-                return response()->json(['message' => 'Bạn đã chỉnh sửa đánh giá, không thể cập nhật thêm.'], 403);
+        try {
+            //code...
+            $request->validate([
+                'order_item_id' => 'required|integer|exists:order_items,id',
+                'product_id' => 'required|integer|exists:products,id',
+                'rating' => 'required|integer|min:1|max:5',
+                'content' => 'required|string|min:5|max:3000',
+                'images' => 'nullable|array',
+                'images.*' => 'string|url',
+            ], [
+                'order_item_id.required' => 'Thiếu thông tin sản phẩm trong đơn hàng.',
+                'order_item_id.integer' => 'Mã sản phẩm không hợp lệ',
+                'order_item_id.exists' => 'Sản phẩm trong đơn hàng không tồn tại',
+    
+                'product_id.required' => 'Thiếu mã sản phẩm',
+                'product_id.integer' => 'Mã sản phẩm không hợp lệ',
+                'product_id.exists' => 'Sản phẩm không tồn tại',
+    
+                'rating.required' => 'Vui lòng chọn số sao đánh giá',
+                'rating.integer' => 'Số sao phải là số nguyên',
+                'rating.min' => 'Số sao tối thiểu là 1',
+                'rating.max' => 'Số sao tối đa là 5',
+    
+                'content.required' => 'Vui lòng nhập nội dung đánh giá',
+                'content.string' => 'Nội dung đánh giá không hợp lệ',
+                'content.min' => 'Nội dung đánh giá quá ngắn (tối thiểu 5 ký tự)',
+                'content.max' => 'Nội dung đánh giá không được vượt quá 3000 ký tự',
+    
+                'images.array' => 'Danh sách ảnh phải ở dạng mảng',
+                'images.*.string' => 'Ảnh phải ở dạng đường dẫn hợp lệ',
+                'images.*.url' => 'Ảnh phải là một đường dẫn URL hợp lệ',
+            ]);
+    
+            $order = Order::with(['items'])->where('code', $code)->first();
+    
+            if (!$order) {
+                return response()->json(['message' => 'Không tìm thấy đơn hàng.'], 404);
             }
-
-            // Cho phép chỉnh sửa 1 lần
-            $existing->update([
+    
+            if (!$this->isVerifiedOrder($request, $order)) {
+                return response()->json(['message' => 'Bạn không có quyền đánh giá đơn hàng này'], 403);
+            }
+    
+            if (!in_array($order->status->code, ['completed', 'closed'])) {
+                return response()->json(['message' => 'Bạn không thể đánh giá khi đơn hàng ở trạng thái này'], 400);
+            }
+    
+            // Tìm item trong đơn
+            $orderItem = $order->items->firstWhere('id', $request->order_item_id);
+            if (!$orderItem) {
+                return response()->json(['message' => 'Không tìm thấy sản phẩm trong đơn hàng','order_item_id'=>$request->order_item_id], 404);
+            }
+    
+            // Kiểm tra đã đánh giá chưa
+            $existing = ModelsComment::where('order_item_id', $orderItem->id)->first();
+            if ($existing) {
+                if ($existing->is_updated) {
+                    return response()->json(['message' => 'Bạn đã chỉnh sửa đánh giá, không thể cập nhật thêm.'], 403);
+                }
+    
+                // Cho phép chỉnh sửa 1 lần
+                
+                $existing->update([
+                    'rating' => $request->rating,
+                    'content' => $request->content,
+                    'images' => $request->images,
+                    'is_updated' => true,
+                ]);
+    
+                return response()->json(['message' => 'Đã cập nhật đánh giá']);
+            }
+    
+            // Tạo đánh giá mới
+            $data = [
+                'order_id' => $order->id,
+                'user_id'  => $order->user_id,
+                'order_item_id' => $orderItem->id,
+                'product_id' => $request->product_id,
                 'rating' => $request->rating,
                 'content' => $request->content,
                 'images' => $request->images,
-                'is_updated' => true,
-            ]);
-
-            return response()->json(['message' => 'Đã cập nhật đánh giá']);
+                'customer_name' => $order->user_id === null ? $order->o_name : null,
+                'customer_email' => $order->user_id === null ? $order->o_email : null,
+                'is_updated' => false,
+            ];
+    
+    
+            ModelsComment::create($data);
+    
+            return response()->json(['message' => 'Đánh giá thành công'], 200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json([
+                'message' => 'Đã xảy ra lỗi khi gửi đánh giá',
+                'error' => $th->getMessage()
+            ], 500);
         }
-
-        // Tạo đánh giá mới
-        $data = [
-            'order_id' => $order->id,
-            'user_id'  => $order->user_id,
-            'order_item_id' => $orderItem->id,
-            'product_id' => $request->product_id,
-            'rating' => $request->rating,
-            'content' => $request->content,
-            'images' => $request->images,
-            'customer_name' => $order->user_id === null ? $order->o_name : null,
-            'customer_email' => $order->user_id === null ? $order->o_email : null,
-            'is_updated' => false,
-        ];
-
-
-        ModelsComment::create($data);
-
-        return response()->json(['message' => 'Đánh giá thành công'], 200);
+        
     }
 
 

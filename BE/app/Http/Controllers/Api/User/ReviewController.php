@@ -44,10 +44,11 @@ class ReviewController extends Controller
                 'rating'     => $comment->rating,
                 'variation'=>$comment->orderItem->variation,
                 'content'    => $comment->content,
+                'is_updated'=> $comment->is_updated,
                 'images'     => $comment->images ?? [],
                 'reply'      => $comment->reply ?? null,
                 'reply_at'      => $comment->reply_at ?? null,
-                'created_at' => $comment->created_at,
+                'updated_at' => $comment->updated_at,
             ];
         });
 
