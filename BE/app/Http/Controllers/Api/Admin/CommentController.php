@@ -18,12 +18,12 @@ class CommentController extends Controller
         if ($keyword) {
             $query->where(function ($q) use ($keyword) {
                 $q->where('content', 'like', "%{$keyword}%")
-                  ->orWhere('customer_name', 'like', "%{$keyword}%")
-                  ->orWhere('customer_mail', 'like', "%{$keyword}%")
-                  ->orWhereHas('user', function ($userQuery) use ($keyword) {
-                      $userQuery->where('name', 'like', "%{$keyword}%")
-                                ->orWhere('email', 'like', "%{$keyword}%");
-                  });
+                    ->orWhere('customer_name', 'like', "%{$keyword}%")
+                    ->orWhere('customer_mail', 'like', "%{$keyword}%")
+                    ->orWhereHas('user', function ($userQuery) use ($keyword) {
+                        $userQuery->where('name', 'like', "%{$keyword}%")
+                            ->orWhere('email', 'like', "%{$keyword}%");
+                    });
             });
         }
 
@@ -75,7 +75,7 @@ class CommentController extends Controller
         }
     }
 
-    public function show(Comment $comment,$id)
+    public function show(Comment $comment, $id)
     {
         try {
             $comment = Comment::with(['user', 'order', 'orderItem'])->findOrFail($id);
@@ -174,7 +174,7 @@ class CommentController extends Controller
                     'message' => 'đánh giá này đã được phản hồi.'
                 ], 400);
             }
-
+            $comment->timestamps = false;
             $comment->reply = $validated['reply'];
             $comment->reply_at = now();
             $comment->save();
@@ -219,7 +219,7 @@ class CommentController extends Controller
                     'message' => 'Vui lòng nhập lý do khi ẩn đánh giá.'
                 ], 422);
             }
-
+            $comment->timestamps = false;
             $comment->is_active = $status;
             $comment->hidden_reason = $status ? null : $request->reason;
             $comment->save();

@@ -42,12 +42,13 @@ class ReviewController extends Controller
                 'avatar'     => $comment->user?->avatar
                     ?: 'https://png.pngtree.com/png-clipart/20210608/ourlarge/pngtree-dark-gray-simple-avatar-png-image_3418404.jpg',
                 'rating'     => $comment->rating,
-                'variation'=>$comment->orderItem->variation,
+                'variation'=> $comment->orderItem->variation,
                 'content'    => $comment->content,
+                'is_updated'=> $comment->is_updated,
                 'images'     => $comment->images ?? [],
                 'reply'      => $comment->reply ?? null,
                 'reply_at'      => $comment->reply_at ?? null,
-                'created_at' => $comment->created_at,
+                'updated_at' => $comment->updated_at,
             ];
         });
 
@@ -68,7 +69,7 @@ class ReviewController extends Controller
         return $nameMasked . '@' . $domain;
     }
     //
-    public function getReviewDashborad($productId)
+    public function getReviewDashboard($productId)
     {
         $query = Comment::where('product_id', $productId)->where('is_active', true);
 
