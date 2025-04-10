@@ -110,34 +110,37 @@ class DashboardController extends Controller
 
     // Thống kê số lượng đánh giá theo từng mức rating
     private function getRatingStatistics()
-    {
-        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews')) // Đếm số lượng đánh giá
+{
+        return Comment::select(
+            'rating',
+            DB::raw('COUNT(*) as total_reviews') // Đếm số lượng đánh giá
+        )
+            ->where('is_active', 1) // Chỉ lấy đánh giá đã duyệt
             ->groupBy('rating') // Nhóm theo rating
-            ->orderByDesc('rating') // Sắp xếp theo rating giảm dần
+            ->orderBy('rating') // Sắp xếp theo rating tăng dần
             ->get();
-    }
+}
+
 
     // Lấy top 5 sản phẩm được đánh giá cao nhất
     private function getTopRatedProducts()
-    {
-        return Product::select(
-            'products.id',
-            'products.name',
-            'products.avg_rating as avg_rating', // Thay đổi từ `rating` thành `avg_rating`
-            DB::raw('COUNT(comments.id) as total_reviews') // Đếm tổng số đánh giá
-        )
-            ->leftJoin('comments', function ($join) {
-                $join->on('products.id', '=', 'comments.product_id') // Join bảng comments
-                    ->where('comments.is_active', 1); // Chỉ lấy đánh giá đã duyệt
-            })
-            ->groupBy('products.id', 'products.name', 'products.avg_rating') // Thay đổi từ `rating` thành `avg_rating`
-            ->orderByDesc('products.avg_rating') // Sắp xếp theo `avg_rating`
-            ->orderByDesc(DB::raw('COUNT(comments.id)')) // Nếu rating giống nhau, ưu tiên sản phẩm có nhiều đánh giá hơn
-            ->take(5)
-            ->get();
-    }
-
-
+{
+    return Product::select(
+        'products.id',
+        'products.name',
+        'products.avg_rating as avg_rating',
+        DB::raw('COUNT(product_reviews.id) as total_reviews') // ✅ sửa chỗ này
+    )
+        ->leftJoin('product_reviews', function ($join) {
+            $join->on('products.id', '=', 'product_reviews.product_id')
+                ->where('product_reviews.is_active', 1);
+        })
+        ->groupBy('products.id', 'products.name', 'products.avg_rating')
+        ->orderByDesc('products.avg_rating')
+        ->orderByDesc(DB::raw('COUNT(product_reviews.id)'))
+        ->take(5)
+        ->get();
+}
 
     // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($startDate, $endDate)
@@ -191,7 +194,7 @@ class DashboardController extends Controller
         )
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereBetween('orders.created_at', [$startDate, $endDate])
-            ->where('orders.payment_status_id', 1) // Chỉ lấy đơn đã thanh toán
+            ->where('orders.order_status_id', 4) // Chỉ lấy đơn đã hoàn thành
             ->groupBy('product_id')
             ->orderByDesc('total_sold')
             ->with('product:id,name,main_image')
