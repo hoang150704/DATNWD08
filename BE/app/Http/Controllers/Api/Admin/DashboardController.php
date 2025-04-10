@@ -31,6 +31,12 @@ class DashboardController extends Controller
             $topSellingByDate = $this->getTopSellingProductsByDateRange($startDate, $endDate);
         }
 
+        // Tỉ lệ khách hàng đăng nhập mua
+        $loginPurchaseRate = $this->getLoginPurchaseRate($startDate, $endDate);
+
+        // Tỉ lệ khách hàng không đăng nhập mua
+        $guestPurchaseRate = $this->getGuestPurchaseRate($startDate, $endDate);
+
         // Top 5 sản phẩm bán chạy nhất
         $topSellingProducts = $this->getTopSellingProducts();
 
@@ -85,6 +91,15 @@ class DashboardController extends Controller
 
                 // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topUsersBySpending" => $topUsersBySpending,
+
+                // Tỉ lệ khách hàng đăng nhập mua
+                "loginPurchaseRate" => $loginPurchaseRate,
+
+                // Tỉ lệ khách hàng không đăng nhập mua
+                "guestPurchaseRate" => $guestPurchaseRate,
+
+                // Top sản phẩm bán chạy nhất theo khoảng thời gian
+                "topSellingByDate" => $topSellingByDate,
 
                 // Tỉ lệ đơn hàng bị hủy
                 "cancellationRate" => $cancellationRate,
@@ -219,5 +234,25 @@ class DashboardController extends Controller
         return ($totalOrders > 0) ? ($canceledOrders / $totalOrders) * 100 : 0;
     }
 
-    //
+    // Tỉ lệ khách hàng đăng nhập mua
+    private function getLoginPurchaseRate($startDate, $endDate)
+    {
+        $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
+        $loginOrders = Order::where('user_id', '!=', null)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        return ($totalOrders > 0) ? ($loginOrders / $totalOrders) * 100 : 0;
+    }
+
+    // Tỉ lệ khách hàng không đăng nhập mua
+    private function getGuestPurchaseRate($startDate, $endDate)
+    {
+        $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
+        $guestOrders = Order::where('user_id', null)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        return ($totalOrders > 0) ? ($guestOrders / $totalOrders) * 100 : 0;
+    }
 }
