@@ -249,18 +249,25 @@ class DashboardController extends Controller
     // Tỉ lệ khách hàng đăng nhập mua
     private function getLoginPurchaseRate($startDate, $endDate)
     {
+
+        // Lấy tổng số đơn hàng và số đơn hàng của khách
+        // Nếu không có đơn hàng nào thì trả về 0
         $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
+
+        // Lấy số đơn hàng của khách
+        // Nếu không có đơn hàng nào thì trả về 0
         $loginOrders = Order::where('user_id', '!=', null)
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereBetween('created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
             ->count();
 
+        // Tính tỉ lệ khách hàng đăng nhập mua
         return ($totalOrders > 0) ? ($loginOrders / $totalOrders) * 100 : 0;
     }
 
     // Tỉ lệ khách hàng không đăng nhập mua
     private function getGuestPurchaseRate($startDate, $endDate)
     {
-        
+
         // Lấy tổng số đơn hàng và số đơn hàng của khách
         // Nếu không có đơn hàng nào thì trả về 0
         $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
