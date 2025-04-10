@@ -75,7 +75,7 @@ class CancelOrderExpriedPaymentTimeOut implements ShouldQueue
                     'changed_by' => 'system',
                     'changed_at' => now(),
                 ]);
-
+                SendMailOrderCancelled::dispatch($order);
                 DB::commit();
                 Log::info('Đã hủy đơn hàng #' . $order->id . ' do hết thời gian thanh toán');
             } catch (\Exception $e) {

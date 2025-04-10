@@ -11,6 +11,7 @@ use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
 use App\Http\Resources\RefundRequestResource;
 use App\Jobs\CancelOrderExpriedPaymentTimeOut;
+use App\Jobs\SendMailOrderCancelled;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Jobs\SendVerifyGuestOrderJob;
 use App\Models\Cart;
@@ -783,7 +784,7 @@ class OrderClientController extends Controller
                 'changed_by' => 'user',
                 'changed_at' => now(),
             ]);
-
+            SendMailOrderCancelled::dispatch($order);
             DB::commit();
             return response()->json(['message' => 'Đã gửi yêu cầu hoàn hàng thành công'], 200);
         } catch (\Throwable $th) {

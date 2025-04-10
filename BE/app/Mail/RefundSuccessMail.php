@@ -16,38 +16,16 @@ class RefundSuccessMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public $order;
+
+    public function __construct($order)
     {
-        //
+        $this->order = $order;
     }
 
-    /**
-     * Get the message envelope.
-     */
-    public function envelope(): Envelope
+    public function build()
     {
-        return new Envelope(
-            subject: 'Refund Success Mail',
-        );
-    }
-
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            markdown: 'emails.orders.refund_success',
-        );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
+        return $this->markdown('emails.orders.refund_success')
+            ->subject('Hoàn tiền thành công đơn hàng #' . $this->order->code);
     }
 }

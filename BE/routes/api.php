@@ -34,7 +34,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+Route::get('/product_detail/{slug}', [ProductDetailController::class, 'show']);
 Route::prefix('reviews')->group(function () {
     Route::get('{productId}', [ReviewController::class, 'getReviewsByProduct']);
     Route::get('{productId}/statistics', [ReviewController::class, 'getReviewDashboard']);
@@ -53,7 +53,7 @@ Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
-Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
+Route::get('/categories/{slug}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
 Route::get('/discount-product', [HomeController::class, 'discountProduct']);
 

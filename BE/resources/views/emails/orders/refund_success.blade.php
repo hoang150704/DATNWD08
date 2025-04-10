@@ -1,12 +1,12 @@
-<x-mail::message>
-# Introduction
+@component('mail::message')
+# Hoàn tiền thành công
 
-The body of your message.
+Chúng tôi đã hoàn tiền thành công cho đơn hàng **{{ $order->code }}** qua cổng thanh toán VNPay.
 
-<x-mail::button :url="''">
-Button Text
-</x-mail::button>
+**Số tiền:** {{ number_format($order->final_amount, 0, ',', '.') }} VNĐ
+
+Bạn vui lòng kiểm tra tài khoản trong vòng 3-5 ngày làm việc.
 
 Thanks,<br>
 {{ config('app.name') }}
-</x-mail::message>
+@endcomponent

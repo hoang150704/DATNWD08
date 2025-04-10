@@ -16,38 +16,18 @@ class ManualRefundMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public $order;
+    public $transaction;
+
+    public function __construct($order, $transaction)
     {
-        //
+        $this->order = $order;
+        $this->transaction = $transaction;
     }
 
-    /**
-     * Get the message envelope.
-     */
-    public function envelope(): Envelope
+    public function build()
     {
-        return new Envelope(
-            subject: 'Manual Refund Mail',
-        );
-    }
-
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            markdown: 'emails.orders.refund_manual',
-        );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
+        return $this->markdown('emails.orders.refund_manual')
+            ->subject('Hoàn tiền thủ công đơn hàng #' . $this->order->code);
     }
 }

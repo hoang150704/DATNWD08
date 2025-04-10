@@ -1,12 +1,16 @@
-<x-mail::message>
-# Introduction
+@component('mail::message')
+# Hoàn tiền thủ công
 
-The body of your message.
+Chúng tôi đã xử lý hoàn tiền thủ công cho đơn hàng **{{ $order->code }}**.
 
-<x-mail::button :url="''">
-Button Text
-</x-mail::button>
+**Số tiền:** {{ number_format($order->final_amount, 0, ',', '.') }} VNĐ
+
+@if($transaction->image)
+![Ảnh chuyển khoản]({{ $transaction->image }})
+@endif
+
+Nếu có vấn đề phát sinh, hãy liên hệ chúng tôi để được hỗ trợ.
 
 Thanks,<br>
 {{ config('app.name') }}
-</x-mail::message>
+@endcomponent

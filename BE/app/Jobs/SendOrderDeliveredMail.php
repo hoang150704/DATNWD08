@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Mail\OrderShippingMail;
+use App\Mail\OrderDeliveredMail;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
 
-class SendMailOrderShipping implements ShouldQueue
+class SendOrderDeliveredMail implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -28,9 +28,8 @@ class SendMailOrderShipping implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle()
     {
-        //
-        Mail::to($this->order->o_mail)->send(new OrderShippingMail($this->order,$this->order->shipment ));
+        Mail::to($this->order->o_mail)->send(new OrderDeliveredMail($this->order));
     }
 }

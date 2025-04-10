@@ -16,38 +16,17 @@ class OrderShippingMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
-    {
-        //
-    }
-
-    /**
-     * Get the message envelope.
-     */
-    public function envelope(): Envelope
-    {
-        return new Envelope(
-            subject: 'Order Shipping Mail',
-        );
-    }
-
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            markdown: 'emails.orders.shipping',
-        );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
-    }
+    public $order;
+    public $shipment;
+     public function __construct($order, $shipment)
+     {
+         $this->order = $order;
+         $this->shipment = $shipment;
+     }
+ 
+     public function build()
+     {
+         return $this->markdown('emails.orders.shipping')
+             ->subject('Đơn hàng #' . $this->order->code . ' đang được giao');
+     }
 }

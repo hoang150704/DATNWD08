@@ -1,12 +1,12 @@
-<x-mail::message>
-# Introduction
+@component('mail::message')
+# Đơn hàng đã bị hủy
 
-The body of your message.
+Đơn hàng **{{ $order->code }}** đã bị hủy.
 
-<x-mail::button :url="''">
-Button Text
-</x-mail::button>
+**Lý do:** {{ $order->cancel_reason }}
+
+Nếu bạn cần hỗ trợ thêm, hãy liên hệ với chúng tôi.
 
 Thanks,<br>
 {{ config('app.name') }}
-</x-mail::message>
+@endcomponent

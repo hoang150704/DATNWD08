@@ -1,12 +1,16 @@
-<x-mail::message>
-# Introduction
+@component('mail::message')
+# Xác nhận đơn hàng thành công
 
-The body of your message.
+Cảm ơn bạn đã đặt hàng tại {{ config('app.name') }}.
 
-<x-mail::button :url="''">
-Button Text
-</x-mail::button>
+**Mã đơn hàng:** {{ $order->code }}
+
+Đơn hàng của bạn đã được xác nhận và đang được chuẩn bị để giao.
+
+@component('mail::button', ['url' => url('/order-tracking/'.$order->code)])
+Theo dõi đơn hàng
+@endcomponent
 
 Thanks,<br>
 {{ config('app.name') }}
-</x-mail::message>
+@endcomponent
