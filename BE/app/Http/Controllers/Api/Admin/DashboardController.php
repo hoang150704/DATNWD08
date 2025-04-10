@@ -22,7 +22,7 @@ class DashboardController extends Controller
         // Nếu không truyền startDate thì startDate sẽ là ngày tước endDate 7 ngày
         $endDate = $request->query('endDate', now()->toDateString()); // Ngày hiện tại
 
-        // Thống kê doanh số bán hàng theo khoảng thời gian động
+        // Thống kê doanh số bán hàng theo thời gian
         $salesData = $this->getSalesStatistics($startDate, $endDate);
 
         // Nếu có truyền startDate và endDate thì lấy top sản phẩm bán chạy theo khoảng thời gian đó
@@ -30,6 +30,9 @@ class DashboardController extends Controller
         if ($startDate && $endDate) {
             $topSellingByDate = $this->getTopSellingProductsByDateRange($startDate, $endDate);
         }
+
+        // Thống kê doanh số bán hàng theo thời gian
+         $salesData = $this->getSalesStatistics($startDate, $endDate);
 
         // Lợi nhuận theo thời gian
         // $profit = $this->getProfit($startDate, $endDate);
@@ -184,7 +187,7 @@ class DashboardController extends Controller
             DB::raw('COUNT(id) as totalOrders') // Đếm số lượng đơn hàng
         )
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('payment_status_id', 1) // Chỉ lấy đơn hàng đã thanh toán
+            ->where('order_status_id', 5) // Chỉ lấy đơn hàng đã thanh toán
             ->groupBy('date') // Nhóm theo ngày
             ->orderBy('date', 'ASC')    // Sắp xếp theo ngày tăng dần
             ->get();
@@ -296,11 +299,11 @@ class DashboardController extends Controller
             // Đơn hàng chờ xac nhận
             DB::raw('SUM(CASE WHEN order_status_id = 1 THEN 1 ELSE 0 END) as pending_orders'),
 
-            // Đơn hàng đang chờ xử lý
+            // Đơn hàng đã xác nhận
             DB::raw('SUM(CASE WHEN order_status_id = 2 THEN 1 ELSE 0 END) as confirmed_orders') ,
 
             // Đơn hàng đã hoàn thành
-            DB::raw('SUM(CASE WHEN order_status_id = 4 THEN 1 ELSE 0 END) as completed_orders'),
+            DB::raw('SUM(CASE WHEN order_status_id = 5 THEN 1 ELSE 0 END) as completed_orders'),
 
             // Đơn hàng đã hủy
             DB::raw('SUM(CASE WHEN order_status_id = 9 THEN 1 ELSE 0 END) as canceled_orders')
