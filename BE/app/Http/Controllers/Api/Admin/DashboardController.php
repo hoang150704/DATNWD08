@@ -25,17 +25,38 @@ class DashboardController extends Controller
         // Thống kê doanh số bán hàng theo khoảng thời gian động
         $salesData = $this->getSalesStatistics($startDate, $endDate);
 
+        // Nếu có truyền startDate và endDate thì lấy top sản phẩm bán chạy theo khoảng thời gian đó
+        $topSellingByDate = null;
+        if ($startDate && $endDate) {
+            $topSellingByDate = $this->getTopSellingProductsByDateRange($startDate, $endDate);
+        }
+
+        // Lợi nhuận theo thời gian
+        // $profit = $this->getProfit($startDate, $endDate);
+
+        // Tỉ lệ khách hàng đăng nhập mua
+        $loginPurchaseRate = $this->getLoginPurchaseRate($startDate, $endDate);
+
+        // Tỉ lệ khách hàng không đăng nhập mua
+        $guestPurchaseRate = $this->getGuestPurchaseRate($startDate, $endDate);
+
         // Top 5 sản phẩm bán chạy nhất
         $topSellingProducts = $this->getTopSellingProducts();
 
         // Số lượng sản phẩm theo danh mục
         $productByCategory = $this->getProductByCategory();
 
+        // Tỉ lệ đơn hàng bị hủy
+        $cancellationRate = $this->getCancellationRate($startDate, $endDate);
+
         // Số lượng đánh giá theo từng mức rating
         $ratingStatistics = $this->getRatingStatistics();
 
         // Top 5 sản phẩm được đánh giá cao nhất
         $topRatedProducts = $this->getTopRatedProducts();
+
+        // Thống kê đơn hàng
+        $orderStatistics = $this->getOrderStatistics($startDate, $endDate);
 
         // Top 5 user có số tiền chi tiêu nhiều nhất
         $topUsersBySpending = $this->getTopUsersBySpending();
@@ -71,16 +92,34 @@ class DashboardController extends Controller
                 // Thống kê số lượng đánh giá theo từng mức rating
                 "ratingStatistics" => $ratingStatistics,
 
+                // Lợi nhuận
+                // "profit" => $profit->total_profit ?? 0,
+
                 // Số lượng sản phẩm theo danh mục
                 "productByCategory" => $productByCategory,
 
                 // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topUsersBySpending" => $topUsersBySpending,
 
+                // Tỉ lệ khách hàng đăng nhập mua
+                "loginPurchaseRate" => $loginPurchaseRate,
+
+                // Tỉ lệ khách hàng không đăng nhập mua
+                "guestPurchaseRate" => $guestPurchaseRate,
+
+                // Top sản phẩm bán chạy nhất theo khoảng thời gian
+                "topSellingByDate" => $topSellingByDate,
+
+                // Tỉ lệ đơn hàng bị hủy
+                "cancellationRate" => $cancellationRate,
+
                 // Top 5 sản phẩm được đánh giá cao nhất
                 "topRatedProducts" => $topRatedProducts,
 
-                // Thống kê doanh số bán hàng
+                // Thống kê đơn hàng theo thời gian
+                "orderStatistics" => $orderStatistics,
+
+                // Thống kê doanh số bán hàng theo thời gian
                 "salesStatistics" => $salesData,
                 "startDate" => $startDate,
                 "endDate" => $endDate,
@@ -105,11 +144,16 @@ class DashboardController extends Controller
     // Thống kê số lượng đánh giá theo từng mức rating
     private function getRatingStatistics()
     {
-        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews')) // Đếm số lượng đánh giá
+        return Comment::select(
+            'rating',
+            DB::raw('COUNT(*) as total_reviews') // Đếm số lượng đánh giá
+        )
+            ->where('is_active', 1) // Chỉ lấy đánh giá đã duyệt
             ->groupBy('rating') // Nhóm theo rating
-            ->orderByDesc('rating') // Sắp xếp theo rating giảm dần
+            ->orderBy('rating') // Sắp xếp theo rating tăng dần
             ->get();
     }
+
 
     // Lấy top 5 sản phẩm được đánh giá cao nhất
     private function getTopRatedProducts()
@@ -117,21 +161,19 @@ class DashboardController extends Controller
         return Product::select(
             'products.id',
             'products.name',
-            'products.avg_rating as avg_rating', // Thay đổi từ `rating` thành `avg_rating`
-            DB::raw('COUNT(comments.id) as total_reviews') // Đếm tổng số đánh giá
+            'products.avg_rating as avg_rating',
+            DB::raw('COUNT(product_reviews.id) as total_reviews') // ✅ sửa chỗ này
         )
-            ->leftJoin('comments', function ($join) {
-                $join->on('products.id', '=', 'comments.product_id') // Join bảng comments
-                    ->where('comments.is_active', 1); // Chỉ lấy đánh giá đã duyệt
+            ->leftJoin('product_reviews', function ($join) {
+                $join->on('products.id', '=', 'product_reviews.product_id')
+                    ->where('product_reviews.is_active', 1);
             })
-            ->groupBy('products.id', 'products.name', 'products.avg_rating') // Thay đổi từ `rating` thành `avg_rating`
-            ->orderByDesc('products.avg_rating') // Sắp xếp theo `avg_rating`
-            ->orderByDesc(DB::raw('COUNT(comments.id)')) // Nếu rating giống nhau, ưu tiên sản phẩm có nhiều đánh giá hơn
+            ->groupBy('products.id', 'products.name', 'products.avg_rating')
+            ->orderByDesc('products.avg_rating')
+            ->orderByDesc(DB::raw('COUNT(product_reviews.id)'))
             ->take(5)
             ->get();
     }
-
-
 
     // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($startDate, $endDate)
@@ -175,4 +217,106 @@ class DashboardController extends Controller
             ->with('user:id,name,email') // Lấy thông tin user
             ->get();
     }
+
+    // Lấy top sản phẩm bán chạy nhất theo khoảng thời gian
+    private function getTopSellingProductsByDateRange($startDate, $endDate, $limit = 5)
+    {
+        // Lấy danh sách sản phẩm bán chạy nhất theo khoảng thời gian
+        return OrderItem::select(
+            'product_id',
+            DB::raw('SUM(quantity) as total_sold') // Tính tổng số lượng sản phẩm bán ra
+        )
+            ->join('orders', 'order_items.order_id', '=', 'orders.id') // Join bảng orders để lấy thông tin đơn hàng
+            ->whereBetween('orders.created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
+            ->where('orders.order_status_id', 4) // Chỉ lấy đơn đã hoàn thành
+            ->groupBy('product_id') // Nhóm theo sản phẩm
+            ->orderByDesc('total_sold') // Sắp xếp theo số lượng bán được
+            ->with('product:id,name,main_image')    // Lấy thông tin sản phẩm
+            ->take($limit) // Lấy top 5
+            ->get();
+    }
+
+    // Lấy tỉ lệ đơn hủy theo khoảng thời gian
+    private function getCancellationRate($startDate, $endDate)
+    {
+
+        // Lấy tổng số đơn hàng và số đơn hàng đã hủy
+        // Nếu không có đơn hàng nào thì trả về 0
+        $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
+        $canceledOrders = Order::where('order_status_id', 9) // Đơn hàng đã hủy
+            ->whereBetween('created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
+            ->count();
+
+        // Tính tỉ lệ đơn hàng bị hủy
+        return ($totalOrders > 0) ? ($canceledOrders / $totalOrders) * 100 : 0;
+    }
+
+    // Tỉ lệ khách hàng đăng nhập mua
+    private function getLoginPurchaseRate($startDate, $endDate)
+    {
+
+        // Lấy tổng số đơn hàng và số đơn hàng của khách
+        // Nếu không có đơn hàng nào thì trả về 0
+        $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
+
+        // Lấy số đơn hàng của khách
+        // Nếu không có đơn hàng nào thì trả về 0
+        $loginOrders = Order::where('user_id', '!=', null)
+            ->whereBetween('created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
+            ->count();
+
+        // Tính tỉ lệ khách hàng đăng nhập mua
+        return ($totalOrders > 0) ? ($loginOrders / $totalOrders) * 100 : 0;
+    }
+
+    // Tỉ lệ khách hàng không đăng nhập mua
+    private function getGuestPurchaseRate($startDate, $endDate)
+    {
+
+        // Lấy tổng số đơn hàng và số đơn hàng của khách
+        // Nếu không có đơn hàng nào thì trả về 0
+        $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
+
+        // Lấy số đơn hàng của khách
+        // Nếu không có đơn hàng nào thì trả về 0
+        $guestOrders = Order::where('user_id', null)
+            ->whereBetween('created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
+            ->count();
+
+        // Tính tỉ lệ khách hàng không đăng nhập mua
+        return ($totalOrders > 0) ? ($guestOrders / $totalOrders) * 100 : 0;
+    }
+
+    // Số đơn hàng được tạo, đơn hoàn thành, đơn đã hủy, đơn đang xử lý, đang giao, v.v.
+    private function getOrderStatistics($startDate, $endDate)
+    {
+        return Order::select(
+            DB::raw('COUNT(*) as total_orders'), // Tổng số đơn hàng
+
+            // Đơn hàng chờ xac nhận
+            DB::raw('SUM(CASE WHEN order_status_id = 1 THEN 1 ELSE 0 END) as pending_orders'),
+
+            // Đơn hàng đang chờ xử lý
+            DB::raw('SUM(CASE WHEN order_status_id = 2 THEN 1 ELSE 0 END) as confirmed_orders') ,
+
+            // Đơn hàng đã hoàn thành
+            DB::raw('SUM(CASE WHEN order_status_id = 4 THEN 1 ELSE 0 END) as completed_orders'),
+
+            // Đơn hàng đã hủy
+            DB::raw('SUM(CASE WHEN order_status_id = 9 THEN 1 ELSE 0 END) as canceled_orders')
+        )
+            ->whereBetween('created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
+            ->first();
+    }
+
+    // // Lợi nhuận (tính từ chênh lệch final_amout của order trừ đi price của order item)
+    // private function getProfit($startDate, $endDate)
+    // {
+    //     return Order::select(
+    //         DB::raw('SUM(final_amount - (SELECT SUM(price) FROM order_items WHERE order_items.order_id = orders.id)) as total_profit') // Tính lợi nhuận
+    //     )
+    //         ->whereBetween('created_at', [$startDate, $endDate])
+    //         ->first();
+    // }
+
 }
