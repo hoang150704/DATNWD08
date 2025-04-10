@@ -221,17 +221,18 @@ class DashboardController extends Controller
     // Lấy top sản phẩm bán chạy nhất theo khoảng thời gian
     private function getTopSellingProductsByDateRange($startDate, $endDate, $limit = 5)
     {
+        // Lấy danh sách sản phẩm bán chạy nhất theo khoảng thời gian
         return OrderItem::select(
             'product_id',
-            DB::raw('SUM(quantity) as total_sold')
+            DB::raw('SUM(quantity) as total_sold') // Tính tổng số lượng sản phẩm bán ra
         )
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->whereBetween('orders.created_at', [$startDate, $endDate])
+            ->join('orders', 'order_items.order_id', '=', 'orders.id') // Join bảng orders để lấy thông tin đơn hàng
+            ->whereBetween('orders.created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
             ->where('orders.order_status_id', 4) // Chỉ lấy đơn đã hoàn thành
-            ->groupBy('product_id')
-            ->orderByDesc('total_sold')
-            ->with('product:id,name,main_image')
-            ->take($limit)
+            ->groupBy('product_id') // Nhóm theo sản phẩm
+            ->orderByDesc('total_sold') // Sắp xếp theo số lượng bán được
+            ->with('product:id,name,main_image')    // Lấy thông tin sản phẩm
+            ->take($limit) // Lấy top 5
             ->get();
     }
 
