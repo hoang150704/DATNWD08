@@ -941,7 +941,7 @@ class OrderClientController extends Controller
                     'images' => $request->images,
                     'is_updated' => true,
                 ]);
-
+                $this->updateProductAverageRating($orderItem->product_id);
                 return response()->json(['message' => 'Đã cập nhật đánh giá']);
             }
 
@@ -961,7 +961,7 @@ class OrderClientController extends Controller
 
 
             ModelsComment::create($data);
-
+            $this->updateProductAverageRating($orderItem->product_id);
             return response()->json(['message' => 'Đánh giá thành công'], 200);
         } catch (\Throwable $th) {
             //throw $th;
@@ -971,7 +971,21 @@ class OrderClientController extends Controller
             ], 500);
         }
     }
+    // tÍNH TRUNG BÌNH VÀ UPDATE SỐ SAO SẢN PHẨM
+    private function updateProductAverageRating($productId)
+    {
+        // Tính điểm trung bình từ tất cả đánh giá được duyệt
+        $avgRating = ModelsComment::where('product_id', $productId)
+            ->avg('rating');
 
+        // Làm tròn đến 1 chữ số thập phân
+        $avgRating = round($avgRating, 1);
+
+        // Cập nhật vào bảng products
+        DB::table('products')
+            ->where('id', $productId)
+            ->update(['avg_rating' => $avgRating]);
+    }
 
     //Xác thực đơn
     //Gưi mail
