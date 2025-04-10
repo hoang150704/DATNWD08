@@ -52,6 +52,9 @@ class DashboardController extends Controller
         // Top 5 sản phẩm được đánh giá cao nhất
         $topRatedProducts = $this->getTopRatedProducts();
 
+        // Thống kê đơn hàng
+        $orderStatistics = $this->getOrderStatistics($startDate, $endDate);
+
         // Top 5 user có số tiền chi tiêu nhiều nhất
         $topUsersBySpending = $this->getTopUsersBySpending();
 
@@ -107,7 +110,10 @@ class DashboardController extends Controller
                 // Top 5 sản phẩm được đánh giá cao nhất
                 "topRatedProducts" => $topRatedProducts,
 
-                // Thống kê doanh số bán hàng
+                // Thống kê đơn hàng theo thời gian
+                "orderStatistics" => $orderStatistics,
+
+                // Thống kê doanh số bán hàng theo thời gian
                 "salesStatistics" => $salesData,
                 "startDate" => $startDate,
                 "endDate" => $endDate,
@@ -255,4 +261,20 @@ class DashboardController extends Controller
 
         return ($totalOrders > 0) ? ($guestOrders / $totalOrders) * 100 : 0;
     }
+
+    // Số đơn hàng được tạo, đơn hoàn thành, đơn đã hủy, đơn đang xử lý, đang giao, v.v.
+    private function getOrderStatistics($startDate, $endDate)
+    {
+        return Order::select(
+            DB::raw('COUNT(*) as total_orders'),
+            DB::raw('SUM(CASE WHEN order_status_id = 1 THEN 1 ELSE 0 END) as pending_orders'),
+            DB::raw('SUM(CASE WHEN order_status_id = 2 THEN 1 ELSE 0 END) as processing_orders'),
+            DB::raw('SUM(CASE WHEN order_status_id = 3 THEN 1 ELSE 0 END) as completed_orders'),
+            DB::raw('SUM(CASE WHEN order_status_id = 4 THEN 1 ELSE 0 END) as canceled_orders')
+        )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->first();
+    }
+
+
 }
