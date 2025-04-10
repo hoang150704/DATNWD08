@@ -37,6 +37,9 @@ class DashboardController extends Controller
         // Số lượng sản phẩm theo danh mục
         $productByCategory = $this->getProductByCategory();
 
+        // Tỉ lệ đơn hàng bị hủy
+        $cancellationRate = $this->getCancellationRate($startDate, $endDate);
+
         // Số lượng đánh giá theo từng mức rating
         $ratingStatistics = $this->getRatingStatistics();
 
@@ -83,6 +86,9 @@ class DashboardController extends Controller
                 // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topUsersBySpending" => $topUsersBySpending,
 
+                // Tỉ lệ đơn hàng bị hủy
+                "cancellationRate" => $cancellationRate,
+
                 // Top 5 sản phẩm được đánh giá cao nhất
                 "topRatedProducts" => $topRatedProducts,
 
@@ -110,7 +116,7 @@ class DashboardController extends Controller
 
     // Thống kê số lượng đánh giá theo từng mức rating
     private function getRatingStatistics()
-{
+    {
         return Comment::select(
             'rating',
             DB::raw('COUNT(*) as total_reviews') // Đếm số lượng đánh giá
@@ -119,28 +125,28 @@ class DashboardController extends Controller
             ->groupBy('rating') // Nhóm theo rating
             ->orderBy('rating') // Sắp xếp theo rating tăng dần
             ->get();
-}
+    }
 
 
     // Lấy top 5 sản phẩm được đánh giá cao nhất
     private function getTopRatedProducts()
-{
-    return Product::select(
-        'products.id',
-        'products.name',
-        'products.avg_rating as avg_rating',
-        DB::raw('COUNT(product_reviews.id) as total_reviews') // ✅ sửa chỗ này
-    )
-        ->leftJoin('product_reviews', function ($join) {
-            $join->on('products.id', '=', 'product_reviews.product_id')
-                ->where('product_reviews.is_active', 1);
-        })
-        ->groupBy('products.id', 'products.name', 'products.avg_rating')
-        ->orderByDesc('products.avg_rating')
-        ->orderByDesc(DB::raw('COUNT(product_reviews.id)'))
-        ->take(5)
-        ->get();
-}
+    {
+        return Product::select(
+            'products.id',
+            'products.name',
+            'products.avg_rating as avg_rating',
+            DB::raw('COUNT(product_reviews.id) as total_reviews') // ✅ sửa chỗ này
+        )
+            ->leftJoin('product_reviews', function ($join) {
+                $join->on('products.id', '=', 'product_reviews.product_id')
+                    ->where('product_reviews.is_active', 1);
+            })
+            ->groupBy('products.id', 'products.name', 'products.avg_rating')
+            ->orderByDesc('products.avg_rating')
+            ->orderByDesc(DB::raw('COUNT(product_reviews.id)'))
+            ->take(5)
+            ->get();
+    }
 
     // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($startDate, $endDate)
@@ -201,4 +207,17 @@ class DashboardController extends Controller
             ->take($limit)
             ->get();
     }
+
+    // Lấy tỉ lệ đơn hủy theo khoảng thời gian
+    private function getCancellationRate($startDate, $endDate)
+    {
+        $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
+        $canceledOrders = Order::where('order_status_id', 9) // Đơn hàng đã hủy
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        return ($totalOrders > 0) ? ($canceledOrders / $totalOrders) * 100 : 0;
+    }
+
+    //
 }
