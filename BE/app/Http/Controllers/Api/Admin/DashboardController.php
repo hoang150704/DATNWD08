@@ -25,6 +25,12 @@ class DashboardController extends Controller
         // Thống kê doanh số bán hàng theo khoảng thời gian động
         $salesData = $this->getSalesStatistics($startDate, $endDate);
 
+        // Nếu có truyền startDate và endDate thì lấy top sản phẩm bán chạy theo khoảng thời gian đó
+        $topSellingByDate = null;
+        if ($startDate && $endDate) {
+            $topSellingByDate = $this->getTopSellingProductsByDateRange($startDate, $endDate);
+        }
+
         // Top 5 sản phẩm bán chạy nhất
         $topSellingProducts = $this->getTopSellingProducts();
 
@@ -173,6 +179,23 @@ class DashboardController extends Controller
             ->orderByDesc('total_spent') // Sắp xếp theo số tiền đã chi
             ->take(5) // Lấy top 5
             ->with('user:id,name,email') // Lấy thông tin user
+            ->get();
+    }
+
+    // Lấy top sản phẩm bán chạy nhất theo khoảng thời gian
+    private function getTopSellingProductsByDateRange($startDate, $endDate, $limit = 5)
+    {
+        return OrderItem::select(
+            'product_id',
+            DB::raw('SUM(quantity) as total_sold')
+        )
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->whereBetween('orders.created_at', [$startDate, $endDate])
+            ->where('orders.payment_status_id', 1) // Chỉ lấy đơn đã thanh toán
+            ->groupBy('product_id')
+            ->orderByDesc('total_sold')
+            ->with('product:id,name,main_image')
+            ->take($limit)
             ->get();
     }
 }
