@@ -31,6 +31,9 @@ class DashboardController extends Controller
             $topSellingByDate = $this->getTopSellingProductsByDateRange($startDate, $endDate);
         }
 
+        // Lợi nhuận theo thời gian
+        // $profit = $this->getProfit($startDate, $endDate);
+
         // Tỉ lệ khách hàng đăng nhập mua
         $loginPurchaseRate = $this->getLoginPurchaseRate($startDate, $endDate);
 
@@ -88,6 +91,9 @@ class DashboardController extends Controller
 
                 // Thống kê số lượng đánh giá theo từng mức rating
                 "ratingStatistics" => $ratingStatistics,
+
+                // Lợi nhuận
+                // "profit" => $profit->total_profit ?? 0,
 
                 // Số lượng sản phẩm theo danh mục
                 "productByCategory" => $productByCategory,
@@ -266,15 +272,32 @@ class DashboardController extends Controller
     private function getOrderStatistics($startDate, $endDate)
     {
         return Order::select(
-            DB::raw('COUNT(*) as total_orders'),
+            DB::raw('COUNT(*) as total_orders'), // Tổng số đơn hàng
+
+            // Đơn hàng chờ xac nhận
             DB::raw('SUM(CASE WHEN order_status_id = 1 THEN 1 ELSE 0 END) as pending_orders'),
-            DB::raw('SUM(CASE WHEN order_status_id = 2 THEN 1 ELSE 0 END) as processing_orders'),
-            DB::raw('SUM(CASE WHEN order_status_id = 3 THEN 1 ELSE 0 END) as completed_orders'),
-            DB::raw('SUM(CASE WHEN order_status_id = 4 THEN 1 ELSE 0 END) as canceled_orders')
+
+            // Đơn hàng đang chờ xử lý
+            DB::raw('SUM(CASE WHEN order_status_id = 2 THEN 1 ELSE 0 END) as confirmed_orders') ,
+
+            // Đơn hàng đã hoàn thành
+            DB::raw('SUM(CASE WHEN order_status_id = 4 THEN 1 ELSE 0 END) as completed_orders'),
+
+            // Đơn hàng đã hủy
+            DB::raw('SUM(CASE WHEN order_status_id = 9 THEN 1 ELSE 0 END) as canceled_orders')
         )
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereBetween('created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
             ->first();
     }
 
+    // // Lợi nhuận (tính từ chênh lệch final_amout của order trừ đi price của order item)
+    // private function getProfit($startDate, $endDate)
+    // {
+    //     return Order::select(
+    //         DB::raw('SUM(final_amount - (SELECT SUM(price) FROM order_items WHERE order_items.order_id = orders.id)) as total_profit') // Tính lợi nhuận
+    //     )
+    //         ->whereBetween('created_at', [$startDate, $endDate])
+    //         ->first();
+    // }
 
 }
