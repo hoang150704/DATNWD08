@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Requests\User\OrderClientRequest;
 use App\Http\Resources\RefundRequestResource;
+use App\Jobs\CancelOrderExpriedPaymentTimeOut;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Jobs\SendVerifyGuestOrderJob;
 use App\Models\Cart;
@@ -147,9 +148,7 @@ class OrderClientController extends Controller
                 // Kiểm tra nếu voucher tồn tại và còn lượt sử dụng
                 if ($voucher && $voucher->usage_limit > 0) {
                     // Giảm số lần sử dụng ngay trước khi commit
-                    if ($order->payment_method == 'ship_cod') {
-                        $voucher->decrement('usage_limit');
-                    }
+                    $voucher->decrement('usage_limit');
                 } else {
                     DB::rollBack();
                     return response()->json([
@@ -222,9 +221,7 @@ class OrderClientController extends Controller
                 ];
 
                 // Giảm số lượng tồn kho
-                if ($order->payment_method == 'ship_cod') {
-                    $variant->decrement('stock_quantity', (int) $product['quantity']);
-                }
+                $variant->decrement('stock_quantity', (int) $product['quantity']);
             }
             if ($totalWeight >= $maxWeightGhn) {
                 DB::rollBack();
@@ -265,6 +262,7 @@ class OrderClientController extends Controller
                         'expiried_at' => now()->addMinutes($paymentTimeout)
                     ]
                 );
+                CancelOrderExpriedPaymentTimeOut::dispatch($order)->delay(now()->addMinutes($paymentTimeout));
                 return response()->json([
                     'message' => 'Thành công',
                     'url' => $paymentUrl,
@@ -651,14 +649,14 @@ class OrderClientController extends Controller
                 // Sản phẩm
                 'items' => $order->items->map(function ($item) {
                     return [
-                        'id'=>$item->id,
-                        'product_id'=>$item->product_id,
+                        'id' => $item->id,
+                        'product_id' => $item->product_id,
                         'product_name' => $item->product_name,
                         'quantity' => $item->quantity,
                         'price' => $item->price,
                         'image' => $item->image,
                         'variation' => $item->variation,
-                        'review'=>$item->productReview 
+                        'review' => $item->productReview
                     ];
                 }),
                 // Lịch sử giao hàng
@@ -887,65 +885,65 @@ class OrderClientController extends Controller
                 'order_item_id.required' => 'Thiếu thông tin sản phẩm trong đơn hàng.',
                 'order_item_id.integer' => 'Mã sản phẩm không hợp lệ',
                 'order_item_id.exists' => 'Sản phẩm trong đơn hàng không tồn tại',
-    
+
                 'product_id.required' => 'Thiếu mã sản phẩm',
                 'product_id.integer' => 'Mã sản phẩm không hợp lệ',
                 'product_id.exists' => 'Sản phẩm không tồn tại',
-    
+
                 'rating.required' => 'Vui lòng chọn số sao đánh giá',
                 'rating.integer' => 'Số sao phải là số nguyên',
                 'rating.min' => 'Số sao tối thiểu là 1',
                 'rating.max' => 'Số sao tối đa là 5',
-    
+
                 'content.required' => 'Vui lòng nhập nội dung đánh giá',
                 'content.string' => 'Nội dung đánh giá không hợp lệ',
                 'content.min' => 'Nội dung đánh giá quá ngắn (tối thiểu 5 ký tự)',
                 'content.max' => 'Nội dung đánh giá không được vượt quá 3000 ký tự',
-    
+
                 'images.array' => 'Danh sách ảnh phải ở dạng mảng',
                 'images.*.string' => 'Ảnh phải ở dạng đường dẫn hợp lệ',
                 'images.*.url' => 'Ảnh phải là một đường dẫn URL hợp lệ',
             ]);
-    
+
             $order = Order::with(['items'])->where('code', $code)->first();
-    
+
             if (!$order) {
                 return response()->json(['message' => 'Không tìm thấy đơn hàng.'], 404);
             }
-    
+
             if (!$this->isVerifiedOrder($request, $order)) {
                 return response()->json(['message' => 'Bạn không có quyền đánh giá đơn hàng này'], 403);
             }
-    
+
             if (!in_array($order->status->code, ['completed', 'closed'])) {
                 return response()->json(['message' => 'Bạn không thể đánh giá khi đơn hàng ở trạng thái này'], 400);
             }
-    
+
             // Tìm item trong đơn
             $orderItem = $order->items->firstWhere('id', $request->order_item_id);
             if (!$orderItem) {
-                return response()->json(['message' => 'Không tìm thấy sản phẩm trong đơn hàng','order_item_id'=>$request->order_item_id], 404);
+                return response()->json(['message' => 'Không tìm thấy sản phẩm trong đơn hàng', 'order_item_id' => $request->order_item_id], 404);
             }
-    
+
             // Kiểm tra đã đánh giá chưa
             $existing = ModelsComment::where('order_item_id', $orderItem->id)->first();
             if ($existing) {
                 if ($existing->is_updated) {
                     return response()->json(['message' => 'Bạn đã chỉnh sửa đánh giá, không thể cập nhật thêm.'], 403);
                 }
-    
+
                 // Cho phép chỉnh sửa 1 lần
-                
+
                 $existing->update([
                     'rating' => $request->rating,
                     'content' => $request->content,
                     'images' => $request->images,
                     'is_updated' => true,
                 ]);
-    
+
                 return response()->json(['message' => 'Đã cập nhật đánh giá']);
             }
-    
+
             // Tạo đánh giá mới
             $data = [
                 'order_id' => $order->id,
@@ -959,10 +957,10 @@ class OrderClientController extends Controller
                 'customer_email' => $order->user_id === null ? $order->o_email : null,
                 'is_updated' => false,
             ];
-    
-    
+
+
             ModelsComment::create($data);
-    
+
             return response()->json(['message' => 'Đánh giá thành công'], 200);
         } catch (\Throwable $th) {
             //throw $th;
@@ -971,7 +969,6 @@ class OrderClientController extends Controller
                 'error' => $th->getMessage()
             ], 500);
         }
-        
     }
 
 
