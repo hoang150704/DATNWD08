@@ -238,11 +238,15 @@ class DashboardController extends Controller
     // Lấy tỉ lệ đơn hủy theo khoảng thời gian
     private function getCancellationRate($startDate, $endDate)
     {
+
+        // Lấy tổng số đơn hàng và số đơn hàng đã hủy
+        // Nếu không có đơn hàng nào thì trả về 0
         $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
         $canceledOrders = Order::where('order_status_id', 9) // Đơn hàng đã hủy
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereBetween('created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
             ->count();
 
+        // Tính tỉ lệ đơn hàng bị hủy
         return ($totalOrders > 0) ? ($canceledOrders / $totalOrders) * 100 : 0;
     }
 
