@@ -44,13 +44,55 @@ class OrderController extends Controller
         $this->ghn = $ghn;
     }
 
+    protected function search($order_code = null, $order_status = null, $payment_status = null, $shipping_status = null, $order_name = null, $order_phone = null, $start_day = null, $end_day = null)
+    {
+        $query = Order::query();
+
+        if ($order_code) {
+            $query->where('code', 'like', "%{$order_code}%");
+        }
+        if ($order_name) {
+            $query->where('o_name', 'like', "%{$order_name}%");
+        }
+        if ($order_phone) {
+            $query->where('o_phone', 'like', "%{$order_phone}%");
+        }
+        if ($order_status) {
+            $query->where('order_status_id', $order_status);
+        }
+        if ($payment_status) {
+            $query->where('payment_status_id', $payment_status);
+        }
+        if ($shipping_status) {
+            $query->where('shipping_status_id', $shipping_status);
+        }
+        if ($start_day && $end_day) {
+            $query->whereBetween('created_at', [$start_day, $end_day]);
+        }
+
+        return $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
+            ->with([
+                'status:id,code,name',
+                'paymentStatus:id,code,name',
+                'shippingStatus:id,code,name'
+            ])
+            ->orderByDesc('orders.created_at')
+            ->paginate(10);
+    }
+
     public function index()
     {
         try {
-            $orders = Order::select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
-                ->with('status:id,code,name', 'paymentStatus:id,code,name', 'shippingStatus:id,code,name')
-                ->orderByDesc('created_at')
-                ->paginate(30);
+            $order_code = request("order_code");
+            $order_status = request("order_status");
+            $payment_status = request("payment_status");
+            $shipping_status = request("shipping_status");
+            $order_name = request("order_name");
+            $order_phone = request("order_phone");
+            $start_day = request("start_day");
+            $end_day = request("end_day");
+            $orders = $this->search($order_code, $order_status, $payment_status, $shipping_status, $order_name, $order_phone, $start_day, $end_day);
+
             $orders = $orders->map(function ($order) {
                 return [
                     'id' => $order->id,
@@ -298,66 +340,6 @@ class OrderController extends Controller
                 'message' => 'Không thể lấy đơn hàng!',
                 'error' => $th->getMessage()
             ], 500);
-        }
-    }
-
-    public function search(Request $request)
-    {
-        try {
-            $query = Order::query();
-
-            $filters = [
-                'order_code' => $request->order_code,
-                'order_status' => $request->order_status,
-                'payment_status' => $request->payment_status,
-                'shipping_status' => $request->shipping_status,
-                'order_name' => $request->order_name,
-                'order_phone' => $request->order_phone,
-                'start_day' => $request->start_day,
-                'end_day' => $request->end_day,
-            ];
-
-            if (empty(array_filter($filters))) {
-                return response()->json([
-                    'message' => 'Không tìm thấy kết quả'
-                ], 404);
-            } else {
-                if ($request['order_code']) {
-                    $query->where('code', 'like', "%{$request['order_code']}%");
-                }
-                if ($request['order_name']) {
-                    $query->where('o_name', 'like', "%{$request['order_name']}%");
-                }
-                if ($request['order_phone']) {
-                    $query->where('o_phone', 'like', "%{$request['order_phone']}%");
-                }
-                if ($request['order_status']) {
-                    $query->where('order_status_id', $request['order_status']);
-                }
-                if ($request['payment_status']) {
-                    $query->where('payment_status_id', $request['payment_status']);
-                }
-                if ($request['shipping_status']) {
-                    $query->where('shipping_status_id', $request['shipping_status']);
-                }
-                if ($request['start_day'] && $request['end_day']) {
-                    $query->whereBetween('created_at', [$request['start_day'], $request['end_day']]);
-                }
-            }
-
-            $orders = $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
-                ->with('status:id,code,name', 'paymentStatus:id,code,name', 'shippingStatus:id,code,name')
-                ->orderByDesc('orders.created_at')
-                ->paginate(10);
-
-            return response()->json([
-                'message' => 'Success',
-                'data' => $orders
-            ], 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Failed',
-            ], 404);
         }
     }
 

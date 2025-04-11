@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('orders')->group(function () {
     Route::get('/', [OrderController::class, 'index']);
-    Route::post('/search', [OrderController::class, 'search']);
     Route::post('/create', [OrderController::class, 'store']);
     Route::put('/{order}/edit', [OrderController::class, 'update']);
     Route::get('/{order}', [OrderController::class, 'show']);

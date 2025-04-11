@@ -26,18 +26,18 @@ class ProductVariationController extends Controller
             'variants.values.attributeValue:id,name',
             'productAttributes'
         )->select('id', 'name', 'type')->findOrFail($idProduct);
-    
+
         if ($listProductVariant->type == 1) {
             return response()->json(['message' => 'Đây không phải sản phẩm biến thể']);
         }
-    
+
         $convertData = [
             'id' => $listProductVariant->id,
             'name' => $listProductVariant->name,
             'type' => $listProductVariant->type,
             'variants' => [] // Chuyển đổi variants thành mảng
         ];
-    
+
         foreach ($listProductVariant->variants as $variant) {
             $variantData = [
                 'id' => $variant->id,
@@ -49,17 +49,17 @@ class ProductVariationController extends Controller
                 'url' => $variant->variant_image == null ? null : Product::getConvertImage($variant->library->url, 200, 200, 'thumb'),
                 'values' => []
             ];
-    
+
             foreach ($variant->values as $value) {
                 $variantData['values'][] = $value->attributeValue->name;
             }
-    
+
             $convertData['variants'][] = $variantData; // Thêm object vào mảng variants
         }
-    
+
         return response()->json($convertData, 200);
     }
-    
+
     /**
      * Store a newly created resource in storage.
      */
@@ -72,7 +72,7 @@ class ProductVariationController extends Controller
             $product = Product::findOrFail($idProduct);
             // Kiểm tra xem có phải sản phẩm biến thể không
             if ($product->type == 1) {
-                return response()->json(['message' => 'Đây không phải sản phẩm biến thể'],422);
+                return response()->json(['message' => 'Đây không phải sản phẩm biến thể'], 422);
             }
             //
             $existingAttributeValues = [];
@@ -92,16 +92,16 @@ class ProductVariationController extends Controller
             }
             //
             $dataVariant = [
-                "sku" => $data['sku'] ??null,
+                "sku" => $data['sku'] ?? null,
                 "regular_price" => $data['regular_price'] ?? 0,
-                "sale_price" => $data['sale_price']?? null,
+                "sale_price" => $data['sale_price'] ?? null,
                 "variant_image" => $data['variant_image'] ?? null,
                 "stock_quantity" => $data['stock_quantity'] ?? 0,
                 "product_id" => $idProduct
             ];
             $productVariation = ProductVariation::create($dataVariant);
             // 
-         
+
             foreach ($data['values'] as $value) {
                 $dataProductVariationValue = [
                     "variation_id" => $productVariation->id,
@@ -119,7 +119,7 @@ class ProductVariationController extends Controller
             DB::rollBack();
             Log::error($th);
             return response()->json([
-                "message" => "Lỗi hệ thống",
+                "message" => "Lỗi hệ thống 2 1",
                 "error" => $th->getMessage()
             ], 500);
         }
@@ -128,7 +128,7 @@ class ProductVariationController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $idProduct,$id )
+    public function show(string $idProduct, $id)
     {
         //
         $product_variant = ProductVariation::with('values', 'values.attributeValue')->findOrFail($id);
@@ -140,6 +140,7 @@ class ProductVariationController extends Controller
             'url' => $product_variant->variant_image == null ? null : Product::getConvertImage($product_variant->library->url, 200, 200, 'thumb'),
             "regular_price" => $product_variant->regular_price,
             "sale_price" => $product_variant->sale_price,
+            "weight" => $product_variant->weight,
             "stock_quantity" => $product_variant->stock_quantity,
         ];
         foreach ($product_variant->values as $key => $value) {
@@ -157,7 +158,7 @@ class ProductVariationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateProductVariationRequest $request,  $idProduct,string $id)
+    public function update(UpdateProductVariationRequest $request, $idProduct, string $id)
     {
         //
         try {
@@ -170,13 +171,14 @@ class ProductVariationController extends Controller
                 "sale_price" => $data['sale_price'] ?? null,
                 "variant_image" => $data['variant_image'] ?? null,
                 "stock_quantity" => $data['stock_quantity'] ?? 0,
-                "product_id" => $idProduct
+                "product_id" => $idProduct,
+                "weight" => $data['weight'] ?? 0
             ];
             $product_variant = ProductVariation::findOrFail($id);
             $product = Product::findOrFail($idProduct);
             // Kiểm tra xem có phải sản phẩm biến thể không
             if ($product->type == 1) {
-                return response()->json(['message' => 'Đây không phải sản phẩm biến thể'],422);
+                return response()->json(['message' => 'Đây không phải sản phẩm biến thể'], 422);
             }
             //
             $existingAttributeValues = [];
@@ -196,13 +198,15 @@ class ProductVariationController extends Controller
                 }
             }
             $product_variant->update($dataVariant);
-            
+
+            // Xoá tất cả giá trị cũ của biến thể đang sửa
+            $product_variant->values()->delete();
+
+            // Tạo lại từ data gửi lên
             foreach ($data['values'] as $value) {
-                $dataVariantValue = [
+                $product_variant->values()->create([
                     'attribute_value_id' => $value['attribute_value_id']
-                ];
-                $variantValue = ProductVariationValue::findOrFail($value['id']);
-                $variantValue->update($dataVariantValue);
+                ]);
             }
             // Hoàn thành
             DB::commit();
@@ -230,10 +234,10 @@ class ProductVariationController extends Controller
             //code...
             DB::beginTransaction();
             $product_variant = ProductVariation::findOrFail($id);
-            ProductVariationValue::where('variation_id',$id)->delete();
+            ProductVariationValue::where('variation_id', $id)->delete();
             $product_variant->delete();
             DB::commit();
-            return response()->json(['message'=>"Bạn đã xóa thành công",'product_variant'=>$product_variant], 200);
+            return response()->json(['message' => "Bạn đã xóa thành công"], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -253,7 +257,7 @@ class ProductVariationController extends Controller
             $listProductVariant = ProductVariation::with('values.attributeValue')
                 ->where('product_id', $idProduct)
                 ->get();
-    
+
             // Chuyển đổi dữ liệu sang format mong muốn
             $formattedVariants = $listProductVariant->map(function ($variant) {
                 return [
@@ -261,7 +265,7 @@ class ProductVariationController extends Controller
                     'values' => $variant->values->map(fn($value) => $value->attributeValue->name)
                 ];
             });
-    
+
             return response()->json($formattedVariants, 200);
         } catch (\Exception $e) {
             Log::error($e);
@@ -271,5 +275,5 @@ class ProductVariationController extends Controller
             ], 500);
         }
     }
-    
+
 }
