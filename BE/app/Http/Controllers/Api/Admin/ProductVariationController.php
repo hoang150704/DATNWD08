@@ -198,12 +198,14 @@ class ProductVariationController extends Controller
             }
             $product_variant->update($dataVariant);
 
+            // Xoá tất cả giá trị cũ của biến thể đang sửa
+            $product_variant->values()->delete();
+
+            // Tạo lại từ data gửi lên
             foreach ($data['values'] as $value) {
-                $dataVariantValue = [
+                $product_variant->values()->create([
                     'attribute_value_id' => $value['attribute_value_id']
-                ];
-                $variantValue = ProductVariationValue::findOrFail($value['id']);
-                $variantValue->update($dataVariantValue);
+                ]);
             }
             // Hoàn thành
             DB::commit();
