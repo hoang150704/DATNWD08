@@ -21,7 +21,7 @@ class ProductVariationController extends Controller
     public function index(string $idProduct)
     {
         $listProductVariant = Product::with(
-            'variants:id,weight,product_id,regular_price,sale_price,sku,variant_image,stock_quantity',
+            'variants:id,weight,product_id,regular_price,sale_price,sku,variant_image,stock_quantity,deleted_at',
             'variants.values:variation_id,attribute_value_id',
             'variants.values.attributeValue:id,name',
             'productAttributes'
@@ -233,13 +233,14 @@ class ProductVariationController extends Controller
             ProductVariationValue::where('variation_id',$id)->delete();
             $product_variant->delete();
             DB::commit();
-            return response()->json(['message'=>"Bạn đã xóa thành công"], 200);
+            return response()->json(['message'=>"Bạn đã xóa thành công",'product_variant'=>$product_variant], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error($e);
             return response()->json([
                 "message" => "Lỗi hệ thống",
+                'id'=>$id,
                 "error" => $e->getMessage()
             ], 500);
         }

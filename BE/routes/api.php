@@ -58,7 +58,7 @@ Route::get('/search', [HomeController::class, 'searchProducts']);
 Route::get('/discount-product', [HomeController::class, 'discountProduct']);
 
 //Thanh toán
-Route::post('/checkout', [OrderClientController::class, 'store']);
+Route::post('/checkout', [OrderClientController::class, 'store'])->middleware('throttle:5,1');
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
 
 // Lấy thông tin order
