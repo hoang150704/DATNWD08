@@ -140,6 +140,7 @@ class ProductVariationController extends Controller
             'url' => $product_variant->variant_image == null ? null : Product::getConvertImage($product_variant->library->url, 200, 200, 'thumb'),
             "regular_price" => $product_variant->regular_price,
             "sale_price" => $product_variant->sale_price,
+            "weight" => $product_variant->weight,
             "stock_quantity" => $product_variant->stock_quantity,
         ];
         foreach ($product_variant->values as $key => $value) {
