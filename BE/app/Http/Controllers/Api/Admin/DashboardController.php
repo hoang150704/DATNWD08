@@ -31,6 +31,9 @@ class DashboardController extends Controller
             $topSellingByDate = $this->getTopSellingProductsByDateRange($startDate, $endDate);
         }
 
+        // Thống kê doanh số bán hàng theo thời gian
+         $salesData = $this->getSalesStatistics($startDate, $endDate);
+
         // Lợi nhuận theo thời gian
         // $profit = $this->getProfit($startDate, $endDate);
 
@@ -46,11 +49,17 @@ class DashboardController extends Controller
         // Số lượng sản phẩm theo danh mục
         $productByCategory = $this->getProductByCategory();
 
+        // Tỉ lệ đơn hàng bị hủy
+        $cancellationRate = $this->getCancellationRate($startDate, $endDate);
+
         // Số lượng đánh giá theo từng mức rating
         $ratingStatistics = $this->getRatingStatistics();
 
         // Top 5 sản phẩm được đánh giá cao nhất
         $topRatedProducts = $this->getTopRatedProducts();
+
+        // Thống kê đơn hàng
+        $orderStatistics = $this->getOrderStatistics($startDate, $endDate);
 
         // Top 5 user có số tiền chi tiêu nhiều nhất
         $topUsersBySpending = $this->getTopUsersBySpending();
@@ -86,16 +95,34 @@ class DashboardController extends Controller
                 // Thống kê số lượng đánh giá theo từng mức rating
                 "ratingStatistics" => $ratingStatistics,
 
+                // Lợi nhuận
+                // "profit" => $profit->total_profit ?? 0,
+
                 // Số lượng sản phẩm theo danh mục
                 "productByCategory" => $productByCategory,
 
                 // Top 5 user có số tiền chi tiêu nhiều nhất
                 "topUsersBySpending" => $topUsersBySpending,
 
+                // Tỉ lệ khách hàng đăng nhập mua
+                "loginPurchaseRate" => $loginPurchaseRate,
+
+                // Tỉ lệ khách hàng không đăng nhập mua
+                "guestPurchaseRate" => $guestPurchaseRate,
+
+                // Top sản phẩm bán chạy nhất theo khoảng thời gian
+                "topSellingByDate" => $topSellingByDate,
+
+                // Tỉ lệ đơn hàng bị hủy
+                "cancellationRate" => $cancellationRate,
+
                 // Top 5 sản phẩm được đánh giá cao nhất
                 "topRatedProducts" => $topRatedProducts,
 
-                // Thống kê doanh số bán hàng
+                // Thống kê đơn hàng theo thời gian
+                "orderStatistics" => $orderStatistics,
+
+                // Thống kê doanh số bán hàng theo thời gian
                 "salesStatistics" => $salesData,
                 "startDate" => $startDate,
                 "endDate" => $endDate,
@@ -120,11 +147,16 @@ class DashboardController extends Controller
     // Thống kê số lượng đánh giá theo từng mức rating
     private function getRatingStatistics()
     {
-        return Comment::select('rating', DB::raw('COUNT(*) as total_reviews')) // Đếm số lượng đánh giá
+        return Comment::select(
+            'rating',
+            DB::raw('COUNT(*) as total_reviews') // Đếm số lượng đánh giá
+        )
+            ->where('is_active', 1) // Chỉ lấy đánh giá đã duyệt
             ->groupBy('rating') // Nhóm theo rating
-            ->orderByDesc('rating') // Sắp xếp theo rating giảm dần
+            ->orderBy('rating') // Sắp xếp theo rating tăng dần
             ->get();
     }
+
 
     // Lấy top 5 sản phẩm được đánh giá cao nhất
     private function getTopRatedProducts()
@@ -132,21 +164,19 @@ class DashboardController extends Controller
         return Product::select(
             'products.id',
             'products.name',
-            'products.avg_rating as avg_rating', // Thay đổi từ `rating` thành `avg_rating`
-            DB::raw('COUNT(comments.id) as total_reviews') // Đếm tổng số đánh giá
+            'products.avg_rating as avg_rating',
+            DB::raw('COUNT(product_reviews.id) as total_reviews') // ✅ sửa chỗ này
         )
-            ->leftJoin('comments', function ($join) {
-                $join->on('products.id', '=', 'comments.product_id') // Join bảng comments
-                    ->where('comments.is_active', 1); // Chỉ lấy đánh giá đã duyệt
+            ->leftJoin('product_reviews', function ($join) {
+                $join->on('products.id', '=', 'product_reviews.product_id')
+                    ->where('product_reviews.is_active', 1);
             })
-            ->groupBy('products.id', 'products.name', 'products.avg_rating') // Thay đổi từ `rating` thành `avg_rating`
-            ->orderByDesc('products.avg_rating') // Sắp xếp theo `avg_rating`
-            ->orderByDesc(DB::raw('COUNT(comments.id)')) // Nếu rating giống nhau, ưu tiên sản phẩm có nhiều đánh giá hơn
+            ->groupBy('products.id', 'products.name', 'products.avg_rating')
+            ->orderByDesc('products.avg_rating')
+            ->orderByDesc(DB::raw('COUNT(product_reviews.id)'))
             ->take(5)
             ->get();
     }
-
-
 
     // Thống kê doanh số bán hàng theo thời gian
     private function getSalesStatistics($startDate, $endDate)
@@ -269,11 +299,11 @@ class DashboardController extends Controller
             // Đơn hàng chờ xac nhận
             DB::raw('SUM(CASE WHEN order_status_id = 1 THEN 1 ELSE 0 END) as pending_orders'),
 
-            // Đơn hàng đang chờ xử lý
+            // Đơn hàng đã xác nhận
             DB::raw('SUM(CASE WHEN order_status_id = 2 THEN 1 ELSE 0 END) as confirmed_orders') ,
 
             // Đơn hàng đã hoàn thành
-            DB::raw('SUM(CASE WHEN order_status_id = 4 THEN 1 ELSE 0 END) as completed_orders'),
+            DB::raw('SUM(CASE WHEN order_status_id = 5 THEN 1 ELSE 0 END) as completed_orders'),
 
             // Đơn hàng đã hủy
             DB::raw('SUM(CASE WHEN order_status_id = 9 THEN 1 ELSE 0 END) as canceled_orders')
