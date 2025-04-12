@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Resources\RefundRequestResource;
 use App\Http\Resources\ShipmentResource;
 use App\Http\Resources\TransactionResource;
+use App\Jobs\SendMailOrderConfirmed;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -138,99 +139,99 @@ class OrderController extends Controller
 
         return $codeOrder;
     }
-    public function store(StoreOrderRequest $request)
-    {
-        try {
-            DB::beginTransaction();
-            $validatedData = $request->validated();
+    // public function store(StoreOrderRequest $request)
+    // {
+    //     try {
+    //         DB::beginTransaction();
+    //         $validatedData = $request->validated();
 
-            // Kiểm tra nếu không có sản phẩm trong đơn hàng
-            if (empty($validatedData['products'])) {
-                return response()->json([
-                    'message' => 'Không có sản phẩm nào trong đơn hàng!'
-                ], 400);
-            }
+    //         // Kiểm tra nếu không có sản phẩm trong đơn hàng
+    //         if (empty($validatedData['products'])) {
+    //             return response()->json([
+    //                 'message' => 'Không có sản phẩm nào trong đơn hàng!'
+    //             ], 400);
+    //         }
 
-            // Tạo đơn hàng
-            $order = Order::create([
-                'code' => $this->generateUniqueOrderCode(),
-                'total_amount' => $validatedData['total_amount'],
-                'discount_amount' => $validatedData['discount_amount'] ?? 0,
-                'final_amount' => $validatedData['final_amount'],
-                'payment_method' => 'ship_cod',
-                'shipping' => $validatedData['shipping'],
-                'o_name' => $validatedData['o_name'],
-                'o_address' => $validatedData['o_address'],
-                'o_phone' => $validatedData['o_phone'],
-                'o_mail' => $validatedData['o_mail'] ?? null,
-                'note' => $validatedData['note'] ?? null,
-                'stt_payment' => 1,
-                'stt_track' => 1,
-                'created_by' => 'system'
-            ]);
+    //         // Tạo đơn hàng
+    //         $order = Order::create([
+    //             'code' => $this->generateUniqueOrderCode(),
+    //             'total_amount' => $validatedData['total_amount'],
+    //             'discount_amount' => $validatedData['discount_amount'] ?? 0,
+    //             'final_amount' => $validatedData['final_amount'],
+    //             'payment_method' => 'ship_cod',
+    //             'shipping' => $validatedData['shipping'],
+    //             'o_name' => $validatedData['o_name'],
+    //             'o_address' => $validatedData['o_address'],
+    //             'o_phone' => $validatedData['o_phone'],
+    //             'o_mail' => $validatedData['o_mail'] ?? null,
+    //             'note' => $validatedData['note'] ?? null,
+    //             'stt_payment' => 1,
+    //             'stt_track' => 1,
+    //             'created_by' => 'system'
+    //         ]);
 
-            // Danh sách các sản phẩm trong đơn hàng
-            $orderItems = [];
+    //         // Danh sách các sản phẩm trong đơn hàng
+    //         $orderItems = [];
 
-            foreach ($validatedData['products'] as $product) {
-                $variant = ProductVariation::findOrFail($product['variation_id']);
+    //         foreach ($validatedData['products'] as $product) {
+    //             $variant = ProductVariation::findOrFail($product['variation_id']);
 
-                // Kiểm tra tồn kho trước khi trừ
-                if ($variant->stock_quantity < $product['quantity']) {
-                    DB::rollBack();
-                    return response()->json([
-                        'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
-                    ], 400);
-                }
-                //
-                $variation = $variant->getFormattedVariation();
-                // Thêm sản phẩm vào danh sách orderItems
-                $orderItems[] = [
-                    'order_id' => $order->id,
-                    'product_id' => $product['product_id'],
-                    'variation_id' => $product['variation_id'],
-                    'weight' => $product['weight'],
-                    'image' => $product['image'],
-                    'variation' => json_encode($variation),
-                    'product_name' => $product['name'],
-                    'price' => $product['price'],
-                    'quantity' => $product['quantity'],
-                ];
+    //             // Kiểm tra tồn kho trước khi trừ
+    //             if ($variant->stock_quantity < $product['quantity']) {
+    //                 DB::rollBack();
+    //                 return response()->json([
+    //                     'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
+    //                 ], 400);
+    //             }
+    //             //
+    //             $variation = $variant->getFormattedVariation();
+    //             // Thêm sản phẩm vào danh sách orderItems
+    //             $orderItems[] = [
+    //                 'order_id' => $order->id,
+    //                 'product_id' => $product['product_id'],
+    //                 'variation_id' => $product['variation_id'],
+    //                 'weight' => $product['weight'],
+    //                 'image' => $product['image'],
+    //                 'variation' => json_encode($variation),
+    //                 'product_name' => $product['name'],
+    //                 'price' => $product['price'],
+    //                 'quantity' => $product['quantity'],
+    //             ];
 
-                // Cập nhật lại số lượng tồn kho
-                $variant->updateOrFail([
-                    'stock_quantity' => (int) $variant->stock_quantity - (int) $product['quantity']
-                ]);
-            }
-            // Thêm nhiều sản phẩm
-            OrderItem::insert($orderItems);
+    //             // Cập nhật lại số lượng tồn kho
+    //             $variant->updateOrFail([
+    //                 'stock_quantity' => (int) $variant->stock_quantity - (int) $product['quantity']
+    //             ]);
+    //         }
+    //         // Thêm nhiều sản phẩm
+    //         OrderItem::insert($orderItems);
 
-            // Cập nhật trạng thái ban đầu của đơn hàng với giá trị hợp lệ
-            $order->statusTimelines()->create([
-                'from' => 'system',
-                'to' => 'Chờ xác nhận',
-                'changed_by' => 'system',
-                'changed_at' => now()->toDateTimeString()
-            ]);
+    //         // Cập nhật trạng thái ban đầu của đơn hàng với giá trị hợp lệ
+    //         $order->statusTimelines()->create([
+    //             'from' => 'system',
+    //             'to' => 'Chờ xác nhận',
+    //             'changed_by' => 'system',
+    //             'changed_at' => now()->toDateTimeString()
+    //         ]);
 
-            // Gửi email thông báo đơn hàng thành công
-            SendMailSuccessOrderJob::dispatch($order);
+    //         // Gửi email thông báo đơn hàng thành công
+    //         SendMailSuccessOrderJob::dispatch($order);
 
-            DB::commit();
+    //         DB::commit();
 
-            // Trả về mã đơn hàng
-            return response()->json([
-                'message' => 'Bạn đã thêm đơn hàng thành công!',
-                'order_code' => $order->code
-            ], 201);
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Failed',
-                'errors' => $th->getMessage(),
-            ], 500);
-        }
-    }
+    //         // Trả về mã đơn hàng
+    //         return response()->json([
+    //             'message' => 'Bạn đã thêm đơn hàng thành công!',
+    //             'order_code' => $order->code
+    //         ], 201);
+    //     } catch (\Throwable $th) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'message' => 'Failed',
+    //             'errors' => $th->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 
 
     public function show($id)
@@ -368,6 +369,7 @@ class OrderController extends Controller
             }
 
             DB::commit();
+            SendMailOrderConfirmed::dispatch($order);
             return response()->json([
                 'message' => 'Đã xác nhận đơn hàng thành công!',
                 'order' => $order,
