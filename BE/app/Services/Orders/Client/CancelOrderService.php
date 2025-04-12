@@ -5,6 +5,7 @@ use App\Enums\OrderStatusEnum;
 use App\Enums\PaymentStatusEnum;
 use App\Enums\ShippingStatusEnum;
 use App\Events\OrderEvent;
+use App\Jobs\SendMailOrderCancelled;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\PaymentStatus;
@@ -45,7 +46,7 @@ class CancelOrderService
             if ($this->checkCancelShipment($order)) {
                 $this->cancelShipmentViaGhn($order, $reason);
             }
-
+            SendMailOrderCancelled::dispatch($order);
             DB::commit();
             return ['success' => true, 'message' => 'Đơn hàng đã được huỷ'];
         } catch (\Throwable $th) {
