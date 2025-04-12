@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class ProductDetailController extends Controller
 {
-    public function show(string $id)
+    public function show(string $slug)
     {
         try {
             // Lấy sản phẩm 
@@ -17,7 +17,7 @@ class ProductDetailController extends Controller
                 'categories',
                 'productImages',
                 'library'
-            ])->findOrFail($id);
+            ])->where('slug',$slug)->firstOrFail();
     
             // Convert dữ liệu
             $convertData = [

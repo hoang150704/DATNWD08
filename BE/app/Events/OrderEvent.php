@@ -51,20 +51,16 @@ class OrderEvent implements ShouldBroadcast
     public function broadcastWith()
     {
         return [
-            'order_code' => $this->order->code,
+            'id' => $this->order->id,
+            'code' => $this->order->code,
             'o_name' => $this->order->o_name,
+            'phone' => $this->order->o_phone,
             'final_amount' => $this->order->final_amount,
             'payment_method' => $this->order->payment_method,
-            'created_at' => $this->order->created_at,
-            'cancelled_at' => $this->order->cancelled_at,
-            'payment_status_id' => $this->order->payment_status_id,
-            'cancel_reason' => $this->order->cancel_reason,
-            'voucher' => $this->voucher ? [
-                'id' => $this->voucher->id,
-                'code' => $this->voucher->code,
-                'usage_limit' => $this->voucher->usage_limit,
-                'expiry_date' => $this->voucher->expiry_date
-            ] : null, // Kiểm tra và lấy thông tin voucher nếu có
+            'order_status' => $this->order->status->name ?? '',
+            'payment_status' => $this->order->paymentStatus->name ?? '',
+            'shipping_status' => $this->order->shippingStatus->name ?? '',
+            'created_at' => $this->order->created_at->format('d/m/Y H:i'),
         ];
     }
 }

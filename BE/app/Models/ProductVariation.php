@@ -10,6 +10,9 @@ class ProductVariation extends Model
 {
     use HasFactory;
     use SoftDeletes;
+
+
+    protected $table = 'product_variations';
     protected $fillable = [
         'product_id',
         'sku',

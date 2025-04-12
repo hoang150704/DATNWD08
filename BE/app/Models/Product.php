@@ -24,7 +24,7 @@ class Product extends Model
 
     public function variants()
     {
-        return $this->hasMany(ProductVariation::class);
+        return $this->hasMany(ProductVariation::class)->whereNull('deleted_at');
     }
     public function orders()
     {

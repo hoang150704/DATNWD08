@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Resources\RefundRequestResource;
 use App\Http\Resources\ShipmentResource;
 use App\Http\Resources\TransactionResource;
+use App\Jobs\SendMailOrderConfirmed;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -44,13 +45,55 @@ class OrderController extends Controller
         $this->ghn = $ghn;
     }
 
+    protected function search($order_code = null, $order_status = null, $payment_status = null, $shipping_status = null, $order_name = null, $order_phone = null, $start_day = null, $end_day = null)
+    {
+        $query = Order::query();
+
+        if ($order_code) {
+            $query->where('code', 'like', "%{$order_code}%");
+        }
+        if ($order_name) {
+            $query->where('o_name', 'like', "%{$order_name}%");
+        }
+        if ($order_phone) {
+            $query->where('o_phone', 'like', "%{$order_phone}%");
+        }
+        if ($order_status) {
+            $query->where('order_status_id', $order_status);
+        }
+        if ($payment_status) {
+            $query->where('payment_status_id', $payment_status);
+        }
+        if ($shipping_status) {
+            $query->where('shipping_status_id', $shipping_status);
+        }
+        if ($start_day && $end_day) {
+            $query->whereBetween('created_at', [$start_day, $end_day]);
+        }
+
+        return $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
+            ->with([
+                'status:id,code,name',
+                'paymentStatus:id,code,name',
+                'shippingStatus:id,code,name'
+            ])
+            ->orderByDesc('orders.created_at')
+            ->paginate(10);
+    }
+
     public function index()
     {
         try {
-            $orders = Order::select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
-                ->with('status:id,code,name', 'paymentStatus:id,code,name', 'shippingStatus:id,code,name')
-                ->orderByDesc('created_at')
-                ->paginate(30);
+            $order_code = request("order_code");
+            $order_status = request("order_status");
+            $payment_status = request("payment_status");
+            $shipping_status = request("shipping_status");
+            $order_name = request("order_name");
+            $order_phone = request("order_phone");
+            $start_day = request("start_day");
+            $end_day = request("end_day");
+            $orders = $this->search($order_code, $order_status, $payment_status, $shipping_status, $order_name, $order_phone, $start_day, $end_day);
+
             $orders = $orders->map(function ($order) {
                 return [
                     'id' => $order->id,
@@ -96,99 +139,99 @@ class OrderController extends Controller
 
         return $codeOrder;
     }
-    public function store(StoreOrderRequest $request)
-    {
-        try {
-            DB::beginTransaction();
-            $validatedData = $request->validated();
+    // public function store(StoreOrderRequest $request)
+    // {
+    //     try {
+    //         DB::beginTransaction();
+    //         $validatedData = $request->validated();
 
-            // Kiểm tra nếu không có sản phẩm trong đơn hàng
-            if (empty($validatedData['products'])) {
-                return response()->json([
-                    'message' => 'Không có sản phẩm nào trong đơn hàng!'
-                ], 400);
-            }
+    //         // Kiểm tra nếu không có sản phẩm trong đơn hàng
+    //         if (empty($validatedData['products'])) {
+    //             return response()->json([
+    //                 'message' => 'Không có sản phẩm nào trong đơn hàng!'
+    //             ], 400);
+    //         }
 
-            // Tạo đơn hàng
-            $order = Order::create([
-                'code' => $this->generateUniqueOrderCode(),
-                'total_amount' => $validatedData['total_amount'],
-                'discount_amount' => $validatedData['discount_amount'] ?? 0,
-                'final_amount' => $validatedData['final_amount'],
-                'payment_method' => 'ship_cod',
-                'shipping' => $validatedData['shipping'],
-                'o_name' => $validatedData['o_name'],
-                'o_address' => $validatedData['o_address'],
-                'o_phone' => $validatedData['o_phone'],
-                'o_mail' => $validatedData['o_mail'] ?? null,
-                'note' => $validatedData['note'] ?? null,
-                'stt_payment' => 1,
-                'stt_track' => 1,
-                'created_by' => 'system'
-            ]);
+    //         // Tạo đơn hàng
+    //         $order = Order::create([
+    //             'code' => $this->generateUniqueOrderCode(),
+    //             'total_amount' => $validatedData['total_amount'],
+    //             'discount_amount' => $validatedData['discount_amount'] ?? 0,
+    //             'final_amount' => $validatedData['final_amount'],
+    //             'payment_method' => 'ship_cod',
+    //             'shipping' => $validatedData['shipping'],
+    //             'o_name' => $validatedData['o_name'],
+    //             'o_address' => $validatedData['o_address'],
+    //             'o_phone' => $validatedData['o_phone'],
+    //             'o_mail' => $validatedData['o_mail'] ?? null,
+    //             'note' => $validatedData['note'] ?? null,
+    //             'stt_payment' => 1,
+    //             'stt_track' => 1,
+    //             'created_by' => 'system'
+    //         ]);
 
-            // Danh sách các sản phẩm trong đơn hàng
-            $orderItems = [];
+    //         // Danh sách các sản phẩm trong đơn hàng
+    //         $orderItems = [];
 
-            foreach ($validatedData['products'] as $product) {
-                $variant = ProductVariation::findOrFail($product['variation_id']);
+    //         foreach ($validatedData['products'] as $product) {
+    //             $variant = ProductVariation::findOrFail($product['variation_id']);
 
-                // Kiểm tra tồn kho trước khi trừ
-                if ($variant->stock_quantity < $product['quantity']) {
-                    DB::rollBack();
-                    return response()->json([
-                        'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
-                    ], 400);
-                }
-                //
-                $variation = $variant->getFormattedVariation();
-                // Thêm sản phẩm vào danh sách orderItems
-                $orderItems[] = [
-                    'order_id' => $order->id,
-                    'product_id' => $product['product_id'],
-                    'variation_id' => $product['variation_id'],
-                    'weight' => $product['weight'],
-                    'image' => $product['image'],
-                    'variation' => json_encode($variation),
-                    'product_name' => $product['name'],
-                    'price' => $product['price'],
-                    'quantity' => $product['quantity'],
-                ];
+    //             // Kiểm tra tồn kho trước khi trừ
+    //             if ($variant->stock_quantity < $product['quantity']) {
+    //                 DB::rollBack();
+    //                 return response()->json([
+    //                     'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho!'
+    //                 ], 400);
+    //             }
+    //             //
+    //             $variation = $variant->getFormattedVariation();
+    //             // Thêm sản phẩm vào danh sách orderItems
+    //             $orderItems[] = [
+    //                 'order_id' => $order->id,
+    //                 'product_id' => $product['product_id'],
+    //                 'variation_id' => $product['variation_id'],
+    //                 'weight' => $product['weight'],
+    //                 'image' => $product['image'],
+    //                 'variation' => json_encode($variation),
+    //                 'product_name' => $product['name'],
+    //                 'price' => $product['price'],
+    //                 'quantity' => $product['quantity'],
+    //             ];
 
-                // Cập nhật lại số lượng tồn kho
-                $variant->updateOrFail([
-                    'stock_quantity' => (int) $variant->stock_quantity - (int) $product['quantity']
-                ]);
-            }
-            // Thêm nhiều sản phẩm
-            OrderItem::insert($orderItems);
+    //             // Cập nhật lại số lượng tồn kho
+    //             $variant->updateOrFail([
+    //                 'stock_quantity' => (int) $variant->stock_quantity - (int) $product['quantity']
+    //             ]);
+    //         }
+    //         // Thêm nhiều sản phẩm
+    //         OrderItem::insert($orderItems);
 
-            // Cập nhật trạng thái ban đầu của đơn hàng với giá trị hợp lệ
-            $order->statusTimelines()->create([
-                'from' => 'system',
-                'to' => 'Chờ xác nhận',
-                'changed_by' => 'system',
-                'changed_at' => now()->toDateTimeString()
-            ]);
+    //         // Cập nhật trạng thái ban đầu của đơn hàng với giá trị hợp lệ
+    //         $order->statusTimelines()->create([
+    //             'from' => 'system',
+    //             'to' => 'Chờ xác nhận',
+    //             'changed_by' => 'system',
+    //             'changed_at' => now()->toDateTimeString()
+    //         ]);
 
-            // Gửi email thông báo đơn hàng thành công
-            SendMailSuccessOrderJob::dispatch($order);
+    //         // Gửi email thông báo đơn hàng thành công
+    //         SendMailSuccessOrderJob::dispatch($order);
 
-            DB::commit();
+    //         DB::commit();
 
-            // Trả về mã đơn hàng
-            return response()->json([
-                'message' => 'Bạn đã thêm đơn hàng thành công!',
-                'order_code' => $order->code
-            ], 201);
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Failed',
-                'errors' => $th->getMessage(),
-            ], 500);
-        }
-    }
+    //         // Trả về mã đơn hàng
+    //         return response()->json([
+    //             'message' => 'Bạn đã thêm đơn hàng thành công!',
+    //             'order_code' => $order->code
+    //         ], 201);
+    //     } catch (\Throwable $th) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'message' => 'Failed',
+    //             'errors' => $th->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 
 
     public function show($id)
@@ -301,66 +344,6 @@ class OrderController extends Controller
         }
     }
 
-    public function search(Request $request)
-    {
-        try {
-            $query = Order::query();
-
-            $filters = [
-                'order_code' => $request->order_code,
-                'order_status' => $request->order_status,
-                'payment_status' => $request->payment_status,
-                'shipping_status' => $request->shipping_status,
-                'order_name' => $request->order_name,
-                'order_phone' => $request->order_phone,
-                'start_day' => $request->start_day,
-                'end_day' => $request->end_day,
-            ];
-
-            if (empty(array_filter($filters))) {
-                return response()->json([
-                    'message' => 'Không tìm thấy kết quả'
-                ], 404);
-            } else {
-                if ($request['order_code']) {
-                    $query->where('code', 'like', "%{$request['order_code']}%");
-                }
-                if ($request['order_name']) {
-                    $query->where('o_name', 'like', "%{$request['order_name']}%");
-                }
-                if ($request['order_phone']) {
-                    $query->where('o_phone', 'like', "%{$request['order_phone']}%");
-                }
-                if ($request['order_status']) {
-                    $query->where('order_status_id', $request['order_status']);
-                }
-                if ($request['payment_status']) {
-                    $query->where('payment_status_id', $request['payment_status']);
-                }
-                if ($request['shipping_status']) {
-                    $query->where('shipping_status_id', $request['shipping_status']);
-                }
-                if ($request['start_day'] && $request['end_day']) {
-                    $query->whereBetween('created_at', [$request['start_day'], $request['end_day']]);
-                }
-            }
-
-            $orders = $query->select('id', 'code', 'o_name', 'o_phone', 'final_amount', 'payment_method', 'order_status_id', 'payment_status_id', 'shipping_status_id', 'created_at')
-                ->with('status:id,code,name', 'paymentStatus:id,code,name', 'shippingStatus:id,code,name')
-                ->orderByDesc('orders.created_at')
-                ->paginate(10);
-
-            return response()->json([
-                'message' => 'Success',
-                'data' => $orders
-            ], 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Failed',
-            ], 404);
-        }
-    }
-
     //Xác nhận đơn hàng
     public function confirmOrder($code)
     {
@@ -386,6 +369,7 @@ class OrderController extends Controller
             }
 
             DB::commit();
+            SendMailOrderConfirmed::dispatch($order);
             return response()->json([
                 'message' => 'Đã xác nhận đơn hàng thành công!',
                 'order' => $order,

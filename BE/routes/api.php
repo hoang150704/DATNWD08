@@ -34,7 +34,9 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::get('/product_detail/{id}', [ProductDetailController::class, 'show']);
+Route::get('/product_detail/{slug}', [ProductDetailController::class, 'show']);
+// Đăng nhập bằng google
+Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
 Route::prefix('reviews')->group(function () {
     Route::get('{productId}', [ReviewController::class, 'getReviewsByProduct']);
     Route::get('{productId}/statistics', [ReviewController::class, 'getReviewDashboard']);
@@ -46,19 +48,17 @@ Route::prefix('ghn')->group(function () {
     Route::post('/cancel_order', [GhnTrackingController::class, 'cancelOrderGhn']);
     Route::post('/webhook', [GhnTrackingController::class, 'callBackWebHook'])->middleware('ghn');
 });
-
-// Đăng nhập bằng google
-Route::post('/auth/google/callback', [AuthController::class, 'googleAuth']);
-
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
 Route::get('/parent-categories', [HomeController::class, 'getParentCategories']);
-Route::get('/categories/{category_id}/products', [HomeController::class, 'getProductsByCategory']);
+Route::get('/categories/{slug}/products', [HomeController::class, 'getProductsByCategory']);
 Route::get('/search', [HomeController::class, 'searchProducts']);
 Route::get('/discount-product', [HomeController::class, 'discountProduct']);
 
 //Thanh toán
-Route::post('/checkout', [OrderClientController::class, 'store']);
+Route::middleware('prevent.admin')->group(function () {
+    Route::post('/checkout', [OrderClientController::class, 'store'])->middleware('throttle:5,1');
+});
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
 
 // Lấy thông tin order
@@ -88,17 +88,16 @@ Route::prefix('voucher')->group(function () {
 Route::post('/contacts/history', [ClientContactController::class, 'history']);
 Route::post('/contacts', [ClientContactController::class, 'store'])
     ->middleware('throttle:5,1,ip'); // Tối đa 5 request/phút/theo dõi ip người gửi
-//
+
 //Order
+
 require base_path('routes/api/user/orders.php');
 
-// Route::get('/export', [ProductController::class, 'export']); // Export file sản phẩm
 
 // =======================================================================================================================================
-// Route::get('/export', [ProductController::class, 'export']);
 // Chức năng cần LOGIN
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     //
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change_email', [AuthController::class, 'requestChangeEmail']);
@@ -112,11 +111,13 @@ Route::middleware('auth:sanctum')->group(function () {
     require base_path('routes/api/user/address_books.php');
 
     // Giỏ hàng
-    require base_path('routes/api/user/carts.php');
+    Route::middleware('prevent.admin')->group(function () {
+        require base_path('routes/api/user/carts.php');
 
-    // Đánh giá
-    Route::put('/reviews/{id}', [ReviewController::class, 'update']);
-    Route::post('/reviews', [ReviewController::class, 'store']);
+        // Đánh giá
+        Route::put('/reviews/{id}', [ReviewController::class, 'update']);
+        Route::post('/reviews', [ReviewController::class, 'store']);
+    });
 
     // Lấy link ảnh
     Route::post('/upload', [UploadController::class, 'uploadImage']);

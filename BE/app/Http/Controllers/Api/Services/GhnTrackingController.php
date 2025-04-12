@@ -30,6 +30,7 @@ class GhnTrackingController extends Controller
     protected $ApiService;
     protected $ghnApiService;
     protected $shopId;
+    
     protected $weight_service = 20000;
     public function __construct(ApiService $ApiService, GhnApiService $ghnApiService)
     {
