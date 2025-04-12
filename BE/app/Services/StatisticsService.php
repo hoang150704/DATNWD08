@@ -73,8 +73,6 @@ class StatisticsService
             // Thống kê đơn hàng theo thời gian
             "orderStatistics" => $this->getOrderStatistics($startDate, $endDate),
 
-            // Doanh thu hàng ngày
-            "dailyRevenue" => $this->getDailyRevenue($startDate, $endDate),
 
             // Thống kê doanh số bán hàng theo thời gian
             "salesStatistics" => $this->getSalesStatistics($startDate, $endDate),
@@ -313,18 +311,6 @@ class StatisticsService
         )
             ->whereBetween('created_at', [$startDate, $endDate])
             ->first();
-    }
-
-    // Lấy doanh thu hàng ngày theo khoảng thời gian
-    private function getDailyRevenue($startDate, $endDate)
-    {
-        return Order::where('order_status_id', 5)
-            ->where('payment_status_id', 2)
-            ->whereBetween('completed_at', [$startDate, $endDate])
-            ->selectRaw('DATE(completed_at) as date, SUM(final_amount) as revenue')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
     }
 
     // Thống kê doanh số bán hàng theo thời gian
