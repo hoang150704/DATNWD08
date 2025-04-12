@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\OrderStatusEnum;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use Illuminate\Support\Facades\DB;
@@ -58,7 +59,9 @@ class OrderStatusFlowService
         $toStatusId = OrderStatus::where('code', $toStatusCode)->value('id');
 
         if (!$toStatusId) return false;
-
+        if($toStatusCode == OrderStatusEnum::CLOSED){
+            $order->completed_at = now();
+        }
         $order->update([
             'order_status_id' => $toStatusId,
         ]);

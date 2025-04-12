@@ -7,11 +7,13 @@ Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi. Dưới �
 
 ## Thông tin đơn hàng
 - **Mã đơn hàng:** {{ $order->code }}
+- **Ngày đặt hàng:** {{ $order->created_at->format('d/m/Y H:i') }}
 - **Địa chỉ giao hàng:** {{ $order->o_address }}
 - **Số điện thoại:** {{ $order->o_phone }}
 - **Phương thức thanh toán:** {{ $order->payment_method }}
-- **Trạng thái thanh toán:** {{ $order->payment_status_id }}
-- **Tổng tiền:** **{{ number_format($order->final_amount, 0, ',', '.') }}   VNĐ**
+- **Trạng thái thanh toán (ID):** {{ $order->payment_status_id }}
+- **Trạng thái đơn hàng (ID):** {{ $order->order_status_id ?? 'N/A' }}
+- **Tổng tiền:** **{{ number_format($order->final_amount, 0, ',', '.') }} VNĐ**
 
 ## Danh sách sản phẩm:
 @component('mail::table')
@@ -22,7 +24,7 @@ Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi. Dưới �
 @endforeach
 @endcomponent
 
-Chúng tôi sẽ sớm liên hệ để xác nhận đơn hàng và tiến hành giao hàng.
+Chúng tôi sẽ sớm liên hệ để xác nhận và tiến hành xử lý đơn hàng.
 
 Trân trọng,  
 **SevenStyle**

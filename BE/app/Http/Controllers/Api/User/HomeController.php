@@ -56,10 +56,10 @@ class HomeController extends Controller
         }
     }
 
-    public function getProductsByCategory($category_id)
+    public function getProductsByCategory($slug)
     {
         // Kiểm tra danh mục có tồn tại không
-        $category = Category::find($category_id);
+        $category = Category::where('slug',$slug)->first();
         if (!$category) {
             return response()->json(['message' => 'Không tìm thấy danh mục!'], 404);
         }

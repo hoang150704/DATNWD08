@@ -70,5 +70,6 @@ class Kernel extends HttpKernel
         'check.order.status' => CheckOrderStatus::class,
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'ghn'=> \App\Http\Middleware\CheckValidShippingStatusFlow::class,
+        'prevent.admin' => \App\Http\Middleware\PreventAdminAccess::class,
     ];
 }

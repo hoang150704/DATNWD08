@@ -125,9 +125,12 @@ class ShopController extends Controller
         return response()->json($categories, 200);
     }
 
-    public function getProductsByCategory($category_id)
+    public function getProductsByCategory($category_id,Request $request )
     {
         // Kiểm tra danh mục có tồn tại không
+        $sortBy     = $request->input('sort_by', 'default'); // Mặc định là 'default'
+        $minPrice   = $request->input('min_price', null); // Giá tối thiểu
+        $maxPrice   = $request->input('max_price', null); // Giá tối đa
         $category = Category::find($category_id);
         if (!$category) {
             return response()->json(['message' => 'Danh mục không tồn tại!'], 404);

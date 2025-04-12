@@ -32,7 +32,7 @@ class DashboardController extends Controller
         }
 
         // Thống kê doanh số bán hàng theo thời gian
-         $salesData = $this->getSalesStatistics($startDate, $endDate);
+        $salesData = $this->getSalesStatistics($startDate, $endDate);
 
         // Lợi nhuận theo thời gian
         // $profit = $this->getProfit($startDate, $endDate);
@@ -62,7 +62,7 @@ class DashboardController extends Controller
         $orderStatistics = $this->getOrderStatistics($startDate, $endDate);
 
         // Top 5 user có số tiền chi tiêu nhiều nhất
-        $topUsersBySpending = $this->getTopUsersBySpending();
+        $topUsersBySpending = $this->getTopUsersBySpending($startDate, $endDate);
 
         // Năm thống kê
         $year = $request->query('year', now()->year);
@@ -87,7 +87,10 @@ class DashboardController extends Controller
                 "totalOrders" => Order::count(),
 
                 // Tổng doanh thu
-                "totalRevenue" => Order::where('order_status_id', 5)->sum('final_amount'),
+                "totalRevenue" =>  Order::where('payment_status_id', 2)
+                    ->where('order_status_id', 5)
+                    ->whereBetween('completed_at', [$startDate, $endDate])
+                    ->sum('final_amount'),
 
                 // Top 5 sản phẩm bán chạy nhất
                 "topSellingProducts" => $topSellingProducts,
@@ -182,14 +185,15 @@ class DashboardController extends Controller
     private function getSalesStatistics($startDate, $endDate)
     {
         return Order::select(
-            DB::raw('DATE(created_at) as date'), // Lấy ngày
-            DB::raw('SUM(final_amount) as totalRevenue'), // Tính tổng doanh thu
-            DB::raw('COUNT(id) as totalOrders') // Đếm số lượng đơn hàng
+            DB::raw('DATE(completed_at) as date'),
+            DB::raw('SUM(final_amount) as totalRevenue'),
+            DB::raw('COUNT(id) as totalOrders')
         )
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('order_status_id', 5) // Chỉ lấy đơn hàng đã thanh toán
-            ->groupBy('date') // Nhóm theo ngày
-            ->orderBy('date', 'ASC')    // Sắp xếp theo ngày tăng dần
+            ->where('order_status_id', 5)
+            ->where('payment_status_id', 2)
+            ->whereBetween('completed_at', [$startDate, $endDate])
+            ->groupBy('date')
+            ->orderBy('date', 'ASC')
             ->get();
     }
 
@@ -207,17 +211,19 @@ class DashboardController extends Controller
     }
 
     // Lấy top 5 user có số tiền chi tiêu nhiều nhất
-    private function getTopUsersBySpending()
+    private function getTopUsersBySpending($startDate, $endDate)
     {
         return Order::select(
             'user_id',
-            DB::raw('SUM(final_amount) as total_spent') // Tính tổng tiền đã chi
+            DB::raw('SUM(final_amount) as total_spent')
         )
-            ->where('payment_status_id', 1) // Chỉ lấy đơn hàng đã thanh toán
-            ->groupBy('user_id') // Nhóm theo user
-            ->orderByDesc('total_spent') // Sắp xếp theo số tiền đã chi
-            ->take(5) // Lấy top 5
-            ->with('user:id,name,email') // Lấy thông tin user
+            ->where('payment_status_id', 2)
+            ->where('order_status_id', 5)
+            ->whereBetween('completed_at', [$startDate, $endDate])
+            ->groupBy('user_id')
+            ->orderByDesc('total_spent')
+            ->with('user:id,name,email')
+            ->take(5)
             ->get();
     }
 
@@ -300,7 +306,7 @@ class DashboardController extends Controller
             DB::raw('SUM(CASE WHEN order_status_id = 1 THEN 1 ELSE 0 END) as pending_orders'),
 
             // Đơn hàng đã xác nhận
-            DB::raw('SUM(CASE WHEN order_status_id = 2 THEN 1 ELSE 0 END) as confirmed_orders') ,
+            DB::raw('SUM(CASE WHEN order_status_id = 2 THEN 1 ELSE 0 END) as confirmed_orders'),
 
             // Đơn hàng đã hoàn thành
             DB::raw('SUM(CASE WHEN order_status_id = 5 THEN 1 ELSE 0 END) as completed_orders'),
@@ -311,15 +317,4 @@ class DashboardController extends Controller
             ->whereBetween('created_at', [$startDate, $endDate]) // Lọc theo khoảng thời gian
             ->first();
     }
-
-    // // Lợi nhuận (tính từ chênh lệch final_amout của order trừ đi price của order item)
-    // private function getProfit($startDate, $endDate)
-    // {
-    //     return Order::select(
-    //         DB::raw('SUM(final_amount - (SELECT SUM(price) FROM order_items WHERE order_items.order_id = orders.id)) as total_profit') // Tính lợi nhuận
-    //     )
-    //         ->whereBetween('created_at', [$startDate, $endDate])
-    //         ->first();
-    // }
-
 }
