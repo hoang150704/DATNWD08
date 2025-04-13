@@ -71,5 +71,6 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'ghn'=> \App\Http\Middleware\CheckValidShippingStatusFlow::class,
         'prevent.admin' => \App\Http\Middleware\PreventAdminAccess::class,
+        'blacklist'=>\App\Http\Middleware\CheckBlacklist::class
     ];
 }
