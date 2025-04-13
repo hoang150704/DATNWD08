@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\Orders\Client;
 
 use App\Enums\OrderStatusEnum;
@@ -14,8 +15,10 @@ use App\Models\ShippingLog;
 use App\Models\ShippingStatus;
 use App\Models\Transaction;
 use App\Models\OrderStatusLog;
+use App\Models\SpamLog;
 use App\Services\GhnApiService;
 use App\Services\PaymentVnpay;
+use App\Services\SpamProtectionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -47,6 +50,17 @@ class CancelOrderService
                 $this->cancelShipmentViaGhn($order, $reason);
             }
             SendMailOrderCancelled::dispatch($order);
+            SpamLog::create([
+                'action' => 'cancel',
+                'user_id' => auth('sanctum')->id(),
+                'ip' => $ip,
+                'created_at' => now(),
+            ]);
+
+            SpamProtectionService::checkAndBanByLevels('cancel', 3, 60, [
+                1 => 180,
+                2 => 720,
+            ]);
             DB::commit();
             return ['success' => true, 'message' => 'Đơn hàng đã được huỷ'];
         } catch (\Throwable $th) {

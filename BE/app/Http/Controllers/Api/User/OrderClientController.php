@@ -27,6 +27,7 @@ use App\Models\RefundRequest;
 use App\Models\Shipment;
 use App\Models\ShippingLog;
 use App\Models\ShippingStatus;
+use App\Models\SpamLog;
 use App\Models\Transaction;
 use App\Models\Voucher;
 use App\Services\GhnApiService;
@@ -36,6 +37,7 @@ use App\Services\OrderStatusFlowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\PaymentVnpay;
+use App\Services\SpamProtectionService;
 use App\Services\TransactionFlowService;
 use App\Traits\MaskableTraits;
 use App\Traits\OrderTraits;
@@ -106,6 +108,17 @@ class OrderClientController extends Controller
             //
             $user = auth('sanctum')->user();
             $userId = $user ? $user->id : null;
+            if (SpamProtectionService::isBanned()) {
+                return response()->json([
+                    'message' => 'Bạn đã bị hạn chế do hành vi đặt hàng bất thường.'
+                ], 403);
+            }
+
+            if (!SpamProtectionService::checkSpamAndAutoBan()) {
+                return response()->json([
+                    'message' => 'Hệ thống phát hiện spam, bạn đã bị tạm khóa.'
+                ], 429);
+            }
             // Kiểm tra phương thức thanh toán
             if ($validatedData['payment_method'] == 'vnpay' && $validatedData['final_amount'] == 0) {
                 return response()->json([
@@ -135,6 +148,12 @@ class OrderClientController extends Controller
             ];
             //
             $order = Order::create($dataOrder);
+            SpamLog::create([
+                'action' => 'order',
+                'user_id' => auth('sanctum')->id(),
+                'ip' => request()->ip(),
+                'created_at' => now(),
+            ]);
             //
 
             if (!$order) {
@@ -233,6 +252,7 @@ class OrderClientController extends Controller
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
             // Gửi email xác nhận đơn hàng 
+
             SendMailSuccessOrderJob::dispatch($order);
             DB::commit();
             //Xóa giỏ hhangf
@@ -256,6 +276,16 @@ class OrderClientController extends Controller
 
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
+                SpamLog::create([
+                    'action' => 'unpaid_order',
+                    'user_id' => auth('sanctum')->id(),
+                    'ip' => request()->ip(),
+                    'data' => ['order_id' => $order->id],
+                    'created_at' => now()
+                ]);
+            
+                //  Kiểm tra xem có vượt ngưỡng spam chưa thanh toán không
+                SpamProtectionService::logAndCheckBan('unpaid_order', 3, 60, 720, 'Spam đơn online không thanh toán');
                 $paymentUrl = $this->paymentVnpay->createPaymentUrl($order, $paymentTimeout);
                 $order->update(
                     [
@@ -282,7 +312,6 @@ class OrderClientController extends Controller
             return response()->json([
                 'message' => 'Lỗi trong quá trình tạo đơn hàng',
                 'errors' => $th->getMessage(),
-                'data' => $dataOrder
             ], 500);
         }
     }
@@ -394,7 +423,11 @@ class OrderClientController extends Controller
                 $order->update([
                     'payment_status_id' => PaymentStatus::idByCode('paid'),
                 ]);
-
+                //
+                SpamLog::where('action', 'unpaid_order')
+                    ->where('data->order_id', $order->id)
+                    ->delete();
+                //
                 broadcast(new OrderEvent($order, null));
             }
 
