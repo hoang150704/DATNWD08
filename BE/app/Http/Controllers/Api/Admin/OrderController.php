@@ -417,34 +417,6 @@ class OrderController extends Controller
         DB::beginTransaction();
 
         try {
-            // // Cập nhật trạng thái đơn hàng & shipping
-            $fromStatusId = $order->order_status_id;
-            $cancelStatusId = OrderStatus::idByCode('cancelled');
-            $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
-            if ($order->payment_method === 'vnpay') {
-                $paymentStatus = PaymentStatus::idByCode('refunded');
-                $order->payment_status_id = $paymentStatus;
-            } else {
-                $paymentStatus = PaymentStatus::idByCode('cancelled');
-                $order->payment_status_id = $paymentStatus;
-            }
-            $order->update([
-                'shipping_status_id' => $cancelStatusShipId,
-                'order_status_id' => $cancelStatusId,
-                'cancel_reason' => $validated['cancel_reason'],
-                'cancel_by' => $info,
-                'cancelled_at' => now()
-            ]);
-
-            // Ghi log trạng thái
-            OrderStatusLog::create([
-                'order_id' => $order->id,
-                'from_status_id' => $fromStatusId,
-                'to_status_id' => $cancelStatusId,
-                'changed_by' => $info,
-                'changed_at' => now(),
-            ]);
-
             // Nếu thanh toán online (VNPAY) & đã thanh toán
             if ($order->payment_method === 'vnpay' && $order->paymentStatus->code === 'paid') {
                 // Tạo bản ghi refund_requests
@@ -520,7 +492,10 @@ class OrderController extends Controller
             if (!in_array($order->shippingStatus->code, ['not_created', 'cancelled'])) {
                 $dataCancelOrderGhn = [$order->shipment->shipping_code];
                 $result = $this->ghn->cancelOrder($dataCancelOrderGhn);
-
+                Log::info('GHN Cancel Response', [
+                    'order_code' => $order->shipment->shipping_code,
+                    'result' => $result
+                ]);
                 if ($result['code'] === 200 && !empty($result['data'])) {
                     foreach ($result['data'] as $item) {
                         // Tạo log shipment
@@ -529,7 +504,7 @@ class OrderController extends Controller
                             'ghn_status' => 'cancel',
                             'mapped_status_id' => ShippingStatus::idByCode('cancelled'),
                             'location' => null,
-                            'note' => $item['message'] ?? 'Đã huỷ qua GHN',
+                            'note' =>  'Đã huỷ qua GHN',
                             'timestamp' => now(),
                         ]);
 
@@ -545,6 +520,36 @@ class OrderController extends Controller
                     ]);
                 }
             }
+            // // Cập nhật trạng thái đơn hàng & shipping
+
+            $fromStatusId = $order->order_status_id;
+            $cancelStatusId = OrderStatus::idByCode('cancelled');
+            $cancelStatusShipId = ShippingStatus::idByCode('cancelled');
+            if ($order->payment_method === 'vnpay') {
+                $paymentStatus = PaymentStatus::idByCode('refunded');
+                $order->payment_status_id = $paymentStatus;
+            } else {
+                $paymentStatus = PaymentStatus::idByCode('cancelled');
+                $order->payment_status_id = $paymentStatus;
+            }
+            $order->update([
+                'shipping_status_id' => $cancelStatusShipId,
+                'order_status_id' => $cancelStatusId,
+                'cancel_reason' => $validated['cancel_reason'],
+                'cancel_by' => $info,
+                'cancelled_at' => now()
+            ]);
+
+            // Ghi log trạng thái
+            OrderStatusLog::create([
+                'order_id' => $order->id,
+                'from_status_id' => $fromStatusId,
+                'to_status_id' => $cancelStatusId,
+                'changed_by' => $info,
+                'changed_at' => now(),
+            ]);
+
+
 
             DB::commit();
             return response()->json([
