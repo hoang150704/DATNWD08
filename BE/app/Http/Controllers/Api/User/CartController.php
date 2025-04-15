@@ -331,9 +331,22 @@ class CartController extends Controller
             $variationId = request('variation_id');
             $newQuantity = request('quantity');
 
+            // Kiểm tra số lượng tối thiểu
             if ($newQuantity < 1) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Số lượng phải lớn hơn hoặc bằng 1',
+                ], 400);
+            }
+
+            // Kiểm tra số lượng tối đa
+            if ($newQuantity > 20) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Số lượng tối đa cho một sản phẩm là 20!',
+                    'cart_quantity_now' => $newQuantity - 1,
+                    'quantity_want_to_change' => $newQuantity,
+                    'max_allowed' => 20
                 ], 400);
             }
 
@@ -345,18 +358,9 @@ class CartController extends Controller
 
             if (!$updateItem) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Không tìm thấy sản phẩm cần update',
                 ], 404);
-            }
-
-            // Kiểm tra giới hạn số lượng cho một variation (20)
-            if ($newQuantity > 20) {
-                return response()->json([
-                    'message' => 'Số lượng tối đa cho một sản phẩm là 20!',
-                    'cart_quantity_now' => $updateItem->quantity,
-                    'quantity_want_to_change' => $newQuantity,
-                    'max_allowed' => 20
-                ], 400);
             }
 
             // Tính tổng số lượng trong giỏ hàng (không tính sản phẩm đang thay đổi)
@@ -367,6 +371,7 @@ class CartController extends Controller
             // Kiểm tra giới hạn tổng số lượng trong giỏ (100)
             if ($totalCartQuantity > 100) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Tổng số lượng trong giỏ hàng không được vượt quá 100!',
                     'current_cart_total' => $totalCartQuantity - $newQuantity,
                     'quantity_want_to_change' => $newQuantity,
@@ -379,13 +384,19 @@ class CartController extends Controller
 
             if (!$productVariation) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Sản phẩm không tồn tại',
                 ], 404);
             }
 
             if ($newQuantity > $productVariation->stock_quantity) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Số lượng yêu cầu vượt quá số lượng tồn kho',
+                    'stock_quantity' => $productVariation->stock_quantity,
+                    'cart_quantity_now' => $updateItem->quantity,
+                    'quantity_want_to_change' => $newQuantity,
+                    'max_can_change' => $productVariation->stock_quantity
                 ], 400);
             }
 
@@ -394,12 +405,14 @@ class CartController extends Controller
             $updateItem->save();
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Cập nhật số lượng thành công',
                 'data' => $updateItem
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Failed',
+                'status' => 'error',
+                'message' => 'Có lỗi xảy ra',
                 'error' => $th->getMessage()
             ], 500);
         }
