@@ -131,6 +131,7 @@ class OrderClientController extends Controller
             // Tạo đơn hàng
             $dataOrder = [
                 'user_id' => $userId,
+                'ip_address' => request()->ip(),
                 'code' => $orderCode,
                 'total_amount' => $validatedData['total_amount'],
                 'discount_amount' => $validatedData['discount_amount'] ?? 0,
@@ -148,12 +149,6 @@ class OrderClientController extends Controller
             ];
             //
             $order = Order::create($dataOrder);
-            SpamLog::create([
-                'action' => 'order',
-                'user_id' => auth('sanctum')->id(),
-                'ip' => request()->ip(),
-                'created_at' => now(),
-            ]);
             //
 
             if (!$order) {
@@ -276,16 +271,7 @@ class OrderClientController extends Controller
 
             // Nếu phương thức thanh toán là VNPay, trả về URL thanh toán
             if ($order->payment_method == "vnpay") {
-                SpamLog::create([
-                    'action' => 'unpaid_order',
-                    'user_id' => auth('sanctum')->id(),
-                    'ip' => request()->ip(),
-                    'data' => ['order_id' => $order->id],
-                    'created_at' => now()
-                ]);
-            
-                //  Kiểm tra xem có vượt ngưỡng spam chưa thanh toán không
-                SpamProtectionService::logAndCheckBan('unpaid_order', 3, 60, 720, 'Spam đơn online không thanh toán');
+                //
                 $paymentUrl = $this->paymentVnpay->createPaymentUrl($order, $paymentTimeout);
                 $order->update(
                     [
@@ -423,11 +409,6 @@ class OrderClientController extends Controller
                 $order->update([
                     'payment_status_id' => PaymentStatus::idByCode('paid'),
                 ]);
-                //
-                SpamLog::where('action', 'unpaid_order')
-                    ->where('data->order_id', $order->id)
-                    ->delete();
-                //
                 broadcast(new OrderEvent($order, null));
             }
 

@@ -17,6 +17,7 @@
         "laravel/tinker": "^2.8",
         "maatwebsite/excel": "^3.1",
         "predis/predis": "*",
+        "prettus/l5-repository": "^2.10",
         "pusher/pusher-php-server": "^7.2"
     },
     "require-dev": {

@@ -30,6 +30,7 @@ class Order extends Model
         'cancel_reason',
         'cancel_by',
         'cancelled_at',
+        'ip_address'
     ];
 
     protected $casts = [

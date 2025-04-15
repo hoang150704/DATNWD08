@@ -49,17 +49,10 @@ class CancelOrderService
             $fromStatusId = $this->updateOrderStatuses($order, $reason, $cancelBy);
             $this->logStatusChange($order, $cancelBy, $fromStatusId);
             SendMailOrderCancelled::dispatch($order);
-            SpamLog::create([
-                'action' => 'cancel',
-                'user_id' => auth('sanctum')->id(),
-                'ip' => $ip,
-                'created_at' => now(),
-            ]);
-
-            SpamProtectionService::checkAndBanByLevels('cancel', 3, 60, [
+            SpamProtectionService::logAndCheckBan('cancel', 3, 60, [
                 1 => 180,
                 2 => 720,
-            ]);
+            ], 'Hủy đơn liên tục');
             DB::commit();
             return ['success' => true, 'message' => 'Đơn hàng đã được huỷ'];
         } catch (\Throwable $th) {
