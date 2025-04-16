@@ -19,4 +19,5 @@ interface ConversationRepository extends RepositoryInterface
     public function findAvailableStaffId();
     public function getAllForAdmin(array $filters = []);
     public function findOpenByCustomer(int $customerId);
+    public function getMyConversations(int $staffId, int $limit = 50);
 }

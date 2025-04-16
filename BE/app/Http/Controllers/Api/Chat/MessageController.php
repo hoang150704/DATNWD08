@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Chat;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SendMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Services\Chat\MessageService;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class MessageController extends Controller
         ]);
     }
     //
-    public function send(SendMessageRequest $request)
+    public function sendMessage(SendMessageRequest $request)
     {
         try {
             $message = $this->messageService->sendMessage($request->validated());

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('conversation_id');
-            $table->enum('sender_type', ['guest', 'customer', 'staff']);
+            $table->enum('sender_type', ['guest', 'customer', 'staff','system']);
             $table->unsignedBigInteger('sender_id')->nullable();
             $table->string('guest_id', 64)->nullable();
             $table->text('content')->nullable();

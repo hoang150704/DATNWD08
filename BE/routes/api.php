@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Admin\ContactController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Chat\ConversationController;
+use App\Http\Controllers\Api\Chat\MessageController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\User\ContactController as ClientContactController;
@@ -92,8 +93,8 @@ Route::post('/contacts', [ClientContactController::class, 'store'])
 //CHat
 Route::prefix('chat')->group(function () {
     Route::get('/conversation/active', [ClientVoucherController::class, 'getActiveConversation']); // Kiểm tra xem có chat hay chưa
-    
     Route::post('/new_conversation', [ConversationController::class, 'createAndAssign']); // Tạo chat mới
+    Route::post('/messages/send', [MessageController::class, 'sendMessage']); // Tạo chat mới
     Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
     Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
 });

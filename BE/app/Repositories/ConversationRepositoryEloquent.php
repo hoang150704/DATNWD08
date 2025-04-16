@@ -106,4 +106,12 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
 
         return $query->paginate(20);
     }
+    public function getMyConversations(int $staffId, int $limit = 50)
+    {
+        return Conversation::with(['latestMessage', 'customer', 'staff'])
+            ->where('current_staff_id', $staffId)
+            ->orderByRaw("FIELD(status, 'open') DESC")
+            ->orderByDesc('updated_at')
+            ->paginate(20);
+    }
 }
