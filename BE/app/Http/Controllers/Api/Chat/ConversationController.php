@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Chat;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateConversationRequest;
+use App\Http\Resources\ConversationResource;
 use App\Services\Chat\ConversationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,5 +56,137 @@ class ConversationController extends Controller
         return response()->json([
             'conversation' => $conversation,
         ]);
+    }
+
+    public function myConversations()
+    {
+        $paginate = 20;
+        $user = auth('sanctum')->user();
+
+        if (!$user || $user->role !== 'staff') {
+            return response()->json([
+                'message' => 'Bạn không có quyền truy cập danh sách này.'
+            ], 403);
+        }
+
+        $conversations = $this->conversationService->myConversations($user->id, $paginate);
+
+        return response()->json([
+            'conversations' => ConversationResource::collection($conversations),
+            'pagination' => [
+                'total' => $conversations->total(),
+                'per_page' => $conversations->perPage(),
+                'current_page' => $conversations->currentPage(),
+                'last_page' => $conversations->lastPage(),
+            ]
+        ]);
+    }
+
+    public function adminConversations(Request $request)
+    {
+        $paginate = 30;
+        $user = auth('sanctum')->user();
+
+        if (!$user || $user->role !== 'admin') {
+            return response()->json(['message' => 'Không có quyền truy cập'], 403);
+        }
+        $filters = $request->only(['status', 'staff_id']);
+
+        $conversations = $this->conversationService->adminConversations($paginate, $filters);
+
+        return response()->json([
+            'conversations' => ConversationResource::collection($conversations),
+            'pagination' => [
+                'total' => $conversations->total(),
+                'per_page' => $conversations->perPage(),
+                'current_page' => $conversations->currentPage(),
+                'last_page' => $conversations->lastPage(),
+            ]
+        ]);
+    }
+
+    public function claim(int $id)
+    {
+        $user = auth('sanctum')->user();
+
+        if (!$user || !in_array($user->role, ['staff', 'admin'])) {
+            return response()->json(['message' => 'Không có quyền nhận cuộc trò chuyện'], 403);
+        }
+
+        try {
+            $success = $this->conversationService->claim($id, $user->id);
+
+            if (!$success) {
+                return response()->json([
+                    'message' => 'Cuộc trò chuyện đã có người nhận hoặc không khả dụng'
+                ], 400);
+            }
+
+            return response()->json(['message' => 'Bạn đã nhận hỗ trợ cuộc trò chuyện thành công']);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Lỗi khi nhận hội thoại',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function assignToStaff(Request $request, int $id)
+    {
+        $user = auth('sanctum')->user();
+
+        if (!$user || $user->role !== 'admin') {
+            return response()->json(['message' => 'Không có quyền truy cập'], 403);
+        }
+
+        // Validate nhanh ngay tại controller
+        $validated = $request->validate([
+            'staff_id' => 'required|integer|exists:users,id',
+        ]);
+
+        try {
+            $success = $this->conversationService->assignToStaff($id, $validated['staff_id']);
+
+            if (!$success) {
+                return response()->json([
+                    'message' => 'Cuộc trò chuyện không khả dụng hoặc nhân viên không online',
+                ], 400);
+            }
+
+            return response()->json(['message' => 'Gán nhân viên thành công']);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Lỗi khi gán nhân viên',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function close(Request $request, int $id)
+    {
+        $user = auth('sanctum')->user();
+
+        if (!$user || !in_array($user->role, ['admin', 'staff'])) {
+            return response()->json(['message' => 'Bạn không có quyền đóng cuộc trò chuyện'], 403);
+        }
+
+        $validated = $request->validate([
+            'note' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            $success = $this->conversationService->close($id, $user, $validated['note'] ?? null);
+
+            if (!$success) {
+                return response()->json(['message' => 'Không thể đóng cuộc trò chuyện'], 400);
+            }
+
+            return response()->json(['message' => 'Cuộc trò chuyện đã được đóng thành công']);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Lỗi khi đóng hội thoại',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
     }
 }

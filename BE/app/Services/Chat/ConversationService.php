@@ -2,11 +2,14 @@
 
 namespace App\Services\Chat;
 
+use App\Entities\Conversation;
 use App\Entities\MessageRepository;
 use App\Enums\SystemEnum;
+use App\Models\StaffSession;
 use App\Repositories\ConversationRepository;
 use App\Repositories\ConversationRepositoryEloquent;
 use App\Repositories\MessageRepositoryEloquent;
+use App\Repositories\StaffSessionRepositoryEloquent;
 use App\Services\Chat\Interfaces\ConversationServiceInterface;
 
 class ConversationService implements ConversationServiceInterface
@@ -14,13 +17,16 @@ class ConversationService implements ConversationServiceInterface
 
        protected ConversationRepositoryEloquent $conversationRepositoryEloquent;
        protected MessageRepositoryEloquent $messageRepositoryEloquent;
+       protected StaffSessionRepositoryEloquent $staffSessionEloquent;
 
        public function __construct(
               ConversationRepositoryEloquent $conversationRepositoryEloquent,
-              MessageRepositoryEloquent $messageRepositoryEloquent
+              MessageRepositoryEloquent $messageRepositoryEloquent,
+              StaffSessionRepositoryEloquent $staffSessionEloquent
        ) {
               $this->conversationRepositoryEloquent = $conversationRepositoryEloquent;
               $this->messageRepositoryEloquent = $messageRepositoryEloquent;
+              $this->staffSessionEloquent = $staffSessionEloquent;
        }
 
        //Tạo cuộc trò chuyện và gán nhân viên phù hợp (nếu có)
@@ -34,7 +40,7 @@ class ConversationService implements ConversationServiceInterface
                             'message' => 'Nhân viên và quản trị viên không được phép khởi tạo cuộc trò chuyện.'
                      ], 403);
               }
-              
+
               $existing = $user ? $this->conversationRepositoryEloquent->findOpenByCustomer($user->id)
                      : ($data['guest_id'] ?? null
                             ? $this->conversationRepositoryEloquent->findOpenByGuest($data['guest_id'])
@@ -89,17 +95,44 @@ class ConversationService implements ConversationServiceInterface
 
        // Gán nhân viên xử lý cuộc trò chuyện
 
-       public function assignToStaff(int $conversationId, int $staffId) {}
+       public function assignToStaff(int $conversationId, int $staffId): bool
+       {
+              if (
+                     !$this->staffSessionEloquent->isStaffOnline($staffId) ||
+                     !$this->conversationRepositoryEloquent->isAssignableConversation($conversationId)
+              ) {
+                     return false;
+              }
+
+              // Gán nhân viên
+              return $this->conversationRepositoryEloquent->assignStaff($conversationId, $staffId);
+       }
 
 
        //  Đóng cuộc trò chuyện (manual hoặc sau 30 phút)
 
-       public function close(int $conversationId) {}
+       public function close(int $conversationId, $user, ?string $note = null): bool
+       {
+              $conversation = Conversation::find($conversationId);
+
+              if (!$conversation || $conversation->status !== 'open') {
+                     return false;
+              }
+
+              if ($user->role === 'staff' && $conversation->current_staff_id !== $user->id) {
+                     return false;
+              }
+
+              return $this->conversationRepositoryEloquent->close($conversationId, $note);
+       }
 
 
        // Lấy các cuộc trò chuyện của nhân viên hiện tại
 
-       public function myConversations(int $staffId) {}
+       public function myConversations(int $staffId, int $limit)
+       {
+              return $this->conversationRepositoryEloquent->getMyConversations($staffId, $limit);
+       }
 
 
        //Lấy thông tin khách (guest_name, phone, email)
@@ -112,5 +145,22 @@ class ConversationService implements ConversationServiceInterface
        public function findAvailableStaff(): ?int
        {
               return $this->conversationRepositoryEloquent->findAvailableStaffId();
+       }
+
+       //
+       public function adminConversations(int $limit,  $filters)
+       {
+              return $this->conversationRepositoryEloquent->getAdminConversations($limit, $filters);
+       }
+       //
+       public function claim(int $conversationId, int $staffId)
+       {
+              $conversation = Conversation::find($conversationId);
+
+              if (!$conversation || $conversation->status !== SystemEnum::OPEN || $conversation->current_staff_id) {
+                     return false;
+              }
+
+              return $this->conversationRepositoryEloquent->assignStaff($conversationId, $staffId);
        }
 }

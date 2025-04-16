@@ -19,7 +19,7 @@ class ConversationResource extends JsonResource
                 'name'   => $isCustomer ? $this->customer->name : $this->guest_name,
                 'email'  => $isCustomer ? $this->customer->email : $this->guest_email,
                 'phone'  => $isCustomer ? $this->customer->phone : $this->guest_phone,
-                'avatar' => $isCustomer ? $this->customer->avatar_url : null,
+                'avatar' => $isCustomer ? $this->customer->avatar : null,
                 'type'   => $isCustomer ? 'customer' : 'guest',
             ],
 

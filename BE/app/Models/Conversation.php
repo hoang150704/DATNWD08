@@ -15,7 +15,9 @@ class Conversation extends Model
         'guest_email',
         'guest_phone',
         'current_staff_id',
-        'status'
+        'status',
+        'close_note',
+        'closed_at',
     ];
 
     public function messages()

@@ -26,12 +26,12 @@ interface ConversationServiceInterface
 
     //  Đóng cuộc trò chuyện (manual hoặc sau 30 phút)
 
-    public function close(int $conversationId);
+    public function close(int $conversationId, $user, ?string $note = null): bool;
 
 
     // Lấy các cuộc trò chuyện của nhân viên hiện tại
 
-    public function myConversations(int $staffId);
+    public function myConversations(int $staffId, int $limit);
 
 
     //Lấy thông tin khách (guest_name, phone, email)
@@ -42,4 +42,11 @@ interface ConversationServiceInterface
     //Tìm nhân viên đang online để gán cuộc trò chuyện
 
     public function findAvailableStaff(): ?int;
+
+    //Lấy chat cho admin
+    public function adminConversations(int $limit,  $filters);
+
+    //Nhận chat
+    public function claim(int $conversationId, int $staffId);
+
 }

@@ -51,15 +51,24 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
             ->first();
     }
 
-    public function close(int $id)
+    public function close(int $conversationId, ?string $note = null): bool
     {
-        return Conversation::where('id', $id)->update(['status' => 'closed']);
+        return Conversation::where('id', $conversationId)
+            ->where('status', 'open')
+            ->update([
+                'status'     => 'closed',
+                'close_note' => $note,
+                'closed_at'  => now(),
+            ]);
     }
 
-    public function assignStaff(int $conversationId, int $staffId)
+    public function assignStaff(int $conversationId, int $staffId): bool
     {
-        return Conversation::where('id', $conversationId)->update(['current_staff_id' => $staffId]);
+        return Conversation::where('id', $conversationId)
+            ->where('status', 'open')
+            ->update(['current_staff_id' => $staffId]);
     }
+
 
     public function findAvailableStaffId(): ?int
     {
@@ -106,12 +115,41 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
 
         return $query->paginate(20);
     }
+
     public function getMyConversations(int $staffId, int $limit = 50)
     {
         return Conversation::with(['latestMessage', 'customer', 'staff'])
             ->where('current_staff_id', $staffId)
             ->orderByRaw("FIELD(status, 'open') DESC")
             ->orderByDesc('updated_at')
-            ->paginate(20);
+            ->paginate($limit);
+    }
+
+    public function getAdminConversations(int $limit = 50, array $filters = [])
+    {
+        $query = Conversation::with(['latestMessage', 'customer', 'staff']);
+
+        // Lọc theo trạng thái (open / closed / ...)
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Lọc theo nhân viên (theo ID)
+        if (!empty($filters['staff_id'])) {
+            $query->where('current_staff_id', $filters['staff_id']);
+        }
+
+        return $query
+            ->orderByRaw("FIELD(status, 'open') DESC")
+            ->orderByDesc('updated_at')
+            ->paginate($limit);
+    }
+
+    public function isAssignableConversation(int $conversationId): bool
+    {
+        return Conversation::where('id', $conversationId)
+            ->where('status', 'open')
+            ->whereNull('current_staff_id')
+            ->exists();
     }
 }

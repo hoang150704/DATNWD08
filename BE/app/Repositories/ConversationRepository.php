@@ -14,10 +14,12 @@ interface ConversationRepository extends RepositoryInterface
     //
     public function findOpenByGuest(string $guestId);
     public function create(array $data);
-    public function close(int $id);
+    public function close(int $conversationId, ?string $note = null): bool;
     public function assignStaff(int $conversationId, int $staffId);
     public function findAvailableStaffId();
     public function getAllForAdmin(array $filters = []);
     public function findOpenByCustomer(int $customerId);
     public function getMyConversations(int $staffId, int $limit = 50);
+    public function getAdminConversations(int $limit, array $filters = []);
+    public function isAssignableConversation(int $conversationId): bool;
 }
