@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Admin\ContactController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Chat\ConversationController;
+use App\Http\Controllers\Api\Chat\FeedbackController;
 use App\Http\Controllers\Api\Chat\MessageController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
@@ -92,11 +93,16 @@ Route::post('/contacts', [ClientContactController::class, 'store'])
     ->middleware('throttle:5,1,ip'); // Tối đa 5 request/phút/theo dõi ip người gửi
 //CHat
 Route::prefix('chat')->group(function () {
-    Route::get('/conversation/active', [ClientVoucherController::class, 'getActiveConversation']); // Kiểm tra xem có chat hay chưa
-    Route::post('/new_conversation', [ConversationController::class, 'createAndAssign']); // Tạo chat mới
-    Route::post('/messages/send', [MessageController::class, 'sendMessage']); // Tạo chat mới
-    Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
-    Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
+    Route::get('/conversation/active', [ConversationController::class, 'getActiveConversation']); // Kiểm tra cuộc trò chuyện hiện tại
+    Route::post('/new_conversation', [ConversationController::class, 'createAndAssign']); // Tạo và gán hội thoại mới
+    Route::get('/conversation/{id}/messages', [MessageController::class, 'getMessages']);
+    Route::post('/conversation/{id}/feedback', [FeedbackController::class, 'submitFeedback']);
+    Route::post('/messages/send', [MessageController::class, 'sendMessage']); // Gửi tin nhắn
+    Route::get('/my-conversations', [ConversationController::class, 'myConversations'])->middleware(['auth:sanctum','admin','staff']); // Lấy danh sách hội thoại của nhân viên
+    Route::get('/admin-conversations', [ConversationController::class, 'adminConversations'])->middleware(['auth:sanctum','admin']); // Danh sách hội thoại cho admin
+    Route::post('/conversation/{id}/claim', [ConversationController::class, 'claim'])->middleware(['auth:sanctum','admin','staff']); // Nhận cuộc trò chuyện
+    Route::post('/conversation/{id}/assign', [ConversationController::class, 'assignToStaff'])->middleware(['auth:sanctum','admin','staff']); // Gán nhân viên
+    Route::post('/conversation/{id}/close', [ConversationController::class, 'close'])->middleware(['auth:sanctum','admin','staff']);; // Đóng cuộc trò chuyện
 });
 
 //Order
