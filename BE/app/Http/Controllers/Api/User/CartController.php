@@ -13,6 +13,18 @@ use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
+    private function checkUserStatus($user)
+    {
+        if ($user->is_active !== 1) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.',
+                'error' => 'Account blocked'
+            ], 403);
+        }
+        return null;
+    }
+
     public function getVariation(Request $request)
     {
         try {
@@ -181,6 +193,12 @@ class CartController extends Controller
             if (!$user) {
                 return response()->json(['message' => 'Bạn chưa đăng nhập!'], 401);
             }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
+            }
     
             // Validate request (kiểm tra dữ liệu đầu vào)
             request()->validate([
@@ -320,6 +338,13 @@ class CartController extends Controller
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
+            }
+
             $cart = Cart::where('user_id', $user->id)->first();
 
             if (!$cart) {
@@ -421,9 +446,15 @@ class CartController extends Controller
     public function syncCart(Request $request)
     {
         try {
-            $user = auth('sanctum')->user(); // lấy ra user
+            $user = auth('sanctum')->user();
             if (!$user) {
-                return response()->json(['error' => 'Chưa đăng nhập'], 401);
+                return response()->json(['message' => 'Chưa đăng nhập'], 401);
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
             }
 
             $cartItems = $request->input('cart', []);
