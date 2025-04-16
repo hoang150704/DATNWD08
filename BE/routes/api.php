@@ -57,7 +57,7 @@ Route::get('/discount-product', [HomeController::class, 'discountProduct']);
 
 //Thanh toán
 Route::middleware('prevent.admin')->group(function () {
-    Route::post('/checkout', [OrderClientController::class, 'store'])->middleware(['throttle:5,1','blacklist']);
+    Route::post('/checkout', [OrderClientController::class, 'store'])->middleware(['throttle:5,1', 'blacklist']);
 });
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
 
