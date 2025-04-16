@@ -16,4 +16,7 @@ interface ConversationRepository extends RepositoryInterface
     public function create(array $data);
     public function close(int $id);
     public function assignStaff(int $conversationId, int $staffId);
+    public function findAvailableStaffId();
+    public function getAllForAdmin(array $filters = []);
+    public function findOpenByCustomer(int $customerId);
 }

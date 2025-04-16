@@ -2,7 +2,7 @@
 
 namespace App\Services\Chat;
 
-class FeedbackService
+interface FeedbackService
 {
     //
 }

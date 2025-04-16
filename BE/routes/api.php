@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Admin\ContactController;
 use App\Http\Controllers\Api\Admin\ProductController;
+use App\Http\Controllers\Api\Chat\ConversationController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\User\ContactController as ClientContactController;
@@ -88,6 +89,14 @@ Route::prefix('voucher')->group(function () {
 Route::post('/contacts/history', [ClientContactController::class, 'history']);
 Route::post('/contacts', [ClientContactController::class, 'store'])
     ->middleware('throttle:5,1,ip'); // Tối đa 5 request/phút/theo dõi ip người gửi
+//CHat
+Route::prefix('chat')->group(function () {
+    Route::get('/conversation/active', [ClientVoucherController::class, 'getActiveConversation']); // Kiểm tra xem có chat hay chưa
+    
+    Route::post('/new_conversation', [ConversationController::class, 'createAndAssign']); // Tạo chat mới
+    Route::get('/search', [ClientVoucherController::class, 'search']); // Tìm kiếm voucher
+    Route::post('/apply-voucher', [ClientVoucherController::class, 'applyVoucher']); // Áp dụng voucher
+});
 
 //Order
 

@@ -14,7 +14,6 @@ class Message extends Model
         'sender_id',
         'guest_id',
         'content',
-        'type'
     ];
 
     public function conversation()
@@ -25,5 +24,22 @@ class Message extends Model
     public function attachments()
     {
         return $this->hasMany(MessageAttachment::class);
+    }
+    public function getSenderName()
+    {
+        return match ($this->sender_type) {
+            'staff', 'admin' => optional($this->sender)->name,
+            'guest'          => $this->guest_name ?? 'Bạn',
+            'system'         => 'Hệ thống',
+            default          => null,
+        };
+    }
+
+    public function getSenderAvatar()
+    {
+        return match ($this->sender_type) {
+            'staff', 'admin' => optional($this->sender)->avatar_url,
+            default          => null,
+        };
     }
 }

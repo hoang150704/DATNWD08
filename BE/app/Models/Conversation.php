@@ -32,4 +32,18 @@ class Conversation extends Model
     {
         return $this->hasMany(ConversationTransfer::class);
     }
+    public function latestMessage()
+    {
+        return $this->hasOne(Message::class)->latestOfMany();
+    }
+
+    public function staff()
+    {
+        return $this->belongsTo(User::class, 'current_staff_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(User::class, 'customer_id');
+    }
 }

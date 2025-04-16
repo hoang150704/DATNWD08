@@ -2,7 +2,9 @@
 
 namespace App\Services\Chat\Interfaces;
 
-class MessageServiceInterface
+interface MessageServiceInterface
 {
     //
+    public function sendMessage(array $data);
+    public function getMessages(int $conversationId, int $limit = 50);
 }

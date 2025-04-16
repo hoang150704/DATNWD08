@@ -1,0 +1,5 @@
+{
+    "require": {
+        "prettus/l5-repository": "^2.10"
+    }
+}

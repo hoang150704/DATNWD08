@@ -39,4 +39,5 @@ class ConversationFeedbackRepositoryEloquent extends BaseRepository implements C
     {
         return ConversationFeedback::where('conversation_id', $conversationId)->first();
     }
+    
 }
