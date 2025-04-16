@@ -118,7 +118,7 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
 
     public function getMyConversations(int $staffId, int $limit = 50)
     {
-        return Conversation::with(['latestMessage', 'customer', 'staff','feedback'])
+        return Conversation::with(['latestMessage', 'customer', 'staff', 'feedback'])
             ->where('current_staff_id', $staffId)
             ->orderByRaw("FIELD(status, 'open') DESC")
             ->orderByDesc('updated_at')
@@ -127,7 +127,7 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
 
     public function getAdminConversations(int $limit = 50, array $filters = [])
     {
-        $query = Conversation::with(['latestMessage', 'customer', 'staff','feedback']);
+        $query = Conversation::with(['latestMessage', 'customer', 'staff', 'feedback']);
 
         // Lọc theo trạng thái (open / closed / ...)
         if (!empty($filters['status'])) {
@@ -151,5 +151,20 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
             ->where('status', 'open')
             ->whereNull('current_staff_id')
             ->exists();
+    }
+
+    //
+    public function transfer(int $conversationId, int $fromStaffId, int $toStaffId): ?Conversation
+    {
+        $conversation = Conversation::where('id', $conversationId)
+            ->where('current_staff_id', $fromStaffId)
+            ->where('status', 'open')
+            ->first();
+
+        if (!$conversation) return null;
+
+        $conversation->update(['current_staff_id' => $toStaffId]);
+
+        return $conversation->fresh(['staff']);
     }
 }

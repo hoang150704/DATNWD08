@@ -123,7 +123,7 @@ class ConversationController extends Controller
                 return response()->json([
                     'message' => 'Cuộc trò chuyện đã có người nhận hoặc không khả dụng'
                 ], 400);
-            }else{
+            } else {
                 $conversation = Conversation::with('staff')->find($id);
                 event(new ConversationClaimedEvent($conversation));
             }
@@ -156,7 +156,7 @@ class ConversationController extends Controller
                 return response()->json([
                     'message' => 'Cuộc trò chuyện không khả dụng hoặc nhân viên không online',
                 ], 400);
-            }else{
+            } else {
                 $conversation = Conversation::with('staff')->find($id);
                 event(new ConversationAssignedEvent($conversation));
             }
@@ -194,6 +194,39 @@ class ConversationController extends Controller
             return response()->json([
                 'message' => 'Lỗi khi đóng hội thoại',
                 'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function transferToStaff(Request $request, int $id)
+    {
+        $user = auth('sanctum')->user();
+
+        if (!$user || !in_array($user->role, ['admin', 'staff'])) {
+            return response()->json(['message' => 'Không có quyền chuyển cuộc trò chuyện'], 403);
+        }
+
+        $validated = $request->validate([
+            'staff_id' => 'required|integer|exists:users,id',
+            'note'     => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $conversation = $this->conversationService->transferToStaff(
+                $id,
+                $user->id,
+                $validated['staff_id'],
+                $validated['note'] ?? null
+            );
+
+            if (!$conversation) {
+                return response()->json(['message' => 'Không thể chuyển hội thoại (không tìm thấy hoặc nhân viên không online)'], 400);
+            }
+
+            return response()->json(['message' => 'Chuyển hội thoại thành công']);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Lỗi khi chuyển hội thoại',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

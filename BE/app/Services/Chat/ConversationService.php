@@ -10,6 +10,7 @@ use App\Repositories\ConversationRepository;
 use App\Repositories\ConversationRepositoryEloquent;
 use App\Repositories\MessageRepositoryEloquent;
 use App\Repositories\StaffSessionRepositoryEloquent;
+use App\Repositories\TransferRepositoryEloquent;
 use App\Services\Chat\Interfaces\ConversationServiceInterface;
 
 class ConversationService implements ConversationServiceInterface
@@ -18,15 +19,18 @@ class ConversationService implements ConversationServiceInterface
        protected ConversationRepositoryEloquent $conversationRepositoryEloquent;
        protected MessageRepositoryEloquent $messageRepositoryEloquent;
        protected StaffSessionRepositoryEloquent $staffSessionEloquent;
+       protected TransferRepositoryEloquent $transferRepositoryEloquent;
 
        public function __construct(
               ConversationRepositoryEloquent $conversationRepositoryEloquent,
               MessageRepositoryEloquent $messageRepositoryEloquent,
-              StaffSessionRepositoryEloquent $staffSessionEloquent
+              StaffSessionRepositoryEloquent $staffSessionEloquent,
+              TransferRepositoryEloquent $transferRepositoryEloquent
        ) {
               $this->conversationRepositoryEloquent = $conversationRepositoryEloquent;
               $this->messageRepositoryEloquent = $messageRepositoryEloquent;
               $this->staffSessionEloquent = $staffSessionEloquent;
+              $this->transferRepositoryEloquent = $transferRepositoryEloquent;
        }
 
        //Tạo cuộc trò chuyện và gán nhân viên phù hợp (nếu có)
@@ -35,7 +39,7 @@ class ConversationService implements ConversationServiceInterface
        {
               $user = auth('sanctum')->user();
 
-              if (in_array($user->role, [SystemEnum::ADMIN, SystemEnum::STAFF])) {
+              if (in_array($user?->role, [SystemEnum::ADMIN, SystemEnum::STAFF])) {
                      return response()->json([
                             'message' => 'Nhân viên và quản trị viên không được phép khởi tạo cuộc trò chuyện.'
                      ], 403);
@@ -66,7 +70,7 @@ class ConversationService implements ConversationServiceInterface
                      $this->messageRepositoryEloquent->create([
                             'conversation_id' => $conversation->id,
                             'content' => 'Hiện tại chưa có nhân viên nào online. Chúng tôi sẽ phản hồi sớm nhất có thể!',
-                            'sender_type' => 'system',
+                            'sender_type' => SystemEnum::SYSTEM,
 
                      ]);
               } else {
@@ -162,5 +166,31 @@ class ConversationService implements ConversationServiceInterface
               }
 
               return $this->conversationRepositoryEloquent->assignStaff($conversationId, $staffId);
+       }
+
+       // CHuyển tin nhắn
+       public function transferToStaff(int $conversationId, int $fromStaffId, int $toStaffId, ?string $note = null)
+       {
+              $online = StaffSession::where('staff_id', $toStaffId)
+                     ->where('last_seen_at', '>=', now()->subMinutes(5))
+                     ->exists();
+
+              if (!$online) return null;
+
+              $conversation = $this->conversationRepositoryEloquent->transfer($conversationId, $fromStaffId, $toStaffId);
+
+              if (!$conversation) return null;
+
+              $this->transferRepositoryEloquent->logTransfer($conversation->id, $fromStaffId, $toStaffId, $note);
+
+              $this->messageRepositoryEloquent->create([
+                     'conversation_id' => $conversation->id,
+                     'content'         => 'Cuộc trò chuyện đã được chuyển cho nhân viên ' . $conversation->staff->name,
+                     'sender_type'     => SystemEnum::SYSTEM,
+              ]);
+
+              // event(new ConversationAssignedEvent($conversation));
+
+              return $conversation;
        }
 }

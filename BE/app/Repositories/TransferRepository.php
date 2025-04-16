@@ -12,4 +12,7 @@ use Prettus\Repository\Contracts\RepositoryInterface;
 interface TransferRepository extends RepositoryInterface
 {
     //
+   
+    public function logTransfer(int $conversationId, int $fromStaffId, int $toStaffId, ?string $note = null);
+
 }

@@ -22,4 +22,5 @@ interface ConversationRepository extends RepositoryInterface
     public function getMyConversations(int $staffId, int $limit = 50);
     public function getAdminConversations(int $limit, array $filters = []);
     public function isAssignableConversation(int $conversationId): bool;
+    public function transfer(int $conversationId, int $fromStaffId, int $toStaffId);
 }
