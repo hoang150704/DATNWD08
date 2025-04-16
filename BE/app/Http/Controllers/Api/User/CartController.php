@@ -13,6 +13,18 @@ use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
+    private function checkUserStatus($user)
+    {
+        if ((int)$user->is_active !== 1) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.',
+                'error' => 'Account blocked'
+            ], 403);
+        }
+        return null;
+    }
+
     public function getVariation(Request $request)
     {
         try {
@@ -93,6 +105,17 @@ class CartController extends Controller
             $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                // Xóa toàn bộ sản phẩm trong giỏ hàng khi tài khoản bị khóa
+                $cart = Cart::where('user_id', $user->id)->first();
+                if ($cart) {
+                    CartItem::where('cart_id', $cart->id)->delete();
+                }
+                return $statusCheck;
             }
 
             $cart = Cart::where('user_id', $user->id)->first();
@@ -180,6 +203,12 @@ class CartController extends Controller
             $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Bạn chưa đăng nhập!'], 401);
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
             }
     
             // Validate request (kiểm tra dữ liệu đầu vào)
@@ -281,6 +310,13 @@ class CartController extends Controller
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
+            }
+
             $cart = Cart::where('user_id', $user->id)->first();
 
             if (!$cart) {
@@ -320,6 +356,13 @@ class CartController extends Controller
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
+            }
+
             $cart = Cart::where('user_id', $user->id)->first();
 
             if (!$cart) {
@@ -331,9 +374,22 @@ class CartController extends Controller
             $variationId = request('variation_id');
             $newQuantity = request('quantity');
 
+            // Kiểm tra số lượng tối thiểu
             if ($newQuantity < 1) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Số lượng phải lớn hơn hoặc bằng 1',
+                ], 400);
+            }
+
+            // Kiểm tra số lượng tối đa
+            if ($newQuantity > 20) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Số lượng tối đa cho một sản phẩm là 20!',
+                    'cart_quantity_now' => $newQuantity - 1,
+                    'quantity_want_to_change' => $newQuantity,
+                    'max_allowed' => 20
                 ], 400);
             }
 
@@ -345,18 +401,9 @@ class CartController extends Controller
 
             if (!$updateItem) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Không tìm thấy sản phẩm cần update',
                 ], 404);
-            }
-
-            // Kiểm tra giới hạn số lượng cho một variation (20)
-            if ($newQuantity > 20) {
-                return response()->json([
-                    'message' => 'Số lượng tối đa cho một sản phẩm là 20!',
-                    'cart_quantity_now' => $updateItem->quantity,
-                    'quantity_want_to_change' => $newQuantity,
-                    'max_allowed' => 20
-                ], 400);
             }
 
             // Tính tổng số lượng trong giỏ hàng (không tính sản phẩm đang thay đổi)
@@ -367,6 +414,7 @@ class CartController extends Controller
             // Kiểm tra giới hạn tổng số lượng trong giỏ (100)
             if ($totalCartQuantity > 100) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Tổng số lượng trong giỏ hàng không được vượt quá 100!',
                     'current_cart_total' => $totalCartQuantity - $newQuantity,
                     'quantity_want_to_change' => $newQuantity,
@@ -379,13 +427,19 @@ class CartController extends Controller
 
             if (!$productVariation) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Sản phẩm không tồn tại',
                 ], 404);
             }
 
             if ($newQuantity > $productVariation->stock_quantity) {
                 return response()->json([
+                    'status' => 'error',
                     'message' => 'Số lượng yêu cầu vượt quá số lượng tồn kho',
+                    'stock_quantity' => $productVariation->stock_quantity,
+                    'cart_quantity_now' => $updateItem->quantity,
+                    'quantity_want_to_change' => $newQuantity,
+                    'max_can_change' => $productVariation->stock_quantity
                 ], 400);
             }
 
@@ -394,12 +448,14 @@ class CartController extends Controller
             $updateItem->save();
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Cập nhật số lượng thành công',
                 'data' => $updateItem
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
-                'message' => 'Failed',
+                'status' => 'error',
+                'message' => 'Có lỗi xảy ra',
                 'error' => $th->getMessage()
             ], 500);
         }
@@ -408,9 +464,15 @@ class CartController extends Controller
     public function syncCart(Request $request)
     {
         try {
-            $user = auth('sanctum')->user(); // lấy ra user
+            $user = auth('sanctum')->user();
             if (!$user) {
-                return response()->json(['error' => 'Chưa đăng nhập'], 401);
+                return response()->json(['message' => 'Chưa đăng nhập'], 401);
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
             }
 
             $cartItems = $request->input('cart', []);
@@ -478,6 +540,16 @@ class CartController extends Controller
     {
         try {
             $user = auth('sanctum')->user();
+            if (!$user) {
+                return response()->json(['message' => 'Chưa đăng nhập'], 401);
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
+            }
+
             $cart = Cart::where('user_id', $user->id)->first();
 
             if (!$cart) {
