@@ -15,7 +15,7 @@ class CartController extends Controller
 {
     private function checkUserStatus($user)
     {
-        if ($user->is_active !== 1) {
+        if ((int)$user->is_active !== 1) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.',
@@ -105,6 +105,17 @@ class CartController extends Controller
             $user = auth('sanctum')->user();
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                // Xóa toàn bộ sản phẩm trong giỏ hàng khi tài khoản bị khóa
+                $cart = Cart::where('user_id', $user->id)->first();
+                if ($cart) {
+                    CartItem::where('cart_id', $cart->id)->delete();
+                }
+                return $statusCheck;
             }
 
             $cart = Cart::where('user_id', $user->id)->first();
@@ -299,6 +310,13 @@ class CartController extends Controller
             if (!$user) {
                 return response()->json(['message' => 'Chưa đăng nhập'], 401);
             }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
+            }
+
             $cart = Cart::where('user_id', $user->id)->first();
 
             if (!$cart) {
@@ -522,6 +540,16 @@ class CartController extends Controller
     {
         try {
             $user = auth('sanctum')->user();
+            if (!$user) {
+                return response()->json(['message' => 'Chưa đăng nhập'], 401);
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            $statusCheck = $this->checkUserStatus($user);
+            if ($statusCheck) {
+                return $statusCheck;
+            }
+
             $cart = Cart::where('user_id', $user->id)->first();
 
             if (!$cart) {
