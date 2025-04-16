@@ -16,7 +16,6 @@ class SendMessageRequest extends FormRequest
         return [
             'conversation_id' => 'required|exists:conversations,id',
             'content'         => 'nullable|string|max:1000',
-            'type'            => 'nullable|in:text,image,file,system',
             'guest_id'        => 'nullable|string|max:255',
             'attachments'           => 'nullable|array|max:5',
             'attachments.*.url'     => 'required|url',
@@ -32,7 +31,6 @@ class SendMessageRequest extends FormRequest
             'conversation_id.exists'   => 'Hội thoại không tồn tại trong hệ thống.',
             'content.string'           => 'Nội dung tin nhắn phải là chuỗi.',
             'content.max'              => 'Nội dung tin nhắn không được vượt quá 1000 ký tự.',
-            'type.in'                  => 'Loại tin nhắn không hợp lệ. Chỉ chấp nhận: text, image, file, system.',
             'guest_id.string'          => 'Mã khách phải là chuỗi.',
             'guest_id.max'             => 'Mã khách không được vượt quá 255 ký tự.',
             'attachments.array'         => 'File đính kèm phải là dạng danh sách.',
