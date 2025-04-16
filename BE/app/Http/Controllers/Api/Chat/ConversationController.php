@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Chat;
 
+use App\Enums\SystemEnum;
 use App\Events\ConversationAssignedEvent;
 use App\Events\ConversationClaimedEvent;
 use App\Http\Controllers\Controller;
@@ -66,7 +67,7 @@ class ConversationController extends Controller
         $paginate = 20;
         $user = auth('sanctum')->user();
 
-        if (!$user || $user->role !== 'staff') {
+        if (!$user || in_array($user?->role,[SystemEnum::ADMIN,SystemEnum::STAFF])) {
             return response()->json([
                 'message' => 'Bạn không có quyền truy cập danh sách này.'
             ], 403);
