@@ -5,9 +5,11 @@ namespace App\Providers;
 use App\Events\CancelOrderEvent;
 use App\Events\OrderEvent;
 use App\Events\VoucherExpireEvent;
+use App\Listeners\ConnectedListener;
 use App\Listeners\SaveOrderNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
 
@@ -24,7 +26,8 @@ class EventServiceProvider extends ServiceProvider
         ],
         OrderEvent::class => [
             SaveOrderNotification::class
-        ]
+        ],
+  
     ];
 
     /**

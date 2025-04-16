@@ -3,6 +3,7 @@
 namespace App\Services\Chat;
 
 use App\Entities\Conversation;
+use App\Events\MessageSentEvent;
 use App\Repositories\AttachmentRepositoryEloquent;
 use App\Services\Chat\Interfaces\MessageServiceInterface;
 use App\Repositories\MessageRepository;
@@ -62,9 +63,7 @@ class MessageService implements MessageServiceInterface
                 ]);
             }
         }
-
-        // Emit realtime nếu cần
-        // event(new MessageSentEvent($message));
+        event(new MessageSentEvent($message));
 
         return $message->fresh(['attachments']);
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\StaffSession;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -18,4 +19,27 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 });
 Broadcast::channel('voucher-channel', function () {
     return true; // Cho phép tất cả truy cập kênh
+});
+Broadcast::channel('staff.{id}', function ($user, $id) {
+    if ($user->id == $id && in_array($user->role, ['staff', 'admin'])) {
+        StaffSession::updateOrCreate(
+            ['staff_id' => $user->id],
+            ['last_seen_at' => now()]
+        );
+        return true;
+    }
+
+    return false;
+});
+
+Broadcast::channel('admin', function ($user) {
+    if ($user->role === 'admin') {
+        StaffSession::updateOrCreate(
+            ['staff_id' => $user->id],
+            ['last_seen_at' => now()]
+        );
+        return true;
+    }
+
+    return false;
 });

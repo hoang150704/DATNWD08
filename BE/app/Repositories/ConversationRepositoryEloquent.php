@@ -118,7 +118,7 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
 
     public function getMyConversations(int $staffId, int $limit = 50)
     {
-        return Conversation::with(['latestMessage', 'customer', 'staff'])
+        return Conversation::with(['latestMessage', 'customer', 'staff','feedback'])
             ->where('current_staff_id', $staffId)
             ->orderByRaw("FIELD(status, 'open') DESC")
             ->orderByDesc('updated_at')
@@ -127,7 +127,7 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
 
     public function getAdminConversations(int $limit = 50, array $filters = [])
     {
-        $query = Conversation::with(['latestMessage', 'customer', 'staff']);
+        $query = Conversation::with(['latestMessage', 'customer', 'staff','feedback']);
 
         // Lọc theo trạng thái (open / closed / ...)
         if (!empty($filters['status'])) {

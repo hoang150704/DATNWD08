@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Api\Chat;
 
+use App\Events\ConversationAssignedEvent;
+use App\Events\ConversationClaimedEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateConversationRequest;
 use App\Http\Resources\ConversationResource;
+use App\Models\Conversation;
 use App\Services\Chat\ConversationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -120,8 +123,10 @@ class ConversationController extends Controller
                 return response()->json([
                     'message' => 'Cuộc trò chuyện đã có người nhận hoặc không khả dụng'
                 ], 400);
+            }else{
+                $conversation = Conversation::with('staff')->find($id);
+                event(new ConversationClaimedEvent($conversation));
             }
-
             return response()->json(['message' => 'Bạn đã nhận hỗ trợ cuộc trò chuyện thành công']);
         } catch (\Throwable $e) {
             return response()->json([
@@ -151,6 +156,9 @@ class ConversationController extends Controller
                 return response()->json([
                     'message' => 'Cuộc trò chuyện không khả dụng hoặc nhân viên không online',
                 ], 400);
+            }else{
+                $conversation = Conversation::with('staff')->find($id);
+                event(new ConversationAssignedEvent($conversation));
             }
 
             return response()->json(['message' => 'Gán nhân viên thành công']);
