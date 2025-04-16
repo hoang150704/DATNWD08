@@ -6,6 +6,7 @@ use Prettus\Repository\Eloquent\BaseRepository;
 use Prettus\Repository\Criteria\RequestCriteria;
 use App\Repositories\AttachmentRepository;
 use App\Entities\Attachment;
+use App\Models\MessageAttachment;
 use App\Validators\AttachmentValidator;
 
 /**
@@ -22,7 +23,7 @@ class AttachmentRepositoryEloquent extends BaseRepository implements AttachmentR
      */
     public function model()
     {
-        return Attachment::class;
+        return MessageAttachment::class;
     }
 
     
