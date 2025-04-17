@@ -44,6 +44,14 @@ class TransferRepositoryEloquent extends BaseRepository implements TransferRepos
             'from_staff_id'   => $fromStaffId,
             'to_staff_id'     => $toStaffId,
             'note'            => $note,
+            'status'          => 'pending',
         ]);
+    }
+    public function findPendingTransferByStaff(int $transferId, int $staffId): ?ConversationTransfer
+    {
+        return ConversationTransfer::where('id', $transferId)
+            ->where('to_staff_id', $staffId)
+            ->where('status', 'pending')
+            ->first();
     }
 }

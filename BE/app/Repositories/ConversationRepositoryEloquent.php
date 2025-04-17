@@ -166,16 +166,24 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
 
         $conversation->update(['current_staff_id' => $toStaffId]);
 
-        return $conversation->fresh(['staff']);
+        return $conversation->fresh();
     }
     //
     public function getUnassignedConversations(int $limit = 50)
-{
-    return Conversation::whereNull('current_staff_id')
-        ->where('status', SystemEnum::OPEN)
-        ->latest('updated_at')
-        ->with(['customer', 'staff', 'latestMessage'])
-        ->paginate($limit);
-}
-
+    {
+        return Conversation::whereNull('current_staff_id')
+            ->where('status', SystemEnum::OPEN)
+            ->latest('updated_at')
+            ->with(['customer', 'staff', 'latestMessage'])
+            ->paginate($limit);
+    }
+    public function findTransferableConversation(int $conversationId, int $fromStaffId): ?Conversation
+    {
+        return Conversation::where('id', $conversationId)
+            ->where('current_staff_id', $fromStaffId)
+            ->where('status', 'open')
+            ->first();
+    }
+    //
+    
 }

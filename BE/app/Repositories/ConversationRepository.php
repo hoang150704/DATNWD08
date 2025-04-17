@@ -24,4 +24,5 @@ interface ConversationRepository extends RepositoryInterface
     public function isAssignableConversation(int $conversationId): bool;
     public function transfer(int $conversationId, int $fromStaffId, int $toStaffId);
     public function getUnassignedConversations(int $limit);
+    public function findTransferableConversation(int $conversationId, int $fromStaffId);
 }

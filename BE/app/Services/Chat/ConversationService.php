@@ -5,6 +5,8 @@ namespace App\Services\Chat;
 use App\Entities\Conversation;
 use App\Entities\MessageRepository;
 use App\Enums\SystemEnum;
+use App\Events\ConversationAssignedEvent;
+use App\Events\TransferRejectedEvent;
 use App\Models\StaffSession;
 use App\Repositories\ConversationRepository;
 use App\Repositories\ConversationRepositoryEloquent;
@@ -169,30 +171,79 @@ class ConversationService implements ConversationServiceInterface
        }
 
        // CHuyển tin nhắn
-       public function transferToStaff(int $conversationId, int $fromStaffId, int $toStaffId, ?string $note = null)
+       public function requestTransfer(int $conversationId, int $fromStaffId, int $toStaffId, ?string $note = null)
        {
-              $online = StaffSession::where('staff_id', $toStaffId)
-                     ->where('last_seen_at', '>=', now()->subMinutes(5))
-                     ->exists();
+              $online = $this->staffSessionEloquent->isStaffOnline($toStaffId);
 
               if (!$online) return null;
 
-              $conversation = $this->conversationRepositoryEloquent->transfer($conversationId, $fromStaffId, $toStaffId);
+              $conversation = $this->conversationRepositoryEloquent->findTransferableConversation($conversationId, $fromStaffId);
 
               if (!$conversation) return null;
 
-              $this->transferRepositoryEloquent->logTransfer($conversation->id, $fromStaffId, $toStaffId, $note);
-
-              $this->messageRepositoryEloquent->create([
-                     'conversation_id' => $conversation->id,
-                     'content'         => 'Cuộc trò chuyện đã được chuyển cho nhân viên ' . $conversation->staff->name,
-                     'sender_type'     => SystemEnum::SYSTEM,
-              ]);
-
-              // event(new ConversationAssignedEvent($conversation));
+              // Tạo bản ghi chuyển (chờ xác nhận)
+              $this->transferRepositoryEloquent->logTransfer($conversationId, $fromStaffId, $toStaffId, $note);
 
               return $conversation;
        }
+
+       // Đồng ý
+       public function acceptTransfer(int $transferId): ?Conversation
+       {
+              $user = auth('sanctum')->user();
+
+              if (!$user || !in_array($user->role, ['admin', 'staff'])) {
+                     return null;
+              }
+
+              // Tìm bản ghi chuyển đang pending mà đúng là mình được chuyển tới
+              $transfer = $this->transferRepositoryEloquent
+                     ->findPendingTransferByStaff($transferId, $user->id);
+
+              if (!$transfer) return null;
+
+              // Cập nhật status = accepted
+              $transfer->update(['status' => 'accepted']);
+
+              // Cập nhật current_staff_id trong bảng conversation
+              $conversation = $this->conversationRepositoryEloquent
+                     ->transfer($transfer->conversation_id, $transfer->from_staff_id, $user->id);
+
+              if (!$conversation) return null;
+
+              // Tạo tin nhắn hệ thống xác nhận chuyển
+              $this->messageRepositoryEloquent->create([
+                     'conversation_id' => $conversation->id,
+                     'content' => 'Nhân viên ' . $user->name . ' đã nhận cuộc trò chuyện này.',
+                     'sender_type' => SystemEnum::SYSTEM,
+              ]);
+
+              // Gửi event nếu có
+              event(new ConversationAssignedEvent($conversation));
+
+              return $conversation->fresh();
+       }
+
+       public function rejectTransfer(int $transferId): bool
+       {
+              $user = auth('sanctum')->user();
+
+              if (!$user || !in_array($user->role, ['admin', 'staff'])) {
+                     return false;
+              }
+
+              $transfer = $this->transferRepositoryEloquent
+                     ->findPendingTransferByStaff($transferId, $user->id);
+
+              if (!$transfer) return false;
+
+              $transfer->update(['status' => 'rejected']);
+              event(new TransferRejectedEvent($transfer));
+
+
+              return true;
+       }
+
        public function unassignedConversations(int $limit = 50)
        {
               return $this->conversationRepositoryEloquent->getUnassignedConversations($limit);

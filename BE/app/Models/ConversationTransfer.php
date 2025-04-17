@@ -13,7 +13,8 @@ class ConversationTransfer extends Model
         'from_staff_id',
         'to_staff_id',
         'note',
-        'created_at'
+        'created_at',
+        'status'
     ];
 
     public function conversation()

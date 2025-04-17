@@ -24,6 +24,7 @@ class ConversationResource extends JsonResource
             ],
 
             'staff' => [
+                'id'=>$this->staff?->id,
                 'name'   => $this->staff?->name,
                 'avatar' => $this->staff?->avatar,
             ],
@@ -31,7 +32,7 @@ class ConversationResource extends JsonResource
             'last_message'      => $this->latestMessage?->content,
             'last_message_time' => $this->latestMessage?->created_at?->diffForHumans(),
             'updated_at'        => $this->updated_at?->toDateTimeString(),
-            'closed_at'  => $this->closed_at?->toDateTimeString(),
+            'closed_at'  => $this->closed_at,
             'close_note' => $this->close_note,
             'feedback' => $this->whenLoaded('feedback', function () {
                 return [

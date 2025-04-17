@@ -69,11 +69,11 @@ class ConversationController extends Controller
             $paginate = 20;
             $user = auth('sanctum')->user();
 
-            // if (!$user || in_array($user?->role,[SystemEnum::ADMIN,SystemEnum::STAFF])) {
-            //     return response()->json([
-            //         'message' => 'Bạn không có quyền truy cập danh sách này.'
-            //     ], 403);
-            // }
+            if (!$user || !in_array($user?->role, [SystemEnum::ADMIN, SystemEnum::STAFF])) {
+                return response()->json([
+                    'message' => 'Bạn không có quyền truy cập danh sách này.'
+                ], 403);
+            }
 
             $conversations = $this->conversationService->myConversations($user->id, $paginate);
 
@@ -89,7 +89,8 @@ class ConversationController extends Controller
         } catch (\Throwable $th) {
             //throw $th;
             return response()->json([
-                'message' => $th->getMessage()
+                'message' => $th->getMessage(),
+
             ]);
         }
     }
@@ -207,39 +208,69 @@ class ConversationController extends Controller
         }
     }
     //
-    public function transferToStaff(Request $request, int $id)
+    public function requestTransfer(Request $request, int $conversationId)
     {
         $user = auth('sanctum')->user();
 
-        if (!$user || !in_array($user->role, ['admin', 'staff'])) {
-            return response()->json(['message' => 'Không có quyền chuyển cuộc trò chuyện'], 403);
-        }
-
         $validated = $request->validate([
-            'staff_id' => 'required|integer|exists:users,id',
-            'note'     => 'nullable|string|max:255',
+            'to_staff_id' => 'required|exists:users,id',
+            'note' => 'nullable|string|max:255',
         ]);
 
         try {
-            $conversation = $this->conversationService->transferToStaff(
-                $id,
+            $conversation = $this->conversationService->requestTransfer(
+                $conversationId,
                 $user->id,
-                $validated['staff_id'],
+                $validated['to_staff_id'],
                 $validated['note'] ?? null
             );
 
             if (!$conversation) {
-                return response()->json(['message' => 'Không thể chuyển hội thoại (không tìm thấy hoặc nhân viên không online)'], 400);
+                return response()->json(['message' => 'Không thể tạo yêu cầu chuyển'], 400);
             }
 
-            return response()->json(['message' => 'Chuyển hội thoại thành công']);
-        } catch (\Throwable $e) {
             return response()->json([
-                'message' => 'Lỗi khi chuyển hội thoại',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => 'Đã gửi yêu cầu chuyển cuộc trò chuyện',
+                'conversation' => $conversation
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Lỗi xử lý', 'error' => $e->getMessage()], 500);
         }
     }
+
+    public function acceptTransfer(Request $request, int $transferId)
+    {
+        try {
+            $conversation = $this->conversationService->acceptTransfer($transferId);
+
+            if (!$conversation) {
+                return response()->json(['message' => 'Không thể chấp nhận yêu cầu chuyển'], 400);
+            }
+
+            return response()->json([
+                'message' => 'Đã tiếp nhận cuộc trò chuyện',
+                'conversation' => $conversation
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Lỗi xử lý', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function rejectTransfer(Request $request, int $transferId)
+    {
+        try {
+            $success = $this->conversationService->rejectTransfer($transferId);
+
+            if (!$success) {
+                return response()->json(['message' => 'Không thể từ chối yêu cầu chuyển'], 400);
+            }
+
+            return response()->json(['message' => 'Đã từ chối nhận cuộc trò chuyện']);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Lỗi xử lý', 'error' => $e->getMessage()], 500);
+        }
+    }
+
 
     //
     public function unassignedConversations(Request $request)
@@ -251,13 +282,18 @@ class ConversationController extends Controller
             return response()->json(['message' => 'Không có quyền truy cập'], 403);
         }
 
-       
+
         try {
             $conversations = $this->conversationService->unassignedConversations($paginate);
 
             return response()->json([
-                'message' => 'Danh sách cuộc trò chuyện chưa được gán',
-                'data' => $conversations,
+                'conversations' => ConversationResource::collection($conversations),
+                'pagination' => [
+                    'total' => $conversations->total(),
+                    'per_page' => $conversations->perPage(),
+                    'current_page' => $conversations->currentPage(),
+                    'last_page' => $conversations->lastPage(),
+                ]
             ]);
         } catch (\Throwable $e) {
             return response()->json([
