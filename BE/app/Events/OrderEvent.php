@@ -50,17 +50,8 @@ class OrderEvent implements ShouldBroadcast
 
     public function broadcastWith()
     {
-        return [
-            'id' => $this->order->id,
-            'code' => $this->order->code,
-            'o_name' => $this->order->o_name,
-            'phone' => $this->order->o_phone,
-            'final_amount' => $this->order->final_amount,
-            'payment_method' => $this->order->payment_method,
-            'order_status' => $this->order->status->name ?? '',
-            'payment_status' => $this->order->paymentStatus->name ?? '',
-            'shipping_status' => $this->order->shippingStatus->name ?? '',
-            'created_at' => $this->order->created_at->format('d/m/Y H:i'),
+        return [ 
+            'add' => 1
         ];
     }
 }

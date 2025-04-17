@@ -39,9 +39,6 @@ class CancelOrderService
     {
         DB::beginTransaction();
         try {
-            $fromStatusId = $this->updateOrderStatuses($order, $reason, $cancelBy);
-            $this->logStatusChange($order, $cancelBy, $fromStatusId);
-
             if ($this->checkRefund($order)) {
                 $this->createRefundAndTransactions($order, $reason, $ip);
             }
@@ -49,18 +46,13 @@ class CancelOrderService
             if ($this->checkCancelShipment($order)) {
                 $this->cancelShipmentViaGhn($order, $reason);
             }
+            $fromStatusId = $this->updateOrderStatuses($order, $reason, $cancelBy);
+            $this->logStatusChange($order, $cancelBy, $fromStatusId);
             SendMailOrderCancelled::dispatch($order);
-            SpamLog::create([
-                'action' => 'cancel',
-                'user_id' => auth('sanctum')->id(),
-                'ip' => $ip,
-                'created_at' => now(),
-            ]);
-
-            SpamProtectionService::checkAndBanByLevels('cancel', 3, 60, [
+            SpamProtectionService::logAndCheckBan('cancel', 3, 60, [
                 1 => 180,
                 2 => 720,
-            ]);
+            ], 'Hủy đơn liên tục');
             DB::commit();
             return ['success' => true, 'message' => 'Đơn hàng đã được huỷ'];
         } catch (\Throwable $th) {
@@ -190,7 +182,7 @@ class CancelOrderService
                     'ghn_status' => 'cancel',
                     'mapped_status_id' => ShippingStatus::idByCode(ShippingStatusEnum::CANCELLED),
                     'location' => null,
-                    'note' => $item['message'] ?? 'Đã huỷ qua GHN',
+                    'note' => 'Đã huỷ vận đơn qua GHN',
                     'timestamp' => now(),
                 ]);
 

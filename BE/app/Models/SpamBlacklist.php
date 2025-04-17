@@ -9,7 +9,7 @@ class SpamBlacklist extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'type', 'value', 'reason', 'until',
+        'type', 'value', 'reason', 'until','action',
     ];
 
     protected $dates = ['until'];

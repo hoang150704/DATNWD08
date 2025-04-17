@@ -18,6 +18,14 @@ class ProductDetailController extends Controller
                 'productImages',
                 'library'
             ])->where('slug',$slug)->firstOrFail();
+
+            // Kiểm tra trạng thái hiển thị
+            if ($product->is_active !== 1) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Sản phẩm không tồn tại hoặc đã bị ẩn'
+                ], 404);
+            }
     
             // Convert dữ liệu
             $convertData = [
@@ -28,15 +36,19 @@ class ProductDetailController extends Controller
                 "url_main_image" => $product->main_image ? Product::getConvertImage($product->library->url, 800, 800, 'thumb') : "",
                 "type" => $product->type,
                 "slug" => $product->slug,
+                "is_active" => $product->is_active
             ];
     
             // Danh sách biến thể
             $convertData['variants'] = $product->variants->map(function ($variant) {
+                $price = $variant->sale_price > 0 ? $variant->sale_price : $variant->regular_price;
+                $isContactPrice = $price == 0;
+                
                 return [
                     'id' => $variant->id,
                     'sku' => $variant->sku,
-                    'regular_price' => $variant->regular_price,
-                    'sale_price' => $variant->sale_price,
+                    'regular_price' => $isContactPrice ? "Giá liên hệ" : $variant->regular_price,
+                    'sale_price' => $isContactPrice ? "Giá liên hệ" : $variant->sale_price,
                     'weight' => $variant->weight,
                     'stock_quantity' => $variant->stock_quantity,
                     'values' => $variant->values->map(function ($value) {
@@ -50,7 +62,7 @@ class ProductDetailController extends Controller
                 ];
             });
     
-            // bIẾN THỂ
+            // Biến thể
             $convertData['attributes'] = $product->variants->flatMap(function ($variant) {
                 return $variant->values->map(function ($value) {
                     return [
