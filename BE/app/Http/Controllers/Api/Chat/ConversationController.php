@@ -69,11 +69,11 @@ class ConversationController extends Controller
             $paginate = 20;
             $user = auth('sanctum')->user();
 
-            // if (!$user || in_array($user?->role,[SystemEnum::ADMIN,SystemEnum::STAFF])) {
-            //     return response()->json([
-            //         'message' => 'Bạn không có quyền truy cập danh sách này.'
-            //     ], 403);
-            // }
+            if (!$user || !in_array($user?->role,[SystemEnum::ADMIN,SystemEnum::STAFF])) {
+                return response()->json([
+                    'message' => 'Bạn không có quyền truy cập danh sách này.'
+                ], 403);
+            }
 
             $conversations = $this->conversationService->myConversations($user->id, $paginate);
 
@@ -89,7 +89,8 @@ class ConversationController extends Controller
         } catch (\Throwable $th) {
             //throw $th;
             return response()->json([
-                'message' => $th->getMessage()
+                'message' => $th->getMessage(),
+                
             ]);
         }
     }
