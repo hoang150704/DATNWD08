@@ -287,8 +287,13 @@ class ConversationController extends Controller
             $conversations = $this->conversationService->unassignedConversations($paginate);
 
             return response()->json([
-                'message' => 'Danh sách cuộc trò chuyện chưa được gán',
-                'data' => $conversations,
+                'conversations' => ConversationResource::collection($conversations),
+                'pagination' => [
+                    'total' => $conversations->total(),
+                    'per_page' => $conversations->perPage(),
+                    'current_page' => $conversations->currentPage(),
+                    'last_page' => $conversations->lastPage(),
+                ]
             ]);
         } catch (\Throwable $e) {
             return response()->json([
