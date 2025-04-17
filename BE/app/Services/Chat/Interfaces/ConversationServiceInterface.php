@@ -51,4 +51,8 @@ interface ConversationServiceInterface
 
     // Danh sách các cuộc trò chuyện chưa có ai hỗ trợ
     public function unassignedConversations(int $limit);
+    //
+    public function requestTransfer(int $conversationId, int $fromStaffId, int $toStaffId, ?string $note = null);
+    public function acceptTransfer(int $transferId);
+    public function rejectTransfer(int $transferId);
 }

@@ -98,8 +98,10 @@ Route::prefix('chat')->group(function () {
     Route::post('/new_conversation', [ConversationController::class, 'createAndAssign']); // Tạo và gán hội thoại mới
     Route::get('/conversation/{id}/messages', [MessageController::class, 'getMessages']);
     Route::post('/conversation/{id}/feedback', [FeedbackController::class, 'submitFeedback']);
-    Route::post('/conversation/{id}/transfer', [ConversationController::class, 'transferToStaff'])
-        ->middleware(['auth:sanctum']);
+    Route::post('/conversation/{conversationId}/transfer/request', [ConversationController::class, 'requestTransfer']);
+    Route::post('/conversation/transfer/{transferId}/accept', [ConversationController::class, 'acceptTransfer']);
+    Route::post('/conversation/transfer/{transferId}/reject', [ConversationController::class, 'rejectTransfer']);
+
     Route::get('/conversations/unassigned', [ConversationController::class, 'unassignedConversations'])
         ->middleware(['auth:sanctum']);
     Route::get('/staff/online', [StaffSessionController::class, 'getOnlineStaff'])
