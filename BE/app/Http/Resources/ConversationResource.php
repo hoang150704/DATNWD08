@@ -24,6 +24,7 @@ class ConversationResource extends JsonResource
             ],
 
             'staff' => [
+                'id'=>$this->staff?->id,
                 'name'   => $this->staff?->name,
                 'avatar' => $this->staff?->avatar,
             ],
