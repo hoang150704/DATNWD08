@@ -193,4 +193,8 @@ class ConversationService implements ConversationServiceInterface
 
               return $conversation;
        }
+       public function unassignedConversations(int $limit = 50)
+       {
+              return $this->conversationRepositoryEloquent->getUnassignedConversations($limit);
+       }
 }

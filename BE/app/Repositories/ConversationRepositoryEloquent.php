@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Enums\SystemEnum;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Prettus\Repository\Criteria\RequestCriteria;
 use App\Repositories\ConversationRepository;
@@ -167,4 +168,14 @@ class ConversationRepositoryEloquent extends BaseRepository implements Conversat
 
         return $conversation->fresh(['staff']);
     }
+    //
+    public function getUnassignedConversations(int $limit = 50)
+{
+    return Conversation::whereNull('current_staff_id')
+        ->where('status', SystemEnum::OPEN)
+        ->latest('updated_at')
+        ->with(['customer', 'staff', 'latestMessage'])
+        ->paginate($limit);
+}
+
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Chat\ConversationController;
 use App\Http\Controllers\Api\Chat\FeedbackController;
 use App\Http\Controllers\Api\Chat\MessageController;
+use App\Http\Controllers\Api\Chat\StaffSessionController;
 // USER
 use App\Http\Controllers\Api\User\VoucherController as ClientVoucherController;
 use App\Http\Controllers\Api\User\ContactController as ClientContactController;
@@ -99,6 +100,11 @@ Route::prefix('chat')->group(function () {
     Route::post('/conversation/{id}/feedback', [FeedbackController::class, 'submitFeedback']);
     Route::post('/conversation/{id}/transfer', [ConversationController::class, 'transferToStaff'])
         ->middleware(['auth:sanctum', 'admin', 'staff']);
+    Route::get('/conversations/unassigned', [ConversationController::class, 'unassignedConversations'])
+        ->middleware(['auth:sanctum', 'admin']);
+    Route::get('/staff/online', [StaffSessionController::class, 'getOnlineStaff'])
+        ->middleware(['auth:sanctum', 'admin']);
+
     Route::post('/messages/send', [MessageController::class, 'sendMessage']); // Gửi tin nhắn
     Route::get('/my-conversations', [ConversationController::class, 'myConversations']); // Lấy danh sách hội thoại của nhân viên
     Route::get('/admin-conversations', [ConversationController::class, 'adminConversations'])->middleware(['auth:sanctum', 'admin']); // Danh sách hội thoại cho admin

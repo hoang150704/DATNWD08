@@ -49,4 +49,6 @@ interface ConversationServiceInterface
     //Nhận chat
     public function claim(int $conversationId, int $staffId);
 
+    // Danh sách các cuộc trò chuyện chưa có ai hỗ trợ
+    public function unassignedConversations(int $limit);
 }

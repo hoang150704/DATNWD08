@@ -68,15 +68,15 @@ class ConversationController extends Controller
             //code...
             $paginate = 20;
             $user = auth('sanctum')->user();
-    
+
             // if (!$user || in_array($user?->role,[SystemEnum::ADMIN,SystemEnum::STAFF])) {
             //     return response()->json([
             //         'message' => 'Bạn không có quyền truy cập danh sách này.'
             //     ], 403);
             // }
-    
+
             $conversations = $this->conversationService->myConversations($user->id, $paginate);
-    
+
             return response()->json([
                 'conversations' => ConversationResource::collection($conversations),
                 'pagination' => [
@@ -89,10 +89,9 @@ class ConversationController extends Controller
         } catch (\Throwable $th) {
             //throw $th;
             return response()->json([
-                'message'=>$th->getMessage()
+                'message' => $th->getMessage()
             ]);
         }
-
     }
 
     public function adminConversations(Request $request)
@@ -122,7 +121,7 @@ class ConversationController extends Controller
     {
         $user = auth('sanctum')->user();
 
-        if (!$user || !in_array($user->role, [SystemEnum::ADMIN,SystemEnum::STAFF])) {
+        if (!$user || !in_array($user->role, [SystemEnum::ADMIN, SystemEnum::STAFF])) {
             return response()->json(['message' => 'Không có quyền nhận cuộc trò chuyện'], 403);
         }
 
@@ -184,7 +183,7 @@ class ConversationController extends Controller
     {
         $user = auth('sanctum')->user();
 
-        if (!$user || !in_array($user->role, [SystemEnum::ADMIN,SystemEnum::STAFF])) {
+        if (!$user || !in_array($user->role, [SystemEnum::ADMIN, SystemEnum::STAFF])) {
             return response()->json(['message' => 'Bạn không có quyền đóng cuộc trò chuyện'], 403);
         }
 
@@ -238,6 +237,32 @@ class ConversationController extends Controller
             return response()->json([
                 'message' => 'Lỗi khi chuyển hội thoại',
                 'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    //
+    public function unassignedConversations(Request $request)
+    {
+        $paginate = 50;
+        $user = auth('sanctum')->user();
+
+        if (!$user || !in_array($user->role, ['admin', 'staff'])) {
+            return response()->json(['message' => 'Không có quyền truy cập'], 403);
+        }
+
+       
+        try {
+            $conversations = $this->conversationService->unassignedConversations($paginate);
+
+            return response()->json([
+                'message' => 'Danh sách cuộc trò chuyện chưa được gán',
+                'data' => $conversations,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Lỗi khi lấy danh sách',
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }

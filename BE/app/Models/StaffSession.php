@@ -12,4 +12,8 @@ class StaffSession extends Model
         'staff_id',
         'last_seen_at'
     ];
+    public function staff()
+    {
+        return $this->belongsTo(User::class, 'current_staff_id');
+    }
 }
