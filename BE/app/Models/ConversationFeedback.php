@@ -9,7 +9,7 @@ class ConversationFeedback extends Model
 {
     use HasFactory;
     public $timestamps = false;
-
+    public $table = 'conversation_feedbacks';
     protected $fillable = [
         'conversation_id',
         'rating',
