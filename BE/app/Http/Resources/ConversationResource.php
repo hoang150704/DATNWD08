@@ -25,7 +25,7 @@ class ConversationResource extends JsonResource
 
             'staff' => [
                 'name'   => $this->staff?->name,
-                'avatar' => $this->staff?->avatar_url,
+                'avatar' => $this->staff?->avatar,
             ],
 
             'last_message'      => $this->latestMessage?->content,

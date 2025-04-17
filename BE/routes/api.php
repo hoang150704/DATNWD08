@@ -100,11 +100,11 @@ Route::prefix('chat')->group(function () {
     Route::post('/conversation/{id}/transfer', [ConversationController::class, 'transferToStaff'])
         ->middleware(['auth:sanctum', 'admin', 'staff']);
     Route::post('/messages/send', [MessageController::class, 'sendMessage']); // Gửi tin nhắn
-    Route::get('/my-conversations', [ConversationController::class, 'myConversations'])->middleware(['auth:sanctum', 'admin', 'staff']); // Lấy danh sách hội thoại của nhân viên
+    Route::get('/my-conversations', [ConversationController::class, 'myConversations']); // Lấy danh sách hội thoại của nhân viên
     Route::get('/admin-conversations', [ConversationController::class, 'adminConversations'])->middleware(['auth:sanctum', 'admin']); // Danh sách hội thoại cho admin
     Route::post('/conversation/{id}/claim', [ConversationController::class, 'claim'])->middleware(['auth:sanctum', 'admin', 'staff']); // Nhận cuộc trò chuyện
     Route::post('/conversation/{id}/assign', [ConversationController::class, 'assignToStaff'])->middleware(['auth:sanctum', 'admin', 'staff']); // Gán nhân viên
-    Route::post('/conversation/{id}/close', [ConversationController::class, 'close'])->middleware(['auth:sanctum', 'admin', 'staff']);; // Đóng cuộc trò chuyện
+    Route::post('/conversation/{id}/close', [ConversationController::class, 'close'])->middleware(['auth:sanctum', 'admin', 'staff']); // Đóng cuộc trò chuyện
 });
 
 //Order

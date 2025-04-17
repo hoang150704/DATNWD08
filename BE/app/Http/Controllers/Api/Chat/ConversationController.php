@@ -64,26 +64,35 @@ class ConversationController extends Controller
 
     public function myConversations()
     {
-        $paginate = 20;
-        $user = auth('sanctum')->user();
-
-        if (!$user || in_array($user?->role,[SystemEnum::ADMIN,SystemEnum::STAFF])) {
+        try {
+            //code...
+            $paginate = 20;
+            $user = auth('sanctum')->user();
+    
+            if (!$user || in_array($user?->role,[SystemEnum::ADMIN,SystemEnum::STAFF])) {
+                return response()->json([
+                    'message' => 'Bạn không có quyền truy cập danh sách này.'
+                ], 403);
+            }
+    
+            $conversations = $this->conversationService->myConversations($user->id, $paginate);
+    
             return response()->json([
-                'message' => 'Bạn không có quyền truy cập danh sách này.'
-            ], 403);
+                'conversations' => ConversationResource::collection($conversations),
+                'pagination' => [
+                    'total' => $conversations->total(),
+                    'per_page' => $conversations->perPage(),
+                    'current_page' => $conversations->currentPage(),
+                    'last_page' => $conversations->lastPage(),
+                ]
+            ]);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json([
+                'message'=>$th->getMessage()
+            ]);
         }
 
-        $conversations = $this->conversationService->myConversations($user->id, $paginate);
-
-        return response()->json([
-            'conversations' => ConversationResource::collection($conversations),
-            'pagination' => [
-                'total' => $conversations->total(),
-                'per_page' => $conversations->perPage(),
-                'current_page' => $conversations->currentPage(),
-                'last_page' => $conversations->lastPage(),
-            ]
-        ]);
     }
 
     public function adminConversations(Request $request)
@@ -113,7 +122,7 @@ class ConversationController extends Controller
     {
         $user = auth('sanctum')->user();
 
-        if (!$user || !in_array($user->role, ['staff', 'admin'])) {
+        if (!$user || !in_array($user->role, [SystemEnum::ADMIN,SystemEnum::STAFF])) {
             return response()->json(['message' => 'Không có quyền nhận cuộc trò chuyện'], 403);
         }
 
@@ -175,7 +184,7 @@ class ConversationController extends Controller
     {
         $user = auth('sanctum')->user();
 
-        if (!$user || !in_array($user->role, ['admin', 'staff'])) {
+        if (!$user || !in_array($user->role, [SystemEnum::ADMIN,SystemEnum::STAFF])) {
             return response()->json(['message' => 'Bạn không có quyền đóng cuộc trò chuyện'], 403);
         }
 
@@ -198,6 +207,7 @@ class ConversationController extends Controller
             ], 500);
         }
     }
+    //
     public function transferToStaff(Request $request, int $id)
     {
         $user = auth('sanctum')->user();
