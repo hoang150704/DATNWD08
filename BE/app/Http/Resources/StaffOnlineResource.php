@@ -16,7 +16,7 @@ class StaffOnlineResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'staff_id' => $this->current_staff_id,
+            'staff_id' => $this->staff_id,
             'name' => $this->staff->name,
             'email' => $this->staff->email,
             'avatar' => $this->staff->avatar
