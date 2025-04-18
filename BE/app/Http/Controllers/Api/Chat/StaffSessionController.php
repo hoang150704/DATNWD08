@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Chat;
 
 use App\Entities\StaffSession;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\StaffOnlineResource;
 use App\Models\StaffSession as ModelsStaffSession;
 use Illuminate\Http\Request;
 
@@ -24,7 +25,7 @@ class StaffSessionController extends Controller
 
     return response()->json([
         'message' => 'Danh sách nhân viên đang online',
-        'data' => $onlineStaff
+        'data' => StaffOnlineResource::collection($onlineStaff)
     ]);
 }
 
