@@ -148,6 +148,7 @@ class ConversationController extends Controller
 
     public function assignToStaff(Request $request, int $id)
     {
+        
         $user = auth('sanctum')->user();
 
         if (!$user || $user->role !== 'admin') {
@@ -160,19 +161,23 @@ class ConversationController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
             $success = $this->conversationService->assignToStaff($id, $validated['staff_id']);
-
+            
             if (!$success) {
+                DB::rollBack();
                 return response()->json([
                     'message' => 'Cuộc trò chuyện không khả dụng hoặc nhân viên không online',
+                    'data'=>$success
                 ], 400);
             } else {
                 $conversation = Conversation::with('staff')->find($id);
                 event(new ConversationAssignedEvent($conversation));
             }
-
+            DB::commit();
             return response()->json(['message' => 'Gán nhân viên thành công']);
         } catch (\Throwable $e) {
+            DB::rollBack();
             return response()->json([
                 'message' => 'Lỗi khi gán nhân viên',
                 'error'   => $e->getMessage()

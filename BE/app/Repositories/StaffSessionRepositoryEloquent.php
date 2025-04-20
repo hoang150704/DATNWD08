@@ -7,6 +7,7 @@ use Prettus\Repository\Criteria\RequestCriteria;
 use App\Repositories\StaffSessionRepository;
 use App\Models\StaffSession;
 use App\Validators\StaffSessionValidator;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class StaffSessionRepositoryEloquent.
@@ -37,9 +38,14 @@ class StaffSessionRepositoryEloquent extends BaseRepository implements StaffSess
 
     public function isStaffOnline(int $staffId): bool
     {
-        return $this->model
-            ->where('staff_id', $staffId)
-            ->where('last_seen_at', '>=', now()->subMinutes(5))
-            ->exists();
+        $check = StaffSession::where('staff_id', $staffId)
+            ->where('last_seen_at', '>=', now()->subMinutes(50));
+    
+        Log::info('SQL:', [
+            'sql' => $check->toSql(),
+            'bindings' => $check->getBindings()
+        ]);
+    
+        return $check->exists();
     }
 }
