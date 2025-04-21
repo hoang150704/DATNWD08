@@ -15,4 +15,5 @@ interface TransferRepository extends RepositoryInterface
    
     public function logTransfer(int $conversationId, int $fromStaffId, int $toStaffId, ?string $note = null);
     public function findPendingTransferByStaff(int $transferId, int $staffId);
+    public function getPendingTransferByStaffID(int $staffId);
 }

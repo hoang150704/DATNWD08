@@ -21,4 +21,9 @@ class ConversationTransfer extends Model
     {
         return $this->belongsTo(Conversation::class);
     }
+
+    public function from_staff()
+    {
+        return $this->belongsTo(User::class, 'from_staff_id');
+    }
 }

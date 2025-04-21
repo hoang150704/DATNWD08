@@ -15,7 +15,7 @@ class StaffSessionController extends Controller
 {
     $user = auth('sanctum')->user();
 
-    if (!$user || !in_array($user->role, ['admin'])) {
+    if (!$user || !in_array($user->role, ['admin','staff'])) {
         return response()->json(['message' => 'Không có quyền truy cập'], 403);
     }
 
