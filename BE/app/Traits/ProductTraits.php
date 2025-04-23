@@ -15,32 +15,91 @@ use Symfony\Component\CssSelector\Node\AttributeNode;
 
 trait ProductTraits
 {
+    // Generate SKU based on product name and attributes
+    private function generateSku($productName, $attributes = [])
+    {
+        // Get first 3 letters of product name
+        $namePrefix = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $productName), 0, 3));
+        
+        // Get current timestamp
+        $timestamp = time();
+        
+        // Get random 3 digits
+        $random = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
+        
+        // If there are attributes, add their first letters
+        $attributePrefix = '';
+        if (!empty($attributes)) {
+            foreach ($attributes as $attribute) {
+                $attributeValue = AttributeValue::find($attribute);
+                if ($attributeValue) {
+                    $attributePrefix .= strtoupper(substr($attributeValue->name, 0, 1));
+                }
+            }
+        }
+        
+        // Combine all parts
+        $sku = $namePrefix . $attributePrefix . $timestamp . $random;
+        
+        // Check if SKU exists
+        while (ProductVariation::where('sku', $sku)->exists()) {
+            $random = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
+            $sku = $namePrefix . $attributePrefix . $timestamp . $random;
+        }
+        
+        return $sku;
+    }
+
+    // Calculate weight based on product type and attributes
+    private function calculateWeight($productType, $attributes = [])
+    {
+        // Default weight for simple products
+        $baseWeight = 100; // grams
+        
+        // If it's a variant product, add weight based on attributes
+        if ($productType == 2 && !empty($attributes)) {
+            $additionalWeight = 0;
+            foreach ($attributes as $attribute) {
+                $attributeValue = AttributeValue::find($attribute);
+                if ($attributeValue) {
+                    // Add 50g for each attribute value
+                    $additionalWeight += 50;
+                }
+            }
+            return $baseWeight + $additionalWeight;
+        }
+        
+        return $baseWeight;
+    }
+
     //Xử lí thêm sản phẩm đơn giản
     private function createBasicProduct($dataVariants, $idProduct)
     {
+        $product = Product::find($idProduct);
         foreach ($dataVariants as $variant) {
             $data = [
                 'product_id' => $idProduct,
-                'weight'=>$variant['weight'],
+                'weight' => $variant['weight'] ?? $this->calculateWeight($product->type),
                 'regular_price' => $variant['regular_price'],
                 'sale_price' => $variant['sale_price'],
                 'stock_quantity' => $variant['stock_quantity'] ?? 0,
-                'sku' => $variant['sku'],
+                'sku' => $variant['sku'] ?? $this->generateSku($product->name),
             ];
+            ProductVariation::create($data);
         }
-        ProductVariation::create($data);
     }
 
     //Xử lí thêm sản phẩm biến thể 
-    private function createVariantProduct($dataVariants,$dataAttributes ,$idProduct)
+    private function createVariantProduct($dataVariants, $dataAttributes, $idProduct)
     {
+        $product = Product::find($idProduct);
         foreach ($dataVariants as $variant) {
             $dataVariants = [
                 'product_id' => $idProduct,
                 'regular_price' => $variant['regular_price'],
                 'stock_quantity' => $variant['stock_quantity'],
-                'weight'=>$variant['weight'],
-                'sku' => $variant['sku'],
+                'weight' => $variant['weight'] ?? $this->calculateWeight($product->type, $variant['values'] ?? []),
+                'sku' => $variant['sku'] ?? $this->generateSku($product->name, $variant['values'] ?? []),
             ];
             $variantNew = ProductVariation::create($dataVariants);
             foreach ($variant['values'] as $key => $value) {
@@ -58,12 +117,11 @@ trait ProductTraits
                 'product_id'=>$idProduct,
                 'attribute_id'=> $attributeValue->attribute->id,
                 'attribute_value_id'=>$valueAttribute,
-
             ];
             ProductAttribute::create($convertData);
-
         }
     }
+
     // Xử lí slug
     private function handleSlug($data, $type, $idProduct = null)
     {
