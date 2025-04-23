@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->foreign('main_image')->references('id')->on('libraries')->onDelete('set null');
             // $table->unsignedBigInteger('box_id');
             // $table->foreign('box_id')->references('id')->on('boxes');
+            $table->boolean('is_active')->default(true)->comment('1: hiển thị, khác 1: ẩn');
             $table->string('slug', 255);
             $table->enum('type', [0, 1]);
             $table->double('avg_rating')->default(0);

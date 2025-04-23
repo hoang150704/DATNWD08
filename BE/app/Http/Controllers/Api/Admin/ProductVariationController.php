@@ -97,7 +97,8 @@ class ProductVariationController extends Controller
                 "sale_price" => $data['sale_price'] ?? null,
                 "variant_image" => $data['variant_image'] ?? null,
                 "stock_quantity" => $data['stock_quantity'] ?? 0,
-                "product_id" => $idProduct
+                "product_id" => $idProduct,
+                "weight" => $data['weight']
             ];
             $productVariation = ProductVariation::create($dataVariant);
             // 
@@ -244,7 +245,7 @@ class ProductVariationController extends Controller
             Log::error($e);
             return response()->json([
                 "message" => "Lỗi hệ thống",
-                'id'=>$id,
+                'id' => $id,
                 "error" => $e->getMessage()
             ], 500);
         }
