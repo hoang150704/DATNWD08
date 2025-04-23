@@ -248,4 +248,8 @@ class ConversationService implements ConversationServiceInterface
        {
               return $this->conversationRepositoryEloquent->getUnassignedConversations($limit);
        }
+
+       public function getPendingTransferByStaff($staffId){
+              return $this->transferRepositoryEloquent->getPendingTransferByStaffID($staffId);
+       }
 }

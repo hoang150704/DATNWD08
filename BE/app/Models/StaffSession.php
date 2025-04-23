@@ -14,6 +14,6 @@ class StaffSession extends Model
     ];
     public function staff()
     {
-        return $this->belongsTo(User::class, 'current_staff_id');
+        return $this->belongsTo(User::class, 'staff_id');
     }
 }

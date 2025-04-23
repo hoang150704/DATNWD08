@@ -8,6 +8,7 @@ use App\Events\ConversationClaimedEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateConversationRequest;
 use App\Http\Resources\ConversationResource;
+use App\Http\Resources\ConvesationTransfer;
 use App\Models\Conversation;
 use App\Services\Chat\ConversationService;
 use Illuminate\Http\Request;
@@ -76,7 +77,7 @@ class ConversationController extends Controller
             }
 
             $conversations = $this->conversationService->myConversations($user->id, $paginate);
-
+            $tranferPending = $this->conversationService->getPendingTransferByStaff($user->id);
             return response()->json([
                 'conversations' => ConversationResource::collection($conversations),
                 'pagination' => [
@@ -84,7 +85,8 @@ class ConversationController extends Controller
                     'per_page' => $conversations->perPage(),
                     'current_page' => $conversations->currentPage(),
                     'last_page' => $conversations->lastPage(),
-                ]
+                ],
+                'transfer'=>ConvesationTransfer::collection($tranferPending)
             ]);
         } catch (\Throwable $th) {
             //throw $th;
@@ -148,6 +150,7 @@ class ConversationController extends Controller
 
     public function assignToStaff(Request $request, int $id)
     {
+        
         $user = auth('sanctum')->user();
 
         if (!$user || $user->role !== 'admin') {
@@ -160,19 +163,23 @@ class ConversationController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
             $success = $this->conversationService->assignToStaff($id, $validated['staff_id']);
-
+            
             if (!$success) {
+                DB::rollBack();
                 return response()->json([
                     'message' => 'Cuộc trò chuyện không khả dụng hoặc nhân viên không online',
+                    'data'=>$success
                 ], 400);
             } else {
                 $conversation = Conversation::with('staff')->find($id);
                 event(new ConversationAssignedEvent($conversation));
             }
-
+            DB::commit();
             return response()->json(['message' => 'Gán nhân viên thành công']);
         } catch (\Throwable $e) {
+            DB::rollBack();
             return response()->json([
                 'message' => 'Lỗi khi gán nhân viên',
                 'error'   => $e->getMessage()
@@ -226,7 +233,15 @@ class ConversationController extends Controller
             );
 
             if (!$conversation) {
-                return response()->json(['message' => 'Không thể tạo yêu cầu chuyển'], 400);
+                return response()->json([
+                    'message' => 'Không thể tạo yêu cầu chuyển',
+                    'data'=>[
+                        'conversationId'=>$conversationId,
+                        'from'=>$user->id,
+                        'to_staff_id'=>$validated['to_staff_id'],
+                        'note'=>$validated['note']
+                    ]
+            ], 400);
             }
 
             return response()->json([

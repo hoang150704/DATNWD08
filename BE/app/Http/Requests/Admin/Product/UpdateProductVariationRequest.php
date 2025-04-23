@@ -27,7 +27,7 @@ class UpdateProductVariationRequest extends FormRequest
             'regular_price' => 'nullable|integer|min:0', 
             'sale_price' => 'nullable|integer|min:0|lt:regular_price', 
             'stock_quantity' => 'nullable|integer|min:0', 
-            'weight'=>'required',
+            'weight'=>'required|integer|min:0',
             'values' => 'required|array|min:1', 
             'values.*.id' => 'required|integer|distinct', 
             'values.*.attribute_value_id' => 'required|integer', 

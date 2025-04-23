@@ -26,7 +26,6 @@ class ProductController extends Controller
     protected function search()
     {
         try {
-
             $params = array_filter(request()->only(['keyword', 'category']));
 
             $query = Product::query();
@@ -36,17 +35,26 @@ class ProductController extends Controller
             }
 
             if (isset($params['category'])) {
-                $query->whereHas('categories', function ($query) use ($params) {
-                    $query->where('categories.id', $params['category']);
-                });
+                if ($params['category'] === 'uncategorized') {
+                    $query->whereDoesntHave('categories')
+                        ->orWhereHas('categories', function($q) {
+                            $q->whereNull('category_id');
+                        });
+                } else {
+                    $query->whereHas('categories', function ($query) use ($params) {
+                        $query->where('categories.id', $params['category']);
+                    });
+                }
             }
 
-            // if (isset($params['avg_rating'])) {
-            //     $query->whereBetween('avg_rating', [$params['avg_rating'], $params['avg_rating'] + 0.99]);
-            // }
-
             return $query
-                ->with("categories:id,name")
+                ->with(['categories' => function($query) {
+                    $query->select('categories.id', 'categories.name')
+                        ->withDefault([
+                            'id' => 'uncategorized',
+                            'name' => 'Chưa phân loại'
+                        ]);
+                }])
                 ->select('id', 'name', 'main_image', 'type', 'slug')
                 ->latest()
                 ->paginate(10);
