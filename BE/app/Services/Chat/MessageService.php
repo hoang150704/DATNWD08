@@ -68,10 +68,11 @@ class MessageService implements MessageServiceInterface
         return $message->fresh(['attachments']);
     }
 
-    public function getMessages(int $conversationId, int $limit = 50)
+    public function getMessages(int $conversationId, ?int $beforeId = null, int $limit = 50)
     {
-        return $this->messageRepositoryEloquent->getByConversation($conversationId, $limit);
+        return $this->messageRepositoryEloquent->getByConversation($conversationId, $beforeId, $limit);
     }
+    
 
     protected function validateSenderInConversation($conversation, $data): void
     {

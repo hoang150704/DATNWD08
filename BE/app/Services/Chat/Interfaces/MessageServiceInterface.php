@@ -6,5 +6,5 @@ interface MessageServiceInterface
 {
     //
     public function sendMessage(array $data);
-    public function getMessages(int $conversationId, int $limit = 50);
+    public function getMessages(int $conversationId, ?int $beforeId = null, int $limit = 50);
 }

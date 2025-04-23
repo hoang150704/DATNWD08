@@ -17,14 +17,20 @@ class MessageController extends Controller
         $this->messageService = $messageService;
     }
     //
-    public function getMessages($conversationId)
+    public function getMessages(Request $request, $conversationId)
     {
-        $messages = $this->messageService->getMessages($conversationId, 50);
-
+        $beforeId = $request->query('before_id'); // lấy tin nhắn trước ID này (nếu có)
+        $limit = 50;    // mặc định lấy 50 tin nhắn
+    
+        $messages = $this->messageService->getMessages($conversationId, $beforeId, $limit);
+    
         return response()->json([
-            'messages' => MessageResource::collection($messages)
+            'messages' => MessageResource::collection($messages),
+            'has_more' => count($messages) === (int) $limit,
+            'last_loaded_id' => $messages->first()?->id // để FE gửi before_id cho lần sau
         ]);
     }
+    
     //
     public function sendMessage(SendMessageRequest $request)
     {

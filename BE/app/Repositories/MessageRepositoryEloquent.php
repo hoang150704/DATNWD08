@@ -36,14 +36,20 @@ class MessageRepositoryEloquent extends BaseRepository implements MessageReposit
     }
     //
 
-    public function getByConversation(int $conversationId, int $limit = 50)
+    public function getByConversation(int $conversationId, ?int $beforeId = null, int $limit = 50)
     {
-        return Message::where('conversation_id', $conversationId)
-            ->latest()
-            ->limit($limit)
+        $query = Message::where('conversation_id', $conversationId)
             ->with('attachments')
+            ->orderByDesc('id');
+    
+        if ($beforeId) {
+            $query->where('id', '<', $beforeId);
+        }
+    
+        return $query->limit($limit)
             ->get()
             ->reverse()
-            ->values();
+            ->values(); // để đảm bảo thứ tự từ cũ → mới cho FE dễ hiển thị
     }
+    
 }

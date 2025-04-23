@@ -13,5 +13,5 @@ interface MessageRepository extends RepositoryInterface
 {
     //
     public function create(array $data);
-    public function getByConversation(int $conversationId, int $limit = 50);
+    public function getByConversation(int $conversationId, ?int $beforeId = null, int $limit = 50);
 }

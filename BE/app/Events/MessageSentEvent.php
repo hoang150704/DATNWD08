@@ -33,13 +33,26 @@ class MessageSentEvent implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'id'         => $this->message->id,
-            'content'    => $this->message->content,
-            'sender_id'  => $this->message->sender_id,
-            'sender_type' => $this->message->sender_type,
-            'guest_id'   => $this->message->guest_id,
-            'attachments' => $this->message->attachments,
-            'created_at' => $this->message->created_at->toDateTimeString(),
+            'id'              => $this->message->id,
+            'conversation_id' => $this->message->conversation_id,
+            'sender_type'     => $this->message->sender_type,
+            'sender_id'       => $this->message->sender_id,
+            'guest_id'        => $this->message->guest_id,
+            'sender_name'     => $this->message->getSenderName(),
+            'avatar'          => $this->message->getSenderAvatar(),
+            'type'            => $this->message->type ?? 'text',
+            'content'         => $this->message->content,
+            'attachments'     => $this->message->whenLoaded('attachments', function () {
+                return $this->message->attachments->map(function ($file) {
+                    return [
+                        'url'  => $file->file_url,
+                        'type' => $file->file_type ?? 'file',
+                        'name' => $file->file_name ?? null,
+                    ];
+                });
+            }),
+            'created_at'       => $this->message->created_at?->toDateTimeString(),
+            'created_at_human' => $this->message->created_at?->format('H:i'),
         ];
     }
 }
