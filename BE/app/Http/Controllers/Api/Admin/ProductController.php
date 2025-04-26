@@ -36,10 +36,7 @@ class ProductController extends Controller
 
             if (isset($params['category'])) {
                 if ($params['category'] === 'uncategorized') {
-                    $query->whereDoesntHave('categories')
-                        ->orWhereHas('categories', function($q) {
-                            $q->whereNull('category_id');
-                        });
+                    $query->doesntHave('categories');
                 } else {
                     $query->whereHas('categories', function ($query) use ($params) {
                         $query->where('categories.id', $params['category']);
@@ -48,13 +45,8 @@ class ProductController extends Controller
             }
 
             return $query
-                ->with(['categories' => function($query) {
-                    $query->select('categories.id', 'categories.name')
-                        ->withDefault([
-                            'id' => 'uncategorized',
-                            'name' => 'Chưa phân loại'
-                        ]);
-                }])
+                ->with('categories:id,name')
+                ->with('library')
                 ->select('id', 'name', 'main_image', 'type', 'slug')
                 ->latest()
                 ->paginate(10);
@@ -69,25 +61,34 @@ class ProductController extends Controller
     public function index()
     {
         try {
-            //code...
-
             $products = $this->search();
-
-            foreach ($products as $key => $value) {
-
-                if ($value->main_image == null) {
-                    $products[$key]['url'] = null;
+            
+            $transformedProducts = $products->through(function ($product) {
+                // Xử lý URL
+                if ($product->main_image == null || !$product->library) {
+                    $product->url = null;
                 } else {
-                    $url = Product::getConvertImage($value->library->url, 100, 100, 'thumb');
-                    $products[$key]['url'] = $url;
+                    $product->url = Product::getConvertImage($product->library->url, 100, 100, 'thumb');
                 }
-            }
-            return response()->json($products, 200);
+                
+                // Xử lý danh mục
+                if ($product->categories->isEmpty()) {
+                    // Nếu không có danh mục, gán một mảng chứa "Chưa phân loại"
+                    $product->categories = collect([[
+                        'id' => null,
+                        'name' => 'Chưa phân loại'
+                    ]]);
+                }
+                
+                return $product;
+            });
+
+            return response()->json($transformedProducts, 200);
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([
                 "message" => "Lỗi hệ thống",
-                "error" => $th->getMessage() // Trả về chi tiết lỗi
+                "error" => $th->getMessage()
             ], 500);
         }
     }
