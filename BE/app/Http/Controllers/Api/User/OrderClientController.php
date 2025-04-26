@@ -246,7 +246,7 @@ class OrderClientController extends Controller
             }
             // Thêm nhiều sản phẩm vào bảng `order_items`
             OrderItem::insert($orderItems);
-            // Gửi email xác nhận đơn hàng 
+            // Gửi email xác nhận đơn hàng
 
             SendMailSuccessOrderJob::dispatch($order);
             DB::commit();
@@ -602,7 +602,7 @@ class OrderClientController extends Controller
                 'statusLogs.toStatus',
             ])->where('code', $code)->first();
             if (!$order) {
-                return response()->json(['message' => 'Không timg thấy đơn hàng'], 404);
+                return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
             }
             //Check quyền
             $isVerified = $this->isVerifiedOrder($request, $order);
