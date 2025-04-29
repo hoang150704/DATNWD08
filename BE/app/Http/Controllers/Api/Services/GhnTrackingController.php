@@ -201,8 +201,9 @@ class GhnTrackingController extends Controller
                 'headers' => $customHeaders
             ]
         ]);
-
+        
         $postOrder = $responses['create_order'];
+        Log::info($postOrder);
         if ($postOrder['code'] == 200) {
             $mappedShippingStatus = ShippingStatusMapper::toShipping('ready_to_pick');
             $mappedShippingStatusId = ShippingStatus::idByCode($mappedShippingStatus);

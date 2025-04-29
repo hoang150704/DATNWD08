@@ -36,10 +36,12 @@ class ProductController extends Controller
 
             if (isset($params['category'])) {
                 if ($params['category'] === 'uncategorized') {
-                    $query->whereDoesntHave('categories')
-                        ->orWhereHas('categories', function($q) {
-                            $q->whereNull('category_id');
-                        });
+                    $query->where(function ($query) {
+                        $query->whereDoesntHave('categories')
+                            ->orWhereHas('categories', function ($q) {
+                                $q->whereNull('category_id');
+                            });
+                    });
                 } else {
                     $query->whereHas('categories', function ($query) use ($params) {
                         $query->where('categories.id', $params['category']);
@@ -48,13 +50,7 @@ class ProductController extends Controller
             }
 
             return $query
-                ->with(['categories' => function($query) {
-                    $query->select('categories.id', 'categories.name')
-                        ->withDefault([
-                            'id' => 'uncategorized',
-                            'name' => 'Chưa phân loại'
-                        ]);
-                }])
+                ->with(['categories:id,name'])
                 ->select('id', 'name', 'main_image', 'type', 'slug')
                 ->latest()
                 ->paginate(10);
