@@ -65,8 +65,6 @@ class ProductController extends Controller
     public function index()
     {
         try {
-            //code...
-
             $products = $this->search();
 
             foreach ($products as $key => $value) {
@@ -83,7 +81,7 @@ class ProductController extends Controller
             Log::error($th);
             return response()->json([
                 "message" => "Lỗi hệ thống",
-                "error" => $th->getMessage() // Trả về chi tiết lỗi
+                "error" => $th->getMessage()
             ], 500);
         }
     }
@@ -120,7 +118,7 @@ class ProductController extends Controller
             $categories = $validatedData['categories'] ?? [];
             $this->addCategories($categories, $product->id);
 
-            // Xử lí thêm sản phẩm biến thể hay đơn giản 
+            // Xử lí thêm sản phẩm biến thể hay đơn giản
             if ($request->type == 1) {
                 $this->createBasicProduct($validatedData['variants'], $product->id);
             } else {
@@ -234,7 +232,7 @@ class ProductController extends Controller
                     // Thêm biến thể
                     $this->createVariantProduct($validatedData['variants'], $validatedData['attributes'], $id);
                 }
-            } else { // Trước đó là sp biến thể 
+            } else { // Trước đó là sp biến thể
                 if ($dataProduct['type'] == 1) { // sau update là sp đơn giản
                     //Ẩn biến thể cũ
                     $this->deletProductVaration($product);
