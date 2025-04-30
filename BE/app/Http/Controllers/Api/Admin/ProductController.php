@@ -36,7 +36,12 @@ class ProductController extends Controller
 
             if (isset($params['category'])) {
                 if ($params['category'] === 'uncategorized') {
-                    $query->doesntHave('categories');
+                    $query->where(function ($query) {
+                        $query->whereDoesntHave('categories')
+                            ->orWhereHas('categories', function ($q) {
+                                $q->whereNull('category_id');
+                            });
+                    });
                 } else {
                     $query->whereHas('categories', function ($query) use ($params) {
                         $query->where('categories.id', $params['category']);
@@ -45,8 +50,7 @@ class ProductController extends Controller
             }
 
             return $query
-                ->with('categories:id,name')
-                ->with('library')
+                ->with(['categories:id,name'])
                 ->select('id', 'name', 'main_image', 'type', 'slug')
                 ->latest()
                 ->paginate(10);
@@ -62,28 +66,17 @@ class ProductController extends Controller
     {
         try {
             $products = $this->search();
-            
-            $transformedProducts = $products->through(function ($product) {
-                // Xử lý URL
-                if ($product->main_image == null || !$product->library) {
-                    $product->url = null;
-                } else {
-                    $product->url = Product::getConvertImage($product->library->url, 100, 100, 'thumb');
-                }
-                
-                // Xử lý danh mục
-                if ($product->categories->isEmpty()) {
-                    // Nếu không có danh mục, gán một mảng chứa "Chưa phân loại"
-                    $product->categories = collect([[
-                        'id' => null,
-                        'name' => 'Chưa phân loại'
-                    ]]);
-                }
-                
-                return $product;
-            });
 
-            return response()->json($transformedProducts, 200);
+            foreach ($products as $key => $value) {
+
+                if ($value->main_image == null) {
+                    $products[$key]['url'] = null;
+                } else {
+                    $url = Product::getConvertImage($value->library->url, 100, 100, 'thumb');
+                    $products[$key]['url'] = $url;
+                }
+            }
+            return response()->json($products, 200);
         } catch (\Throwable $th) {
             Log::error($th);
             return response()->json([
@@ -125,7 +118,7 @@ class ProductController extends Controller
             $categories = $validatedData['categories'] ?? [];
             $this->addCategories($categories, $product->id);
 
-            // Xử lí thêm sản phẩm biến thể hay đơn giản 
+            // Xử lí thêm sản phẩm biến thể hay đơn giản
             if ($request->type == 1) {
                 $this->createBasicProduct($validatedData['variants'], $product->id);
             } else {
@@ -239,7 +232,7 @@ class ProductController extends Controller
                     // Thêm biến thể
                     $this->createVariantProduct($validatedData['variants'], $validatedData['attributes'], $id);
                 }
-            } else { // Trước đó là sp biến thể 
+            } else { // Trước đó là sp biến thể
                 if ($dataProduct['type'] == 1) { // sau update là sp đơn giản
                     //Ẩn biến thể cũ
                     $this->deletProductVaration($product);
