@@ -962,7 +962,7 @@ class OrderClientController extends Controller
             // Tạo đánh giá mới
             $data = [
                 'order_id' => $order->id,
-                'user_id'  => $order->user_id,
+                'user_id' => $order->user_id,
                 'order_item_id' => $orderItem->id,
                 'product_id' => $request->product_id,
                 'rating' => $request->rating,
@@ -972,7 +972,6 @@ class OrderClientController extends Controller
                 'customer_email' => $order->user_id === null ? $order->o_email : null,
                 'is_updated' => false,
             ];
-
 
             ModelsComment::create($data);
             $this->updateProductAverageRating($orderItem->product_id);

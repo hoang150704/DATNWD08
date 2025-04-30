@@ -102,112 +102,112 @@ class ReviewController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
-        try {
-            $request->validate([
-                'order_id' => 'required|integer|exists:orders,id',
-                'order_item_id' => 'required|integer|exists:order_items,id',
-                'rating' => 'required|integer|min:1|max:5',
-                'content' => 'required|string|min:5|max:3000',
-                'images' => 'nullable|array',
-                'images.*' => 'string|url',
-            ]);
+    // public function store(Request $request)
+    // {
+    //     try {
+    //         $request->validate([
+    //             'order_id' => 'required|integer|exists:orders,id',
+    //             'order_item_id' => 'required|integer|exists:order_items,id',
+    //             'rating' => 'required|integer|min:1|max:5',
+    //             'content' => 'required|string|min:5|max:3000',
+    //             'images' => 'nullable|array',
+    //             'images.*' => 'string|url',
+    //         ]);
 
-            $user = auth('sanctum')->user();
+    //         $user = auth('sanctum')->user();
 
-            // Lấy đơn hàng và item
-            $order = Order::findOrFail($request->order_id);
-            $orderItem = OrderItem::where('order_id', $request->order_id)
-                ->where('id', $request->order_item_id)
-                ->first();
+    //         // Lấy đơn hàng và item
+    //         $order = Order::findOrFail($request->order_id);
+    //         $orderItem = OrderItem::where('order_id', $request->order_id)
+    //             ->where('id', $request->order_item_id)
+    //             ->first();
 
-            if (!$orderItem) {
-                return response()->json([
-                    'message' => 'Không tìm thấy sản phẩm trong đơn hàng'
-                ], 404);
-            }
+    //         if (!$orderItem) {
+    //             return response()->json([
+    //                 'message' => 'Không tìm thấy sản phẩm trong đơn hàng'
+    //             ], 404);
+    //         }
 
-            // Kiểm tra quyền đánh giá
-            if ($order->user_id !== $user->id) {
-                return response()->json([
-                    'message' => 'Bạn không có quyền đánh giá sản phẩm này'
-                ], 403);
-            }
+    //         // Kiểm tra quyền đánh giá
+    //         if ($order->user_id !== $user->id) {
+    //             return response()->json([
+    //                 'message' => 'Bạn không có quyền đánh giá sản phẩm này'
+    //             ], 403);
+    //         }
 
-            // Kiểm tra trạng thái đơn hàng
-            if (!in_array($order->status->code, ['completed', 'closed'])) {
-                return response()->json([
-                    'message' => 'Bạn chỉ có thể đánh giá khi đơn hàng đã hoàn thành'
-                ], 400);
-            }
+    //         // Kiểm tra trạng thái đơn hàng
+    //         if (!in_array($order->status->code, ['completed', 'closed'])) {
+    //             return response()->json([
+    //                 'message' => 'Bạn chỉ có thể đánh giá khi đơn hàng đã hoàn thành'
+    //             ], 400);
+    //         }
 
-            // Kiểm tra đã đánh giá chưa
-            $existingReview = Comment::where('order_id', $request->order_id)
-                ->where('order_item_id', $request->order_item_id)
-                ->first();
+    //         // Kiểm tra đã đánh giá chưa
+    //         $existingReview = Comment::where('order_id', $request->order_id)
+    //             ->where('order_item_id', $request->order_item_id)
+    //             ->first();
 
-            if ($existingReview) {
-                if ($existingReview->is_updated) {
-                    return response()->json([
-                        'message' => 'Bạn đã chỉnh sửa đánh giá, không thể cập nhật thêm'
-                    ], 400);
-                }
+    //         if ($existingReview) {
+    //             if ($existingReview->is_updated) {
+    //                 return response()->json([
+    //                     'message' => 'Bạn đã chỉnh sửa đánh giá, không thể cập nhật thêm'
+    //                 ], 400);
+    //             }
 
-                // Cho phép chỉnh sửa 1 lần
-                $existingReview->update([
-                    'rating' => $request->rating,
-                    'content' => $request->content,
-                    'images' => $request->images,
-                    'is_updated' => true,
-                ]);
+    //             // Cho phép chỉnh sửa 1 lần
+    //             $existingReview->update([
+    //                 'rating' => $request->rating,
+    //                 'content' => $request->content,
+    //                 'images' => $request->images,
+    //                 'is_updated' => true,
+    //             ]);
 
-                $this->updateProductAverageRating($orderItem->product_id);
-                return response()->json([
-                    'message' => 'Đã cập nhật đánh giá thành công',
-                    'data' => $existingReview
-                ]);
-            }
+    //             $this->updateProductAverageRating($orderItem->product_id);
+    //             return response()->json([
+    //                 'message' => 'Đã cập nhật đánh giá thành công',
+    //                 'data' => $existingReview
+    //             ]);
+    //         }
 
-            // Tạo đánh giá mới
-            $review = Comment::create([
-                'order_id' => $order->id,
-                'order_item_id' => $orderItem->id,
-                'product_id' => $orderItem->product_id,
-                'user_id' => $user->id,
-                'rating' => $request->rating,
-                'content' => $request->content,
-                'images' => $request->images,
-                'is_active' => true,
-                'is_updated' => false
-            ]);
+    //         // Tạo đánh giá mới
+    //         $review = Comment::create([
+    //             'order_id' => $order->id,
+    //             'order_item_id' => $orderItem->id,
+    //             'product_id' => $orderItem->product_id,
+    //             'user_id' => $user->id,
+    //             'rating' => $request->rating,
+    //             'content' => $request->content,
+    //             'images' => $request->images,
+    //             'is_active' => true,
+    //             'is_updated' => false
+    //         ]);
 
-            // Cập nhật điểm trung bình của sản phẩm
-            $this->updateProductAverageRating($orderItem->product_id);
+    //         // Cập nhật điểm trung bình của sản phẩm
+    //         $this->updateProductAverageRating($orderItem->product_id);
 
-            // Gửi event thông báo có đánh giá mới
-            event(new NewCommentSubmitted($review));
+    //         // Gửi event thông báo có đánh giá mới
+    //         event(new NewCommentSubmitted($review));
 
-            return response()->json([
-                'message' => 'Đánh giá thành công',
-                'data' => $review
-            ], 201);
+    //         return response()->json([
+    //             'message' => 'Đánh giá thành công',
+    //             'data' => $review
+    //         ], 201);
 
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Có lỗi xảy ra',
-                'error' => $th->getMessage()
-            ], 500);
-        }
-    }
+    //     } catch (\Throwable $th) {
+    //         return response()->json([
+    //             'message' => 'Có lỗi xảy ra',
+    //             'error' => $th->getMessage()
+    //         ], 500);
+    //     }
+    // }
 
-    private function updateProductAverageRating($productId)
-    {
-        $avgRating = Comment::where('product_id', $productId)
-            ->where('is_active', true)
-            ->avg('rating');
+    // private function updateProductAverageRating($productId)
+    // {
+    //     $avgRating = Comment::where('product_id', $productId)
+    //         ->where('is_active', true)
+    //         ->avg('rating');
 
-        \App\Models\Product::where('id', $productId)
-            ->update(['avg_rating' => round($avgRating, 1)]);
-    }
+    //     \App\Models\Product::where('id', $productId)
+    //         ->update(['avg_rating' => round($avgRating, 1)]);
+    // }
 }

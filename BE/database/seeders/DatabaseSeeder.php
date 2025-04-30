@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
             ProductAttributeSeeder::class,
             VoucherSeeder::class,
             VoucherUsageSeeder::class,
-            CommentSeeder::class,
+            // CommentSeeder::class,
             StatusOrder::class,
             OrderSeeder::class,
             OrderItemSeeder::class,
