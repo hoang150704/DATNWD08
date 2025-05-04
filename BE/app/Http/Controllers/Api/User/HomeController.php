@@ -11,98 +11,98 @@ use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
-    public function index()
-    {
-        try {
-            // Lấy banner
-            $banners = Banner::where('is_active', true)->get();
-            $formattedBanners = $banners->map(function ($banner) {
-                return [
-                    'id' => $banner->id,
-                    'image_url' => $banner->image_url,
-                    'link' => $banner->link
-                ];
-            });
+    // public function index()
+    // {
+    //     try {
+    //         // Lấy banner
+    //         $banners = Banner::where('is_active', true)->get();
+    //         $formattedBanners = $banners->map(function ($banner) {
+    //             return [
+    //                 'id' => $banner->id,
+    //                 'image_url' => $banner->image_url,
+    //                 'link' => $banner->link
+    //             ];
+    //         });
 
-            // Lấy danh mục
-            $categories = Category::where('is_active', true)
-                ->orderBy('position')
-                ->get();
-            $formattedCategories = $categories->map(function ($category) {
-                return [
-                    'id' => $category->id,
-                    'name' => $category->name,
-                    'slug' => $category->slug,
-                    'image_url' => $category->image_url
-                ];
-            });
+    //         // Lấy danh mục
+    //         $categories = Category::where('is_active', true)
+    //             ->orderBy('position')
+    //             ->get();
+    //         $formattedCategories = $categories->map(function ($category) {
+    //             return [
+    //                 'id' => $category->id,
+    //                 'name' => $category->name,
+    //                 'slug' => $category->slug,
+    //                 'image_url' => $category->image_url
+    //             ];
+    //         });
 
-            // Lấy sản phẩm mới
-            $newProducts = Product::with(['library', 'variants'])
-                ->where('is_active', 1) // Chỉ lấy sản phẩm đang active
-                ->orderBy('created_at', 'desc')
-                ->take(8)
-                ->get();
+    //         // Lấy sản phẩm mới
+    //         $newProducts = Product::with(['library', 'variants'])
+    //             ->where('is_active', 1) // Chỉ lấy sản phẩm đang active
+    //             ->orderBy('created_at', 'desc')
+    //             ->take(8)
+    //             ->get();
 
-            $formattedNewProducts = $newProducts->map(function ($product) {
-                $price = 0;
-                if ($product->variants->isNotEmpty()) {
-                    $firstVariant = $product->variants->first();
-                    $price = $firstVariant->sale_price > 0 ? $firstVariant->sale_price : $firstVariant->regular_price;
-                }
+    //         $formattedNewProducts = $newProducts->map(function ($product) {
+    //             $price = 0;
+    //             if ($product->variants->isNotEmpty()) {
+    //                 $firstVariant = $product->variants->first();
+    //                 $price = $firstVariant->sale_price > 0 ? $firstVariant->sale_price : $firstVariant->regular_price;
+    //             }
 
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'slug' => $product->slug,
-                    'price' => $price == 0 ? "Giá liên hệ" : $price,
-                    'main_image' => $product->main_image ? Product::getConvertImage($product->library->url, 800, 800, 'thumb') : null,
-                ];
-            });
+    //             return [
+    //                 'id' => $product->id,
+    //                 'name' => $product->name,
+    //                 'slug' => $product->slug,
+    //                 'price' => $price == 0 ? "Giá liên hệ" : $price,
+    //                 'main_image' => $product->main_image ? Product::getConvertImage($product->library->url, 800, 800, 'thumb') : null,
+    //             ];
+    //         });
 
-            // Lấy sản phẩm hot
-            $hotProducts = Product::with(['library', 'variants'])
-                ->where('is_active', 1) // Chỉ lấy sản phẩm đang active
-                ->where('is_hot', true)
-                ->orderBy('created_at', 'desc')
-                ->take(8)
-                ->get();
+    //         // Lấy sản phẩm hot
+    //         $hotProducts = Product::with(['library', 'variants'])
+    //             ->where('is_active', 1) // Chỉ lấy sản phẩm đang active
+    //             ->where('is_hot', true)
+    //             ->orderBy('created_at', 'desc')
+    //             ->take(8)
+    //             ->get();
 
-            $formattedHotProducts = $hotProducts->map(function ($product) {
-                $price = 0;
-                if ($product->variants->isNotEmpty()) {
-                    $firstVariant = $product->variants->first();
-                    $price = $firstVariant->sale_price > 0 ? $firstVariant->sale_price : $firstVariant->regular_price;
-                }
+    //         $formattedHotProducts = $hotProducts->map(function ($product) {
+    //             $price = 0;
+    //             if ($product->variants->isNotEmpty()) {
+    //                 $firstVariant = $product->variants->first();
+    //                 $price = $firstVariant->sale_price > 0 ? $firstVariant->sale_price : $firstVariant->regular_price;
+    //             }
 
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'slug' => $product->slug,
-                    'price' => $price == 0 ? "Giá liên hệ" : $price,
-                    'main_image' => $product->main_image ? Product::getConvertImage($product->library->url, 800, 800, 'thumb') : null,
-                ];
-            });
+    //             return [
+    //                 'id' => $product->id,
+    //                 'name' => $product->name,
+    //                 'slug' => $product->slug,
+    //                 'price' => $price == 0 ? "Giá liên hệ" : $price,
+    //                 'main_image' => $product->main_image ? Product::getConvertImage($product->library->url, 800, 800, 'thumb') : null,
+    //             ];
+    //         });
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Lấy dữ liệu trang chủ thành công',
-                'data' => [
-                    'banners' => $formattedBanners,
-                    'categories' => $formattedCategories,
-                    'new_products' => $formattedNewProducts,
-                    'hot_products' => $formattedHotProducts
-                ]
-            ]);
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'message' => 'Lấy dữ liệu trang chủ thành công',
+    //             'data' => [
+    //                 'banners' => $formattedBanners,
+    //                 'categories' => $formattedCategories,
+    //                 'new_products' => $formattedNewProducts,
+    //                 'hot_products' => $formattedHotProducts
+    //             ]
+    //         ]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Lỗi hệ thống',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Lỗi hệ thống',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
 
     public function getLatestProducts()
     {

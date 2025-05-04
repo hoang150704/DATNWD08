@@ -5,60 +5,48 @@ namespace App\Http\Controllers\Api\User;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductVariation;
 use Illuminate\Http\Request;
 
 class ShopController extends Controller
 {
     public function getAllProducts(Request $request)
     {
-        // Lấy giá trị sort_by và price range từ request
-        $sortBy     = $request->input('sort_by', 'default'); // Mặc định là 'default'
-        $minPrice   = $request->input('min_price', null); // Giá tối thiểu
-        $maxPrice   = $request->input('max_price', null); // Giá tối đa
-    
-        // Bắt đầu xây dựng query cho products
-        $query = Product::with(['library', 'variants']);
-    
-        // 1. Xử lý lọc theo khoảng giá
-        $query = $this->filterByPriceRange($query, $minPrice, $maxPrice);
-    
-        // 2. Lấy tất cả sản phẩm
-        $products = $query->get();
-    
-        // 3. Xử lý sắp xếp
-        $products = $this->sortByPrice($products, $sortBy);
-    
-        if ($sortBy == 'top_rated') {
-            $products = Product::withAvg('comments', 'rating')
-                ->orderByDesc('comments_avg_rating')
-                ->get();
-        }
-    
-        // 4. Phân trang thủ công
-        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage();
-        $perPage = 9;
-        $pagedData = $products->slice(($currentPage - 1) * $perPage, $perPage)->values();
-        $products = new \Illuminate\Pagination\LengthAwarePaginator(
-            $pagedData,
-            $products->count(),
-            $perPage,
-            $currentPage,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
-    
-        // Xử lý hiển thị hình ảnh và giá sản phẩm
-        $products->getCollection()->transform(function ($product) {
+        $sort = $request->query('sort', 'default');
+
+        // Lấy sản phẩm đang hoạt động
+        $products = Product::with(['library', 'variants'])
+            ->where('is_active', 1)
+            ->get();
+
+        // Xử lý ảnh và giá cho từng sản phẩm
+        $products->transform(function ($product) {
             $product->url = $product->main_image ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb') : null;
-    
+
             $price = $this->getVariantPrice($product);
             $product->regular_price = $price['regular_price'];
             $product->sale_price = $price['sale_price'];
-    
+
             return $product;
         });
-    
+
+        // Sắp xếp theo yêu cầu
+        if ($sort === 'price_asc') {
+            $products = $products->sortBy('regular_price')->values();
+        } elseif ($sort === 'price_desc') {
+            $products = $products->sortByDesc('regular_price')->values();
+        } else {
+            // Mặc định: sắp xếp mới nhất
+            $products = $products->sortByDesc('created_at')->values();
+        }
+
+        // Giới hạn 10 sản phẩm như cũ
+        $products = $products->take(10);
+
         return response()->json($products, 200);
     }
+
+
 
     private function filterByPriceRange($query, $minPrice, $maxPrice)
     {
@@ -125,12 +113,12 @@ class ShopController extends Controller
         return response()->json($categories, 200);
     }
 
-    public function getProductsByCategory($category_id,Request $request )
+    public function getProductsByCategory($category_id, Request $request)
     {
         // Kiểm tra danh mục có tồn tại không
-        $sortBy     = $request->input('sort_by', 'default'); // Mặc định là 'default'
-        $minPrice   = $request->input('min_price', null); // Giá tối thiểu
-        $maxPrice   = $request->input('max_price', null); // Giá tối đa
+        $sortBy = $request->input('sort_by', 'default'); // Mặc định là 'default'
+        $minPrice = $request->input('min_price', null); // Giá tối thiểu
+        $maxPrice = $request->input('max_price', null); // Giá tối đa
         $category = Category::find($category_id);
         if (!$category) {
             return response()->json(['message' => 'Danh mục không tồn tại!'], 404);
