@@ -366,7 +366,7 @@ class AuthController extends Controller
             $response = Http::get('https://www.googleapis.com/oauth2/v3/tokeninfo', [
                 'id_token' => $token
             ]);
-            // nếu thất bại thù 
+            // nếu thất bại thì 
             if ($response->failed() || !isset($response['email'])) {
                 return response()->json(['error' => 'Xác thực thất bại'], 401);
             }
@@ -412,6 +412,14 @@ class AuthController extends Controller
                     'email_verified_at' => now()
                 ]);
             }
+
+            if ($user->is_active != 1) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.',
+                    'error' => 'Account blocked'
+                ], 403);
+            } 
 
             // Tạo token đăng nhập
             $accessToken = $user->createToken('authToken', ['*'], now()->addWeeks(1))->plainTextToken;
