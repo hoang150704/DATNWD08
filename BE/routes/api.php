@@ -71,7 +71,6 @@ Route::get('/search_order', [OrderClientController::class, 'searchOrderByCode'])
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
-Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
 
 
 //Chi tiết sản phẩm

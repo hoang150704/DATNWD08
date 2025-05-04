@@ -152,17 +152,37 @@ class HomeController extends Controller
 
     public function getProductsByCategory($slug)
     {
+
+        $minPrice = request('minPrice');
+        $maxPrice = request('maxPrice');
+        $sort = request('sort');
+
         // Kiểm tra danh mục có tồn tại không
-        $category = Category::where('slug',$slug)->first();
+        $category = Category::where('slug', $slug)->first();
         if (!$category) {
             return response()->json(['message' => 'Không tìm thấy danh mục!'], 404);
         }
 
         // Lấy danh sách sản phẩm thuộc danh mục đó
-        $products = $category->products()
-            ->with(['library', 'variants']) // Load thêm ảnh và biến thể sản phẩm
-            ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo
-            ->paginate(8);
+        $query = $category->products()
+            ->with(['library', 'variants']); // Load thêm ảnh và biến thể sản phẩm
+
+        // Lọc theo khoảng giá nếu có
+        if ($minPrice && $maxPrice) {
+            $query->whereHas('variants', function ($q) use ($minPrice, $maxPrice) {
+                $q->whereBetween('regular_price', [$minPrice, $maxPrice]);
+            });
+        }
+
+        if ($sort === 'price_asc') {
+            $query->withMin('variants', 'regular_price')->orderBy('variants_min_regular_price', 'asc');
+        } elseif ($sort === 'price_desc') {
+            $query->withMax('variants', 'regular_price')->orderBy('variants_max_regular_price', 'desc');
+        } else {
+            $query->orderByDesc('created_at'); // mặc định
+        }
+
+        $products = $query->paginate(8);
 
         $products->transform(function ($product) {
             $product->url = $product->main_image ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb') : null;
