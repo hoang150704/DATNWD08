@@ -216,7 +216,7 @@ class OrderClientController extends Controller
                 $variation = $variant->getFormattedVariation();
                 // Kiểm tra tồn kho trước khi trừ
                 if ($variant->stock_quantity < $product['quantity']) {
-                    DB::rollBack();
+                    DB::rollBack();git 
                     return response()->json([
                         'message' => 'Sản phẩm "' . $product['name'] . '" không đủ hàng tồn kho'
                     ], 400);

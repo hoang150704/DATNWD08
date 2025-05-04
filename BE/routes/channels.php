@@ -43,3 +43,7 @@ Broadcast::channel('admin', function ($user) {
 
     return false;
 });
+
+Broadcast::channel('conversation.{id}', function () {
+    return true; // hoặc kiểm tra quyền nếu cần
+});
