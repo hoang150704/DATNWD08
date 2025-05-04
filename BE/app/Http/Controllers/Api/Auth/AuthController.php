@@ -128,10 +128,19 @@ class AuthController extends Controller
             return response()->json(['message' => 'Vui lòng xác thực email trước khi đăng nhập!'], 403);
         }
 
+        if ($user->is_active != 1) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.',
+                'error' => 'Account blocked'
+            ], 403);
+        }
+
         // Kiểm tra mật khẩu
         if (!Auth::attempt($request->only('username', 'password'))) {
             return response()->json(['message' => 'Email hoặc mật khẩu không chính xác!'], 401);
         }
+
 
         // Xóa token cũ nếu người dùng đăng nhập lại (tránh trùng lặp token)
         $user->tokens()->delete();
