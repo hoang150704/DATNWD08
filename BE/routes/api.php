@@ -50,7 +50,7 @@ Route::prefix('ghn')->group(function () {
     Route::post('/get_time_and_fee', [GhnTrackingController::class, 'getFeeAndTimeTracking']);
     Route::post('/post_order/{id}', [GhnTrackingController::class, 'postOrderGHN']);
     Route::post('/cancel_order', [GhnTrackingController::class, 'cancelOrderGhn']);
-    Route::post('/webhook', [GhnTrackingController::class, 'callBackWebHook'])->middleware('ghn');
+    Route::post('/webhook', [GhnTrackingController::class, 'callBackWebHook']);
 });
 // Trang chủ
 Route::get('/latest-products', [HomeController::class, 'getLatestProducts']);
@@ -71,7 +71,6 @@ Route::get('/search_order', [OrderClientController::class, 'searchOrderByCode'])
 // Cửa hàng
 Route::get('/products', [ShopController::class, 'getAllProducts']);
 Route::get('/categories', [ShopController::class, 'getAllCategories']);
-Route::get('/categories/{category_id}/products', [ShopController::class, 'getProductsByCategory']);
 
 
 //Chi tiết sản phẩm

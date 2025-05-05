@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\Product\UpdateProductVariationRequest;
 use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\ProductVariationValue;
+use App\Services\ProductVariation as ServicesProductVariation;
 use Dotenv\Exception\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -235,6 +236,14 @@ class ProductVariationController extends Controller
             //code...
             DB::beginTransaction();
             $product_variant = ProductVariation::findOrFail($id);
+            $usedVariants = app(ServicesProductVariation::class)
+            ->checkVariantUsedInActiveOrders([$id]);
+
+        if (in_array($id, $usedVariants)) {
+            return response()->json([
+                'message' => "Biến thể đang được sử dụng trong đơn hàng, không thể xóa."
+            ], 422);
+        }
             ProductVariationValue::where('variation_id', $id)->delete();
             $product_variant->delete();
             DB::commit();

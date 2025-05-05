@@ -144,13 +144,13 @@ class CartController extends Controller
 
                 // Kiểm tra nếu biến thể hoặc sản phẩm đã bị xóa mềm
                 if (!$variation || !$variation->product || $variation->trashed() || $variation->product->trashed()) {
-                    // Xóa item khỏi giỏ hàng 
+                    // Xóa item khỏi giỏ hàng
                     $cartItem->delete();
                     continue;
-                    //TIếp tục 
+                    //TIếp tục
                 }
 
-                // check số lượng tồn kho 
+                // check số lượng tồn kho
 
                 if ($variation->stock_quantity < $cartItem->quantity) {
                     // cập nhật số lựng cho = với số lượng trong kho
@@ -210,7 +210,7 @@ class CartController extends Controller
             if ($statusCheck) {
                 return $statusCheck;
             }
-    
+
             // Validate request (kiểm tra dữ liệu đầu vào)
             request()->validate([
                 'variant_id' => 'required|integer|exists:product_variations,id',
@@ -223,27 +223,27 @@ class CartController extends Controller
                 'quantity.integer' => 'Số lượng phải là số nguyên.',
                 'quantity.min' => 'Số lượng không được nhỏ hơn 1.',
             ]);
-    
+
             $variationId = request('variant_id');
             $newQuantity = request('quantity');
-    
+
             // Tìm biến thể sản phẩm trong database
             $productVariation = ProductVariation::find($variationId);
             if (!$productVariation) {
                 return response()->json(['message' => 'Sản phẩm không tồn tại'], 404);
             }
-    
+
             // Kiểm tra hoặc tạo giỏ hàng cho user
             $cart = Cart::firstOrCreate(['user_id' => $user->id]);
-    
+
             // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
             $cartItem = CartItem::where('cart_id', $cart->id)
                 ->where('variation_id', $variationId)
                 ->first();
-    
+
             // Lấy số lượng hiện có trong giỏ hàng
             $existingQuantity = $cartItem ? $cartItem->quantity : 0;
-    
+
             // Tính tổng số lượng sau khi thêm vào
             $totalQuantity = $existingQuantity + $newQuantity;
 
@@ -251,6 +251,7 @@ class CartController extends Controller
             if ($totalQuantity > 20) {
                 return response()->json([
                     'message' => 'Số lượng tối đa cho một sản phẩm là 20!',
+                    'variation_id'=>$variationId,
                     'cart_quantity_now' => $existingQuantity,
                     'quantity_member_add' => $newQuantity,
                     'max_can_add' => 20 - $existingQuantity
@@ -276,19 +277,20 @@ class CartController extends Controller
             if ($totalQuantity > $productVariation->stock_quantity) {
                 return response()->json([
                     'message' => 'Số lượng trong giỏ hàng vượt quá số lượng tồn kho!',
+                    'variation_id'=>$variationId,
                     'stock_quantity' => $productVariation->stock_quantity,
                     'cart_quantity_now' => $existingQuantity,
                     'quantity_member_add' => $newQuantity,
                     'max_can_add' => $productVariation->stock_quantity - $existingQuantity
                 ], 400);
             }
-    
+
             // Cập nhật hoặc thêm mới sản phẩm vào giỏ hàng
             $cartItem = CartItem::updateOrCreate(
                 ['cart_id' => $cart->id, 'variation_id' => $variationId],
                 ['quantity' => $totalQuantity]
             );
-    
+
             return response()->json([
                 'message' => 'Sản phẩm đã được thêm vào giỏ hàng!',
                 'data' => $cartItem
@@ -300,8 +302,8 @@ class CartController extends Controller
             ], 500);
         }
     }
-    
-    
+
+
     // xóa items
     public function removeItem($id)
     {
@@ -387,7 +389,8 @@ class CartController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Số lượng tối đa cho một sản phẩm là 20!',
-                    'cart_quantity_now' => $newQuantity - 1,
+                    'variation_id'=>$variationId,
+                    'cart_quantity_now' => 20,
                     'quantity_want_to_change' => $newQuantity,
                     'max_allowed' => 20
                 ], 400);
@@ -415,9 +418,11 @@ class CartController extends Controller
             if ($totalCartQuantity > 100) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Tổng số lượng trong giỏ hàng không được vượt quá 100!',
+                    'message' => 'Tổng số lượng trong giỏ hàng không được vượt quá 100. Tổng số lượng khi bạn cập nhật là '.$totalCartQuantity,
                     'current_cart_total' => $totalCartQuantity - $newQuantity,
                     'quantity_want_to_change' => $newQuantity,
+                    'variation_id' => $variationId,
+                    'cart_quantity_now' => $updateItem->quantity,
                     'max_can_change' => 100 - ($totalCartQuantity - $newQuantity)
                 ], 400);
             }
@@ -436,6 +441,7 @@ class CartController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Số lượng yêu cầu vượt quá số lượng tồn kho',
+                    'variation_id'=>$variationId,
                     'stock_quantity' => $productVariation->stock_quantity,
                     'cart_quantity_now' => $updateItem->quantity,
                     'quantity_want_to_change' => $newQuantity,

@@ -35,6 +35,18 @@ class AuthController extends Controller
                 'email' => 'required|email|unique:users,email',
                 'username' => 'required|max:50|unique:users,username',
                 'password' => 'required|min:8|max:25|confirmed',
+            ], [
+                'name.required' => 'Vui lòng nhập họ tên!',
+                'email.required' => 'Vui lòng nhập email!',
+                'email.email' => 'Email không hợp lệ!',
+                'email.unique' => 'Email này đã được sử dụng!',
+                'username.required' => 'Vui lòng nhập tên đăng nhập!',
+                'username.max' => 'Tên đăng nhập không được vượt quá 50 ký tự!',
+                'username.unique' => 'Tên đăng nhập này đã được sử dụng!',
+                'password.required' => 'Vui lòng nhập mật khẩu!',
+                'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự!',
+                'password.max' => 'Mật khẩu không được vượt quá 25 ký tự!',
+                'password.confirmed' => 'Xác nhận mật khẩu không khớp!'
             ]);
 
             // Tạo user nhưng chưa xác thực email
@@ -59,7 +71,7 @@ class AuthController extends Controller
         } catch (\Throwable $th) {
             DB::rollBack(); // Nếu lỗi, quay lại trạng thái cũ
             Log::error("Lỗi đăng ký: " . $th->getMessage());
-            return response()->json(['message' => 'Lỗi đăng ký', 'errors' => $th->getMessage()], 500);
+            return response()->json(['message' => $th->getMessage() ], 500);
         }
     }
 
@@ -128,10 +140,19 @@ class AuthController extends Controller
             return response()->json(['message' => 'Vui lòng xác thực email trước khi đăng nhập!'], 403);
         }
 
+        if ($user->is_active != 1) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.',
+                'error' => 'Account blocked'
+            ], 403);
+        }
+
         // Kiểm tra mật khẩu
         if (!Auth::attempt($request->only('username', 'password'))) {
             return response()->json(['message' => 'Mật khẩu không chính xác!'], 401);
         }
+
 
         // Xóa token cũ nếu người dùng đăng nhập lại (tránh trùng lặp token)
         $user->tokens()->delete();
@@ -357,7 +378,7 @@ class AuthController extends Controller
             $response = Http::get('https://www.googleapis.com/oauth2/v3/tokeninfo', [
                 'id_token' => $token
             ]);
-            // nếu thất bại thù
+            // nếu thất bại thì
             if ($response->failed() || !isset($response['email'])) {
                 return response()->json(['error' => 'Xác thực thất bại'], 401);
             }
@@ -402,6 +423,14 @@ class AuthController extends Controller
                     'avatar' => $avatar,
                     'email_verified_at' => now()
                 ]);
+            }
+
+            if ($user->is_active != 1) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.',
+                    'error' => 'Account blocked'
+                ], 403);
             }
 
             // Tạo token đăng nhập

@@ -26,7 +26,7 @@ class CategorySeeder extends Seeder
             [
                 "name" => "Áo Polo",
                 "slug" => "ao-polo",
-                "parent_id" => 2.0,
+                "parent_id" => 1.0,
                 "deleted_at" => null,
                 "created_at" => now(),
                 "updated_at" => now(),
@@ -58,7 +58,7 @@ class CategorySeeder extends Seeder
             [
                 "name" => "Áo Jacket",
                 "slug" => "ao-jacket",
-                "parent_id" => 2.0,
+                "parent_id" => 1.0,
                 "deleted_at" => null,
                 "created_at" => now(),
                 "updated_at" => now(),
@@ -66,7 +66,7 @@ class CategorySeeder extends Seeder
             [
                 "name" => "Áo Sơ Mi",
                 "slug" => "ao-so-mi",
-                "parent_id" => 2.0,
+                "parent_id" => 1.0,
                 "deleted_at" => null,
                 "created_at" => now(),
                 "updated_at" => now(),
@@ -74,7 +74,7 @@ class CategorySeeder extends Seeder
             [
                 "name" => "Áo Thun",
                 "slug" => "ao-thun",
-                "parent_id" => 2.0,
+                "parent_id" => 1.0,
                 "deleted_at" => null,
                 "created_at" => now(),
                 "updated_at" => now(),

@@ -14,6 +14,16 @@ class HomeController extends Controller
     public function index()
     {
         try {
+            // Lấy banner
+            // $banners = Banner::where('is_active', true)->get();
+            // $formattedBanners = $banners->map(function ($banner) {
+            //     return [
+            //         'id' => $banner->id,
+            //         'image_url' => $banner->image_url,
+            //         'link' => $banner->link
+            //     ];
+            // });
+
             // Lấy danh mục
             $categories = Category::where('is_active', true)
                 ->orderBy('position')
@@ -78,6 +88,7 @@ class HomeController extends Controller
                 'status' => 'success',
                 'message' => 'Lấy dữ liệu trang chủ thành công',
                 'data' => [
+                    // 'banners' => $formattedBanners,
                     'categories' => $formattedCategories,
                     'new_products' => $formattedNewProducts,
                     'hot_products' => $formattedHotProducts
@@ -141,30 +152,56 @@ class HomeController extends Controller
 
     public function getProductsByCategory($slug)
     {
+        $minPrice = request('minPrice');
+        $maxPrice = request('maxPrice');
+        $sort = request('sort');
+
         // Kiểm tra danh mục có tồn tại không
-        $category = Category::where('slug',$slug)->first();
+        $category = Category::where('slug', $slug)->first();
         if (!$category) {
             return response()->json(['message' => 'Không tìm thấy danh mục!'], 404);
         }
 
         // Lấy danh sách sản phẩm thuộc danh mục đó
-        $products = $category->products()
-            ->with(['library', 'variants']) // Load thêm ảnh và biến thể sản phẩm
-            ->orderBy('created_at', 'desc') // Sắp xếp theo ngày tạo
-            ->paginate(8);
+        $query = $category->products()
+            ->with(['library', 'variants'])
+            ->where('is_active', 1);
 
+        $products = $query->get();
+
+        // Xử lý ảnh và giá cho từng sản phẩm
         $products->transform(function ($product) {
-            $product->url = $product->main_image ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb') : null;
+            $product->url = $product->main_image
+                ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb')
+                : null;
 
             $price = $this->getVariantPrice($product);
             $product->regular_price = $price['regular_price'];
             $product->sale_price = $price['sale_price'];
+            $product->final_price = $product->sale_price ?? $product->regular_price;
 
             return $product;
         });
 
+        // Lọc theo khoảng giá nếu có
+        if ($minPrice !== null && $maxPrice !== null) {
+            $products = $products->filter(function ($product) use ($minPrice, $maxPrice) {
+                return $product->final_price >= $minPrice && $product->final_price <= $maxPrice;
+            })->values();
+        }
+
+        // Sắp xếp theo final_price
+        if ($sort === 'price_asc') {
+            $products = $products->sortBy('final_price')->values();
+        } elseif ($sort === 'price_desc') {
+            $products = $products->sortByDesc('final_price')->values();
+        } else {
+            $products = $products->sortByDesc('created_at')->values();
+        } 
+
         return response()->json($products, 200);
     }
+
 
     public function searchProducts(Request $request)
     {

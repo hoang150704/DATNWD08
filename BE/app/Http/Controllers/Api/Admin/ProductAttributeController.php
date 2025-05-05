@@ -30,7 +30,7 @@ class ProductAttributeController extends Controller
                 ->groupBy('attribute_id'); // Nhóm theo attribute_id
             $list = ProductAttribute::where("product_id", $idProduct)->get();
             // Định dạng lại dữ liệu
-            
+
             $formattedData = [
                 'product_id' => $idProduct,
                 'attributes' => []
@@ -92,28 +92,28 @@ class ProductAttributeController extends Controller
         try {
             DB::beginTransaction();
             $validatedData = $request->validated();
-    
+
             // Kiểm tra sản phẩm có phải biến thể không
             $product = Product::findOrFail($idProduct);
             if ($product->type == 1) {
                 return response()->json(['message' => 'Đây không phải sản phẩm biến thể'], 422);
             }
-    
+
             // Lấy danh sách attribute_id (parentVariants)
             $parentVariants = $validatedData["attribute"]["parentVariants"];
             unset($validatedData["attribute"]["parentVariants"]);
-    
+
             // Gộp tất cả các giá trị attribute_value_id được chọn
             $selectedValues = [];
             foreach ($validatedData["attribute"] as $value) {
                 $selectedValues = array_merge($selectedValues, $value);
             }
-    
+
             // Lấy danh sách giá trị đang có trong DB
             $existingValues = ProductAttribute::where('product_id', $idProduct)
                 ->pluck('attribute_value_id')
                 ->toArray();
-    
+
             // Xử lý xóa những giá trị bị loại bỏ
             $removedValues = array_diff($existingValues, $selectedValues);
             if (!empty($removedValues)) {
@@ -121,24 +121,42 @@ class ProductAttributeController extends Controller
                 ProductAttribute::where('product_id', $idProduct)
                     ->whereIn('attribute_value_id', $removedValues)
                     ->delete();
-    
+
                 // Tìm tất cả product_variations của product_id này
                 $variationsToDelete = ProductVariation::where('product_id', $idProduct)
-                ->whereIn('id', function ($query) use ($removedValues) {
-                    $query->select('variation_id')
-                        ->from('product_variation_values')
-                        ->whereIn('attribute_value_id', $removedValues);
-                })->pluck('id')->toArray();
-    
+                    ->whereIn('id', function ($query) use ($removedValues) {
+                        $query->select('variation_id')
+                            ->from('product_variation_values')
+                            ->whereIn('attribute_value_id', $removedValues);
+                    })->pluck('id')->toArray();
+
                 if (!empty($variationsToDelete)) {
+                    $variationsToDelete = ProductVariation::where('product_id', $idProduct)
+                        ->whereIn('id', function ($query) use ($removedValues) {
+                            $query->select('variation_id')
+                                ->from('product_variation_values')
+                                ->whereIn('attribute_value_id', $removedValues);
+                        })->pluck('id')->toArray();
+
+                    //  GỌI SERVICE để kiểm tra xem có biến thể nào đang được dùng trong đơn không
+                    $usedVariants = app(\App\Services\ProductVariation::class)
+                        ->checkVariantUsedInActiveOrders($variationsToDelete);
+
+                    if (!empty($usedVariants)) {
+                        DB::rollBack();
+                        return response()->json([
+                            'message' => 'Không thể xóa các biến thể đang nằm trong đơn hàng đang xử lý.',
+                            'variant_ids' => $usedVariants
+                        ], 422);
+                    }
                     // Xóa tất cả product_variation_values của variations bị ảnh hưởng
                     ProductVariationValue::whereIn('variation_id', $variationsToDelete)->delete();
-    
+
                     // Xóa tất cả product_variations bị ảnh hưởng
                     ProductVariation::whereIn('id', $variationsToDelete)->delete();
                 }
             }
-    
+
             // Xử lý thêm giá trị mới
             $newValues = array_diff($selectedValues, $existingValues);
             if (!empty($newValues)) {
@@ -151,24 +169,24 @@ class ProductAttributeController extends Controller
                     ]);
                 }
             }
-    
+
             // Xử lý khi người dùng thêm thuộc tính mới
             $existingAttributes = ProductAttribute::where('product_id', $idProduct)
                 ->whereIn('attribute_id', $parentVariants)
                 ->pluck('attribute_id')
                 ->toArray();
             $newAttributes = array_diff($parentVariants, $existingAttributes);
-            
+
             if (!empty($newAttributes)) {
                 $existingVariations = ProductVariation::where('product_id', $idProduct)
                     ->pluck('id')
                     ->toArray();
-    
+
                 foreach ($newAttributes as $newAttribute) {
                     $newAttributeValue = ProductAttribute::where('attribute_id', $newAttribute)
                         ->where('product_id', $idProduct)
                         ->first();
-    
+
                     foreach ($existingVariations as $existingVariation) {
                         ProductVariationValue::create([
                             'variation_id' => $existingVariation,
@@ -177,7 +195,7 @@ class ProductAttributeController extends Controller
                     }
                 }
             }
-    
+
             DB::commit();
             return response()->json(['message' => 'Cập nhật thành công'], 200);
         } catch (ValidationException $e) {
@@ -198,7 +216,7 @@ class ProductAttributeController extends Controller
     public function destroy(string $id)
     {
         $productAttribute = ProductAttribute::findOrFail($id);
-    
+
         // Xóa mềm các biến thể có liên quan
         ProductVariation::whereHas('values', function ($query) use ($productAttribute) {
             $query->where('attribute_value_id', $productAttribute->attribute_value_id);
@@ -206,13 +224,13 @@ class ProductAttributeController extends Controller
             $variation->values()->delete(); // Xóa mềm ProductVariationValue trước
             $variation->delete(); // Xóa mềm ProductVariation
         });
-    
+
         // Xóa mềm product attribute
         $productAttribute->delete();
-    
+
         return response()->json(['message' => 'Bạn đã xóa thành công (soft delete)']);
     }
-    
+
 
 
     function deleteAttribute($id)

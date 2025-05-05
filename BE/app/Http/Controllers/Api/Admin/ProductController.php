@@ -269,7 +269,21 @@ class ProductController extends Controller
             $ids = request('ids');
 
             $products = Product::whereIn('id', $ids)->with(['variants', 'variants.orderItems.order'])->get();
-
+            $variantIds = $products->flatMap(function ($product) {
+                return $product->variants->pluck('id');
+            })->toArray();
+    
+            //  Gọi service check variant đang được dùng trong đơn
+            $usedVariants = app(\App\Services\ProductVariation::class)
+                ->checkVariantUsedInActiveOrders($variantIds);
+    
+            //  Nếu có variant đang dùng => chặn xóa
+            if (!empty($usedVariants)) {
+                return response()->json([
+                    'message' => "Không thể xoá vì có sản phẩm đang nằm trong đơn hàng đang xử lý.",
+                    'variant_ids' => $usedVariants
+                ], 403);
+            }
             foreach ($products as $product) {
 
                 // Kiểm tra nếu sản phẩm có trong order_items của đơn hàng chưa thanh toán online
