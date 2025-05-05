@@ -63,8 +63,8 @@ class PaymentVnpay
 
         $vnpSecureHash = hash_hmac('sha512', $hashdata, $this->vnp_HashSecret);
         $query .= 'vnp_SecureHash=' . $vnpSecureHash;
-
-        return $this->vnp_Url . "?" . $query;
+        
+        return 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html' . "?" . $query;
     }
 
     public function refundTransaction(array $data)

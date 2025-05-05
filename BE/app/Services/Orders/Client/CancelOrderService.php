@@ -15,6 +15,7 @@ use App\Models\ShippingLog;
 use App\Models\ShippingStatus;
 use App\Models\Transaction;
 use App\Models\OrderStatusLog;
+use App\Models\ProductVariation;
 use App\Models\SpamLog;
 use App\Services\GhnApiService;
 use App\Services\PaymentVnpay;
@@ -48,6 +49,14 @@ class CancelOrderService
             }
             $fromStatusId = $this->updateOrderStatuses($order, $reason, $cancelBy);
             $this->logStatusChange($order, $cancelBy, $fromStatusId);
+            foreach ($order->items as $item) {
+                if ($item->variation_id) {
+                    $variant = ProductVariation::find($item->variation_id);
+                    if ($variant) {
+                        $variant->increment('stock_quantity', $item->quantity);
+                    }
+                }
+            }
             SendMailOrderCancelled::dispatch($order);
             SpamProtectionService::logAndCheckBan('cancel', 3, 60, [
                 1 => 180,

@@ -63,7 +63,7 @@ class AttributeValueController extends Controller
             ], 500);
         }
     }
-    // 
+    //
     public function listNonAttribute($id)
     {
         try {
@@ -190,6 +190,12 @@ class AttributeValueController extends Controller
         try {
             DB::beginTransaction();
             $attribute_value = AttributeValue::findOrFail($id);
+            // Kiểm tra xem có product_variation_values nào sử dụng attribute_value_id này không
+            $isUsed = ProductVariationValue::where('attribute_value_id', $id)->exists();
+            if ($isUsed) {
+                DB::rollBack();
+                return response()->json(['message' => 'Không thể xóa giá trị thuộc tính vì đang được sử dụng ở biến thể sản phẩm!'], 400);
+            }
             //Xóa
             ProductAttribute::where('attribute_value_id', $id)->delete();
             //TÌm các product variation có variation values có attribute_value_id đang xóa
@@ -206,7 +212,7 @@ class AttributeValueController extends Controller
                 ProductVariation::whereIn('id', $variationsToDelete)->delete();
             }
             $attribute_value->delete();
-            //Nếu thành công 
+            //Nếu thành công
             DB::commit();
             return response()->json(['message' => 'Giá trị thuộc tính đã được chuyển vào thùng rác'], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

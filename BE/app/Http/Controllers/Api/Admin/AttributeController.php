@@ -132,26 +132,33 @@ class AttributeController extends Controller
             if ($attribute->is_default == 0) {
                 return response()->json(['message' => 'Thuộc tính mặc định không thể xóa'], 400);
             }
+            // Lấy các values của thuộc tính
+            $attributeValueIds = AttributeValue::where('attribute_id', $id)->pluck('id')->toArray();
+            // Kiểm tra xem có product_variation_values nào sử dụng các attribute_value_id này không
+            $isUsed = ProductVariationValue::whereIn('attribute_value_id', $attributeValueIds)
+                ->exists();
+            if ($isUsed) {
+                DB::rollBack();
+                return response()->json(['message' => 'Không thể xóa thuộc tính vì đang được sử dụng ở biến thể sản phẩm!'], 400);
+            }
             //Xóa
             ProductAttribute::where('attribute_id', $id)->delete();
-            //Lấy các values của thằng attribute đang xoad
-            $attributeValueIds = AttributeValue::where('attribute_id', $id)->pluck('id')->toArray();
             //Lấy ra mảng các productvariations có values liên quan
             $variationsToDelete = ProductVariation::join('product_variation_values', 'product_variations.id', '=', 'product_variation_values.variation_id')
                 ->whereIn('product_variation_values.attribute_value_id', $attributeValueIds)
                 ->distinct()
                 ->pluck('product_variations.id')
                 ->toArray();
-                // Kiểm tra xem mảng có rỗng không, nếu không rỗng thì xóa
-                if (!empty($variationsToDelete)) {
-                    ProductVariationValue::whereIn('variation_id', $variationsToDelete)->delete();
-                    ProductVariation::whereIn('id', $variationsToDelete)->delete();
-                }
-                //Xóa các attributes values liên quan
-                AttributeValue::whereIn('id', $attributeValueIds)->delete();
-                // XÓa attribute
+            // Kiểm tra xem mảng có rỗng không, nếu không rỗng thì xóa
+            if (!empty($variationsToDelete)) {
+                ProductVariationValue::whereIn('variation_id', $variationsToDelete)->delete();
+                ProductVariation::whereIn('id', $variationsToDelete)->delete();
+            }
+            //Xóa các attributes values liên quan
+            AttributeValue::whereIn('id', $attributeValueIds)->delete();
+            // Xóa attribute
             $attribute->delete();
-            //Nếu thành công 
+            //Nếu thành công
             DB::commit();
             return response()->json(['message' => 'Thuộc tính đã được chuyển vào thùng rác'], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

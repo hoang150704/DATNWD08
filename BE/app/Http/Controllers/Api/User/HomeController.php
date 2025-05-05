@@ -14,16 +14,6 @@ class HomeController extends Controller
     public function index()
     {
         try {
-            // Lấy banner
-            $banners = Banner::where('is_active', true)->get();
-            $formattedBanners = $banners->map(function ($banner) {
-                return [
-                    'id' => $banner->id,
-                    'image_url' => $banner->image_url,
-                    'link' => $banner->link
-                ];
-            });
-
             // Lấy danh mục
             $categories = Category::where('is_active', true)
                 ->orderBy('position')
@@ -88,7 +78,6 @@ class HomeController extends Controller
                 'status' => 'success',
                 'message' => 'Lấy dữ liệu trang chủ thành công',
                 'data' => [
-                    'banners' => $formattedBanners,
                     'categories' => $formattedCategories,
                     'new_products' => $formattedNewProducts,
                     'hot_products' => $formattedHotProducts

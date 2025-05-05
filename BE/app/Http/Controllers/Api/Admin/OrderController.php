@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Order\StoreOrderRequest;
 use App\Http\Resources\RefundRequestResource;
 use App\Http\Resources\ShipmentResource;
 use App\Http\Resources\TransactionResource;
+use App\Jobs\SendMailOrderCancelled;
 use App\Jobs\SendMailOrderConfirmed;
 use App\Jobs\SendMailSuccessOrderJob;
 use App\Models\Order;
@@ -94,7 +95,8 @@ class OrderController extends Controller
             $end_day = request("end_day");
             $orders = $this->search($order_code, $order_status, $payment_status, $shipping_status, $order_name, $order_phone, $start_day, $end_day);
 
-            $orders = $orders->map(function ($order) {
+            // Lấy collection và map lại dữ liệu
+            $data = $orders->getCollection()->map(function ($order) {
                 return [
                     'id' => $order->id,
                     'code' => $order->code,
@@ -108,9 +110,25 @@ class OrderController extends Controller
                     'created_at' => $order->created_at->format('d/m/Y H:i'),
                 ];
             });
+
+            // Trả về dữ liệu phân trang chuẩn Laravel
             return response()->json([
                 'message' => 'Success',
-                'data' => $orders
+                'data' => [
+                    'current_page' => $orders->currentPage(),
+                    'data' => $data,
+                    'first_page_url' => $orders->url(1),
+                    'from' => $orders->firstItem(),
+                    'last_page' => $orders->lastPage(),
+                    'last_page_url' => $orders->url($orders->lastPage()),
+                    'links' => $orders->linkCollection()->toArray(),
+                    'next_page_url' => $orders->nextPageUrl(),
+                    'path' => $orders->path(),
+                    'per_page' => $orders->perPage(),
+                    'prev_page_url' => $orders->previousPageUrl(),
+                    'to' => $orders->lastItem(),
+                    'total' => $orders->total(),
+                ]
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
@@ -315,15 +333,8 @@ class OrderController extends Controller
                     return [
                         'from' => $statusTimeLine->fromStatus->name ?? null,
                         'to' => $statusTimeLine->toStatus->name ?? null,
-                        'changed_by' => $statusTimeLine->changedByUser ? [
-                            'id' => $statusTimeLine->changedByUser->id,
-                            'name' => $statusTimeLine->changedByUser->name,
-                            'role' => $statusTimeLine->changedByUser->role
-                        ] : [
-                            'id' => 'system',
-                            'name' => 'Hệ thống',
-                            'role' => 'system'
-                        ],
+                        'changed_by' => 'mê'
+                        ,
                         'changed_at' => $statusTimeLine->changed_at,
                     ];
                 }),
@@ -549,8 +560,15 @@ class OrderController extends Controller
                 'changed_at' => now(),
             ]);
 
-
-
+            foreach ($order->items as $item) {
+                if ($item->variation_id) {
+                    $variant = ProductVariation::find($item->variation_id);
+                    if ($variant) {
+                        $variant->increment('stock_quantity', $item->quantity);
+                    }
+                }
+            }
+            SendMailOrderCancelled::dispatch($order);
             DB::commit();
             return response()->json([
                 'message' => 'Đơn hàng đã được hủy',
@@ -610,6 +628,7 @@ class OrderController extends Controller
                 'note' => 'Duyệt hoàn tiền sau khi nhận hàng',
                 'created_at' => now(),
             ]);
+
             DB::commit();
             return response()->json(['message' => 'Đã duyệt yêu cầu hoàn tiền'], 200);
         } catch (\Throwable $e) {
@@ -914,7 +933,7 @@ class OrderController extends Controller
             'ghn_status' => 'manual_return_confirmed',
             'mapped_status_id' => $shipment->shipping_status_id,
             'note' => 'Admin đã xác nhận hàng hoàn về kho',
-            'location' => 'Kho Shine Light',
+            'location' => 'Kho SevenStyle',
             'timestamp' => now(),
         ]);
 

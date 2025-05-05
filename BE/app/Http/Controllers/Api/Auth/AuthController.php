@@ -120,7 +120,7 @@ class AuthController extends Controller
 
         // Kiểm tra email có tồn tại không
         if (!$user) {
-            return response()->json(['message' => 'Email hoặc mật khẩu không chính xác!'], 401);
+            return response()->json(['message' => 'Người dùng không tồn tại'], 401);
         }
 
         // Kiểm tra email đã xác thực chưa
@@ -130,7 +130,7 @@ class AuthController extends Controller
 
         // Kiểm tra mật khẩu
         if (!Auth::attempt($request->only('username', 'password'))) {
-            return response()->json(['message' => 'Email hoặc mật khẩu không chính xác!'], 401);
+            return response()->json(['message' => 'Mật khẩu không chính xác!'], 401);
         }
 
         // Xóa token cũ nếu người dùng đăng nhập lại (tránh trùng lặp token)
@@ -247,7 +247,7 @@ class AuthController extends Controller
                 Log::error("Đổi thất bại: Token không hợp lệ - Token: " . $data['token']);
                 return response()->json(['message' => 'Token không hợp lệ!'], 400);
             }
-            // 
+            //
             $expiredTime = Carbon::parse($record->created_at)->addSeconds(15);
             if (now()->greaterThan($expiredTime)) {
                 // Xóa token khỏi DB
@@ -294,7 +294,7 @@ class AuthController extends Controller
         }
     }
 
-    // 
+    //
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email|exists:users,email']);
@@ -357,7 +357,7 @@ class AuthController extends Controller
             $response = Http::get('https://www.googleapis.com/oauth2/v3/tokeninfo', [
                 'id_token' => $token
             ]);
-            // nếu thất bại thù 
+            // nếu thất bại thù
             if ($response->failed() || !isset($response['email'])) {
                 return response()->json(['error' => 'Xác thực thất bại'], 401);
             }

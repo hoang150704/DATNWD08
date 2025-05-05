@@ -46,7 +46,7 @@ class CheckValidShippingStatusFlow
 
         // So sánh flow
         if (!GhnStatusFlowService::canChange($currentGhnStatus,  $incomingGhnStatus)) {
-            Log::warning("Webhook GHN: Trạng thái không hợp lệ từ [$currentGhnStatus] -> [ $incomingGhnStatus] (GHN: $incomingGhnStatus) | Đơn: {$shipment->order->code}");
+            Log::info("Webhook GHN: Trạng thái không hợp lệ từ [$currentGhnStatus] -> [ $incomingGhnStatus] (GHN: $incomingGhnStatus) | Đơn: {$shipment->order->code}");
             return response()->json(['message' => 'Sai luồng trạng thái GHN'], 200);
         }
 
