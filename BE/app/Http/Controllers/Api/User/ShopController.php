@@ -11,60 +11,58 @@ use Illuminate\Http\Request;
 class ShopController extends Controller
 {
     public function getAllProducts(Request $request)
-{
-    $sort = $request->query('sort', 'default');
+    {
+        $sort = $request->query('sort', 'default');
 
-    // Lấy sản phẩm đang hoạt động
-    $products = Product::with(['library', 'variants'])
-        ->where('is_active', 1)
-        ->get();
+        // Lấy sản phẩm đang hoạt động
+        $products = Product::with(['library', 'variants'])
+            ->where('is_active', 1)
+            ->get();
 
-    // Xử lý ảnh và giá cho từng sản phẩm
-    $products->transform(function ($product) {
-        $product->url = $product->main_image
-            ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb')
-            : null;
+        // Xử lý ảnh và giá cho từng sản phẩm
+        $products->transform(function ($product) {
+            $product->url = $product->main_image
+                ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb')
+                : null;
 
-        $price = $this->getVariantPrice($product);
-        $product->regular_price = $price['regular_price'];
-        $product->sale_price = $price['sale_price'];
+            $price = $this->getVariantPrice($product);
+            $product->regular_price = $price['regular_price'];
+            $product->sale_price = $price['sale_price'];
 
-        // Gán final_price
-        if (!is_null($product->sale_price)) {
-            $product->final_price = $product->sale_price;
+            // Gán final_price
+            if (!is_null($product->sale_price)) {
+                $product->final_price = $product->sale_price;
+            } else {
+                $product->final_price = $product->regular_price;
+            }
+
+            return $product;
+        });
+
+        // Sắp xếp theo yêu cầu
+        if ($sort === 'price_asc') {
+            $products = $products->sortBy('final_price')->values();
+        } elseif ($sort === 'price_desc') {
+            $products = $products->sortByDesc('final_price')->values();
         } else {
-            $product->final_price = $product->regular_price;
+            $products = $products->sortByDesc('created_at')->values();
         }
 
-        return $product;
-    });
+        // Chỉ trả về 3 trường giá và thông tin cần thiết
+        $filteredProducts = $products->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'url' => $product->url,
+                'slug' => $product->slug,
+                'regular_price' => $product->regular_price,
+                'sale_price' => $product->sale_price,
+                'final_price' => $product->final_price,
+            ];
+        });
 
-    // Sắp xếp theo yêu cầu
-    if ($sort === 'price_asc') {
-        $products = $products->sortBy('final_price')->values();
-    } elseif ($sort === 'price_desc') {
-        $products = $products->sortByDesc('final_price')->values();
-    } else {
-        $products = $products->sortByDesc('created_at')->values();
+        return response()->json($filteredProducts, 200);
     }
-
-    // Giới hạn 10 sản phẩm
-    $products = $products->take(10);
-
-    // Chỉ trả về 3 trường giá và thông tin cần thiết
-    $filteredProducts = $products->map(function ($product) {
-        return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'url' => $product->url,
-            'regular_price' => $product->regular_price,
-            'sale_price' => $product->sale_price,
-            'final_price' => $product->final_price,
-        ];
-    });
-
-    return response()->json($filteredProducts, 200);
-}
 
 
     private function getVariantPrice($product)
