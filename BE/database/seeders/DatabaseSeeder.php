@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
             OrderSeeder::class,
             OrderItemSeeder::class,
             SettingGhnSeeder::class,
-            NotificationSeeder::class
+            // NotificationSeeder::class
         ]);
     }
 }
