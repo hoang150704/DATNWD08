@@ -244,13 +244,13 @@ class OrderClientController extends Controller
                     'message' => 'Tổng cân nặng của đơn hạng đã vượt quá mức cho phép, vui lòng chia đơn hàng này thành 2 đơn nhỏ'
                 ], 400);
             }
-            // Thêm nhiều sản phẩm vào bảng `order_items`
+            // Thêm nhiều sản phẩm vào bảng `orde;;;r_items`
             OrderItem::insert($orderItems);
             // Gửi email xác nhận đơn hàng
 
             SendMailSuccessOrderJob::dispatch($order);
             DB::commit();
-            //Xóa giỏ hhangf
+            //Xóa giỏ hàng
             if ($userId) {
                 try {
                     // Lấy danh sách cart_id của user

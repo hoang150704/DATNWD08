@@ -152,7 +152,6 @@ class HomeController extends Controller
 
     public function getProductsByCategory($slug)
     {
-
         $minPrice = request('minPrice');
         $maxPrice = request('maxPrice');
         $sort = request('sort');
@@ -165,37 +164,44 @@ class HomeController extends Controller
 
         // Lấy danh sách sản phẩm thuộc danh mục đó
         $query = $category->products()
-            ->with(['library', 'variants']); // Load thêm ảnh và biến thể sản phẩm
+            ->with(['library', 'variants'])
+            ->where('is_active', 1);
 
-        // Lọc theo khoảng giá nếu có
-        if ($minPrice && $maxPrice) {
-            $query->whereHas('variants', function ($q) use ($minPrice, $maxPrice) {
-                $q->whereBetween('regular_price', [$minPrice, $maxPrice]);
-            });
-        }
+        $products = $query->get();
 
-        if ($sort === 'price_asc') {
-            $query->withMin('variants', 'regular_price')->orderBy('variants_min_regular_price', 'asc');
-        } elseif ($sort === 'price_desc') {
-            $query->withMax('variants', 'regular_price')->orderBy('variants_max_regular_price', 'desc');
-        } else {
-            $query->orderByDesc('created_at'); // mặc định
-        }
-
-        $products = $query->paginate(8);
-
+        // Xử lý ảnh và giá cho từng sản phẩm
         $products->transform(function ($product) {
-            $product->url = $product->main_image ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb') : null;
+            $product->url = $product->main_image
+                ? Product::getConvertImage($product->library->url ?? '', 100, 100, 'thumb')
+                : null;
 
             $price = $this->getVariantPrice($product);
             $product->regular_price = $price['regular_price'];
             $product->sale_price = $price['sale_price'];
+            $product->final_price = $product->sale_price ?? $product->regular_price;
 
             return $product;
         });
 
+        // Lọc theo khoảng giá nếu có
+        if ($minPrice !== null && $maxPrice !== null) {
+            $products = $products->filter(function ($product) use ($minPrice, $maxPrice) {
+                return $product->final_price >= $minPrice && $product->final_price <= $maxPrice;
+            })->values();
+        }
+
+        // Sắp xếp theo final_price
+        if ($sort === 'price_asc') {
+            $products = $products->sortBy('final_price')->values();
+        } elseif ($sort === 'price_desc') {
+            $products = $products->sortByDesc('final_price')->values();
+        } else {
+            $products = $products->sortByDesc('created_at')->values();
+        } 
+
         return response()->json($products, 200);
     }
+
 
     public function searchProducts(Request $request)
     {
