@@ -261,7 +261,7 @@ class GhnTrackingController extends Controller
         $orderCodeMapped = ShippingStatusMapper::toOrder($shippingCode);
         //Nếu trạng thái là đã giao thì gọi job
         if($ghnStatus == 'delivered'){
-            CompleteOrderJob::dispatch($order->id)->delay(now()->addMinutes(2));
+            CompleteOrderJob::dispatch($order->id)->delay(now()->addMinutes(100));
         }
         // Cập nhật trạng thái vận chuyển
         if ($shippingCode) {

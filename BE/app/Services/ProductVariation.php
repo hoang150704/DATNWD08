@@ -11,10 +11,10 @@ class ProductVariation
     {
         return DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->whereIn('order_items.product_variation_id', $variantIds)
+            ->whereIn('order_items.variation_id', $variantIds)
             ->whereIn('orders.order_status_id', [1, 2, 3, 4, 6, 7]) // danh sách trạng thái còn hoạt động
             ->distinct()
-            ->pluck('order_items.product_variation_id')
+            ->pluck('order_items.variation_id')
             ->toArray();
     }
 }

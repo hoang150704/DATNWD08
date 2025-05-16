@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\StatisticsService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -21,12 +22,14 @@ class DashboardController extends Controller
         $period = $request->query('period');
         $startDate = $request->query('startDate');
         $endDate = $request->query('endDate');
-
+        // Custom
+        $startDateCustom = Carbon::parse($startDate)->startOfDay();
+        $endDateCustom = Carbon::parse($endDate)->addDay()->startOfDay();
         // Lấy thống kê cố định
         $fixedStats = $this->statisticsService->getFixedStatistics();
 
         // Lấy thống kê theo thời gian
-        $timeBasedStats = $this->statisticsService->getStatisticsByPeriod($period, $startDate, $endDate);
+        $timeBasedStats = $this->statisticsService->getStatisticsByPeriod($period, $startDateCustom, $endDateCustom);
 
         return response()->json([
             "status" => "success",

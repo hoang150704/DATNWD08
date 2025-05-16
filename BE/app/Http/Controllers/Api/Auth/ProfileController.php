@@ -89,7 +89,7 @@ class ProfileController extends Controller
 
             // Validate
             $validated = $request->validate([
-                'user_id'  => 'required|exists:users,id',
+
                 'name'     => 'required|string|max:255',
                 'phone'    => ['required', 'regex:/^0[0-9]{9}$/'],
                 'email'    => 'required|email|max:255',
@@ -99,7 +99,8 @@ class ProfileController extends Controller
                 'ward'     => 'required|string|max:255',
                 'is_active' => 'sometimes|boolean',
             ]);
-
+            $user = auth('sanctum')->user();
+            $validated['user_id'] =  $user->id;
             // Kiểm tra xem user này đã có địa chỉ nào trước đó ko
             $hasAddresses = AddressBook::where('user_id', $validated['user_id'])->exists();
             $currentDefault = AddressBook::where('user_id', $validated['user_id'])->where('is_active', 1)->first(); // Lấy địa chỉ mặc định

@@ -46,7 +46,7 @@ class AttributeController extends Controller
             DB::beginTransaction();
             $data = $request->validate(
                 [
-                    "name" => "required|max:100|unique:attributes,name",
+                    "name" => "required|max:100",
                 ]
             );
             $attribute = Attribute::create($data);

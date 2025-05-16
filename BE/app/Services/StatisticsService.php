@@ -175,14 +175,20 @@ class StatisticsService
     }
 
     // Lấy top 5 sản phẩm bán chạy nhất
-    private function getTopSellingProducts()
+    private function getTopSellingProducts($startDate = null, $endDate = null)
     {
-        return OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
+        $query = OrderItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.order_status_id', 5)
             ->groupBy('product_id')
             ->orderByDesc('total_sold')
-            ->take(5)
-            ->with('product:id,name,main_image')
-            ->get();
+            ->with('product:id,name,main_image');
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('orders.completed_at', [$startDate, $endDate]);
+        }
+
+        return $query->take(5)->get();
     }
 
     // Thống kê số lượng đánh giá theo từng mức rating
@@ -235,18 +241,63 @@ class StatisticsService
     // Lấy top 5 user có số tiền chi tiêu nhiều nhất
     private function getTopUsersBySpending($startDate, $endDate)
     {
-        return Order::select(
-            'user_id',
-            DB::raw('SUM(final_amount) as total_spent')
-        )
+        // User đã đăng nhập
+        $userOrders = Order::select(
+                'user_id',
+                DB::raw('SUM(final_amount) as total_spent')
+            )
+            ->whereNotNull('user_id')
             ->where('payment_status_id', 2)
             ->where('order_status_id', 5)
             ->whereBetween('completed_at', [$startDate, $endDate])
             ->groupBy('user_id')
             ->orderByDesc('total_spent')
             ->with('user:id,name,email')
+            ->get()
+            ->map(function($order) {
+                return [
+                    'user_id' => $order->user_id,
+                    'total_spent' => $order->total_spent,
+                    'user' => $order->user ? [
+                        'id' => $order->user->id,
+                        'name' => $order->user->name,
+                        'email' => $order->user->email,
+                    ] : null,
+                ];
+            });
+
+        // Khách vãng lai (user_id null, gom theo email)
+        $guestOrders = Order::select(
+                'o_mail',
+                DB::raw('SUM(final_amount) as total_spent'),
+                DB::raw('MAX(id) as latest_order_id')
+            )
+            ->whereNull('user_id')
+            ->where('payment_status_id', 2)
+            ->where('order_status_id', 5)
+            ->whereBetween('completed_at', [$startDate, $endDate])
+            ->groupBy('o_mail')
+            ->orderByDesc('total_spent')
             ->take(5)
             ->get();
+
+        $guestResults = $guestOrders->map(function($guest) {
+            $latestOrder = Order::find($guest->latest_order_id);
+            return [
+                'user_id' => null,
+                'total_spent' => $guest->total_spent,
+                'user' => [
+                    'id' => null,
+                    'name' => $latestOrder ? $latestOrder->o_name : null,
+                    'email' => $guest->o_mail,
+                ],
+            ];
+        });
+
+        // Gộp lại, lấy top 5 tổng thể
+        $all = $userOrders->concat($guestResults)->sortByDesc('total_spent')->take(5)->values();
+
+        return $all;
     }
 
     // Lấy top sản phẩm bán chạy nhất theo khoảng thời gian

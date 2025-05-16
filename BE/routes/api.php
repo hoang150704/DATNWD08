@@ -65,7 +65,7 @@ Route::middleware('prevent.admin')->group(function () {
 });
 Route::get('/vnpay-return', [OrderClientController::class, 'callbackPayment']);
 
-// Lấy thông tin order
+// Lấy thông tin orderw
 Route::get('/search_order', [OrderClientController::class, 'searchOrderByCode']); // Lấy thông tin order theo mã đơn hàng dành cho khách không đăng nhập vẫn mua hàng
 
 // Cửa hàng
